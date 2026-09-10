@@ -54,14 +54,51 @@ the backend, reproducing the single origin you get in production.
 | Command | What it does |
 | --- | --- |
 | `make` | List every command |
-| `make test` | Backend test suite |
+| `make test` | Backend test suite (SQLite) |
+| `make test-pg TEST_DATABASE_URL=...` | The same suite against real Postgres |
 | `make lint` / `make fmt` | Check / fix style and formatting |
 | `make build` | Compile the PWA into `backend/app/static` |
+| `make preview` | Serve exactly like production, on one origin |
+| `make tunnel` | Public HTTPS URL, so the phone can install the PWA |
 | `make migrate` | Apply migrations |
 | `make revision m="..."` | Create a migration from the models |
 
-To try the app **as it will run in production** (one service, one origin):
-`make build && make api`, then open http://localhost:8000.
+---
+
+## Testing before deploying
+
+Three layers, covering different risks.
+
+**On this Mac.** `make preview` serves the compiled PWA from FastAPI on
+http://localhost:8000 — one service, one origin, exactly the production
+shape. Chrome will install it, and DevTools → Network → Offline exercises the
+offline path. This covers all application logic.
+
+**On the real phone, without deploying.** A PWA needs a secure context, so
+opening `http://<mac-ip>:8000` from the Pixel loads the page but gives you no
+service worker and no install prompt — that is, everything except the part
+worth testing. Instead:
+
+```sh
+brew install cloudflared
+make preview     # one terminal
+make tunnel      # another; prints a https://….trycloudflare.com URL
+```
+
+Open that URL on the Pixel and it installs as a real app, service worker
+included, so airplane mode tests something meaningful. The tunnel is free,
+needs no account, and disappears when you stop it.
+
+**What only a deploy can tell you.** Three things are out of reach locally:
+the Docker build, Render's cold start, and Postgres-specific behaviour.
+
+Two of the three can be removed early without deploying anything:
+
+- **Postgres.** SQLite silently differs on `JSONB`, `bytea`, `TIMESTAMPTZ`
+  and `NUMERIC`, so a green local suite is not proof. Create the Neon project
+  and run `make test-pg TEST_DATABASE_URL=postgresql+psycopg://…` against it.
+- **Docker.** `brew install --cask docker`, then `docker build -t trips .`
+  from the repository root.
 
 ---
 

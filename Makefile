@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup api web build test lint fmt migrate revision password
+.PHONY: help setup api web preview tunnel test test-pg lint fmt migrate revision password build
 
 help: ## Show this list
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -18,8 +18,21 @@ web: ## Run the frontend on http://localhost:5173 (needs `make api` in another t
 build: ## Compile the PWA into backend/app/static
 	cd frontend && npm run build
 
-test: ## Run the backend test suite
+preview: build ## Serve exactly like production: one origin, on http://localhost:8000
+	cd backend && uv run uvicorn app.main:app --port 8000
+
+tunnel: ## Public HTTPS URL so the phone can install the PWA (brew install cloudflared)
+	@command -v cloudflared >/dev/null || { echo "Missing: brew install cloudflared"; exit 1; }
+	@echo "Run 'make preview' in another terminal first."
+	cloudflared tunnel --url http://localhost:8000
+
+test: ## Run the backend test suite (SQLite)
 	cd backend && uv run pytest
+
+test-pg: ## Same suite on real Postgres:  make test-pg TEST_DATABASE_URL=postgresql+psycopg://...
+	@test -n "$(TEST_DATABASE_URL)" || \
+		{ echo "Usage: make test-pg TEST_DATABASE_URL=postgresql+psycopg://user:pw@host/db"; exit 1; }
+	cd backend && TEST_DATABASE_URL="$(TEST_DATABASE_URL)" uv run pytest
 
 lint: ## Check style and formatting
 	cd backend && uv run ruff check . && uv run ruff format --check .
