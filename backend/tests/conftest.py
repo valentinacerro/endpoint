@@ -4,7 +4,7 @@ from collections.abc import Generator
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine, delete, event
+from sqlalchemy import Engine, create_engine, delete, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -53,6 +53,8 @@ def engine() -> Generator[Engine]:
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.close()
 
+    _refuse_to_wipe_real_data(db_engine)
+
     Base.metadata.drop_all(db_engine)
     Base.metadata.create_all(db_engine)
     try:
@@ -60,6 +62,34 @@ def engine() -> Generator[Engine]:
     finally:
         Base.metadata.drop_all(db_engine)
         db_engine.dispose()
+
+
+def _refuse_to_wipe_real_data(db_engine: Engine) -> None:
+    """Stop the suite before it destroys a database someone cares about.
+
+    This fixture drops every table. Pointed at the production database by a
+    slip of the shell — `make test-pg TEST_DATABASE_URL=…` with the wrong
+    string pasted in — that is the entire trip gone. Refusing when the target
+    already holds trips costs one query and removes the possibility.
+
+    Use a Neon branch for testing; creating one is instant and free.
+    """
+    if not TEST_DATABASE_URL:
+        return
+
+    inspector = inspect(db_engine)
+    if "trip" not in inspector.get_table_names():
+        return
+
+    with db_engine.connect() as connection:
+        existing = connection.execute(text("SELECT count(*) FROM trip")).scalar() or 0
+
+    if existing:
+        raise RuntimeError(
+            f"{existing} trip(s) found in TEST_DATABASE_URL. This suite drops every table, "
+            "so it refuses to run against a database with data in it. "
+            "Point it at an empty database or a Neon branch."
+        )
 
 
 @pytest.fixture

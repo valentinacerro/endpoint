@@ -95,8 +95,13 @@ the Docker build, Render's cold start, and Postgres-specific behaviour.
 Two of the three can be removed early without deploying anything:
 
 - **Postgres.** SQLite silently differs on `JSONB`, `bytea`, `TIMESTAMPTZ`
-  and `NUMERIC`, so a green local suite is not proof. Create the Neon project
-  and run `make test-pg TEST_DATABASE_URL=postgresql+psycopg://…` against it.
+  and `NUMERIC`, so a green local suite is not proof. Run
+  `make test-pg TEST_DATABASE_URL=postgresql+psycopg://…` against Postgres.
+
+  > **This suite drops every table.** Point it at a Neon *branch*, never at
+  > the database holding your trip — creating a branch is instant and free.
+  > As a backstop it refuses to start if the target already contains trips,
+  > but do not rely on that instead of reading the connection string.
 - **Docker.** `brew install --cask docker`, then `docker build -t trips .`
   from the repository root.
 
