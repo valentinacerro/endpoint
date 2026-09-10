@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 9f029cf17ba0
+Revision ID: 6a246a192d23
 Revises:
-Create Date: 2026-09-10 11:48:23.513212
+Create Date: 2026-09-10 12:16:29.121732
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 from app.models.base import UtcDateTime
 
 # revision identifiers, used by Alembic.
-revision: str = "9f029cf17ba0"
+revision: str = "6a246a192d23"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -33,6 +33,7 @@ def upgrade() -> None:
         sa.Column("end_date", sa.Date(), nullable=True),
         sa.Column("primary_tz", sa.String(length=64), nullable=False),
         sa.Column("primary_currency", sa.String(length=3), nullable=False),
+        sa.Column("budget_amount", sa.Numeric(precision=12, scale=2), nullable=True),
         sa.Column("status", sa.String(length=16), nullable=False),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -40,6 +41,9 @@ def upgrade() -> None:
         sa.Column("updated_at", UtcDateTime(), nullable=False),
         sa.CheckConstraint(
             "status IN ('planned', 'active', 'done', 'archived')", name="ck_trip_status"
+        ),
+        sa.CheckConstraint(
+            "budget_amount IS NULL OR budget_amount >= 0", name="ck_trip_budget_non_negative"
         ),
         sa.CheckConstraint(
             "end_date IS NULL OR start_date IS NULL OR end_date >= start_date",

@@ -38,6 +38,22 @@ def test_a_partial_update_can_clear_a_field(client: TestClient) -> None:
     assert cleared["notes"] is None
 
 
+def test_a_trip_can_carry_a_budget(client: TestClient) -> None:
+    trip = _create_trip(client, budget_amount="2500.00", primary_currency="eur")
+    # The budget is expressed in the currency you think in, not the one you
+    # spend on the ground.
+    assert trip["budget_amount"] == "2500.00"
+    assert trip["primary_currency"] == "EUR"
+
+    cleared = client.patch(f"/api/trips/{trip['id']}", json={"budget_amount": None}).json()
+    assert cleared["budget_amount"] is None
+
+
+def test_a_negative_budget_is_refused(client: TestClient) -> None:
+    response = client.post("/api/trips", json={"title": "x", "budget_amount": "-10.00"})
+    assert response.status_code == 422
+
+
 def test_an_unknown_timezone_is_refused(client: TestClient) -> None:
     response = client.post("/api/trips", json={"title": "x", "primary_tz": "Asia/Tokio"})
     assert response.status_code == 422

@@ -1,5 +1,6 @@
 import datetime as dt
 import uuid
+from decimal import Decimal
 from typing import Self
 
 from pydantic import Field, model_validator
@@ -20,6 +21,7 @@ class TripCreate(WriteModel):
     end_date: dt.date | None = None
     primary_tz: TimeZoneName = "Europe/Rome"
     primary_currency: CurrencyCode = "EUR"
+    budget_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2, max_digits=12)
     status: TripStatus = TripStatus.PLANNED
     notes: str | None = None
 
@@ -43,6 +45,7 @@ class TripUpdate(WriteModel):
     end_date: dt.date | None = None
     primary_tz: TimeZoneName | None = None
     primary_currency: CurrencyCode | None = None
+    budget_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2, max_digits=12)
     status: TripStatus | None = None
     notes: str | None = None
 
@@ -55,6 +58,7 @@ class TripRead(ReadModel):
     end_date: dt.date | None
     primary_tz: str
     primary_currency: str
+    budget_amount: Decimal | None
     status: TripStatus
     notes: str | None
     created_at: dt.datetime
