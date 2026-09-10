@@ -186,6 +186,24 @@ export function useResolveMapsLink() {
   })
 }
 
+export interface ImportSummary {
+  created: number
+  with_position: number
+  without_position: number
+  skipped: number
+}
+
+export function useImportPlaces(tripId: string) {
+  return useTripMutation(tripId, (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiFetch<ImportSummary>(`/api/trips/${tripId}/places/import`, {
+      method: 'POST',
+      body: form,
+    })
+  })
+}
+
 // --- Day notes ---
 
 export function useSetDayNote(tripId: string) {

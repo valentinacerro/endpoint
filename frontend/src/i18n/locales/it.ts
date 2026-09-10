@@ -160,6 +160,14 @@ export const it = {
   'maps.error.nothing_in_link': 'Da quel link non si ricava nessun luogo.',
   'maps.error.link_unreachable': 'Non sono riuscito ad aprire quel link.',
   'maps.error.generic': 'Non sono riuscito a leggere quel link.',
+  'maps.import': 'Importa da Google Takeout',
+  'maps.importHelp':
+    'Da takeout.google.com esporta Maps (i tuoi luoghi): otterrai un file CSV per ogni lista salvata.',
+  'maps.importing': 'Importazione…',
+  'maps.imported': 'Aggiunti {created} luoghi, {withPos} con posizione. {skipped} già presenti.',
+  'maps.resolveMissing': 'Trova le {count} posizioni mancanti',
+  'maps.resolving': 'Cerco le posizioni… {done} di {total}',
+  'maps.resolved': 'Trovate {found} posizioni su {total}.',
   'maps.noCoords': 'Nome trovato, ma senza posizione. Puoi aggiungerla dopo.',
 
   'places.title': 'Da vedere',

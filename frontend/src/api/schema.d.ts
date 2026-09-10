@@ -223,6 +223,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/places/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import From Takeout
+         * @description Bulk-create places from a Google Takeout saved list.
+         *
+         *     Coordinates are read from each row's link **offline**. Many Takeout URLs
+         *     carry only a place id and no position, and resolving those means one
+         *     HTTP redirect each — a few hundred of them inside a single request would
+         *     take minutes and hammer Google. Those places are created without a
+         *     position and the app offers to fill them in afterwards, a few at a time.
+         */
+        post: operations["import_from_takeout_api_trips__trip_id__places_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/places/{place_id}": {
         parameters: {
             query?: never;
@@ -398,6 +424,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** Body_import_from_takeout_api_trips__trip_id__places_import_post */
+        Body_import_from_takeout_api_trips__trip_id__places_import_post: {
+            /** File */
+            file: string;
         };
         /** Body_upload_attachment_api_trips__trip_id__attachments_post */
         Body_upload_attachment_api_trips__trip_id__attachments_post: {
@@ -626,6 +657,17 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportSummary */
+        ImportSummary: {
+            /** Created */
+            created: number;
+            /** With Position */
+            with_position: number;
+            /** Without Position */
+            without_position: number;
+            /** Skipped */
+            skipped: number;
         };
         /** LoginIn */
         LoginIn: {
@@ -1673,6 +1715,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlaceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_from_takeout_api_trips__trip_id__places_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_from_takeout_api_trips__trip_id__places_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportSummary"];
                 };
             };
             /** @description Validation Error */

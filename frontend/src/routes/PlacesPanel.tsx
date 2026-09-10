@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '../api/trips'
 import { PLACE_CATEGORIES, type PlaceCategory, type Priority } from '../api/types'
 import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
+import { ImportPlaces } from '../components/ImportPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { t } from '../i18n'
 import { exposureLabel, placeCategoryLabel, priorityLabel } from '../i18n/labels'
@@ -118,6 +119,7 @@ export function PlacesPanel() {
   const update = useUpdatePlace(tripId ?? '')
   const [adding, setAdding] = useState(false)
   const [pasting, setPasting] = useState(false)
+  const [importing, setImporting] = useState(false)
 
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
@@ -181,9 +183,12 @@ export function PlacesPanel() {
       </ul>
 
       {pasting && <AddPlaceFromLink tripId={tripId} onDone={() => setPasting(false)} />}
+      {importing && (
+        <ImportPlaces tripId={tripId} places={places} onDone={() => setImporting(false)} />
+      )}
       {adding && <AddPlace tripId={tripId} onDone={() => setAdding(false)} />}
 
-      {!adding && !pasting && (
+      {!adding && !pasting && !importing && (
         <div className="row">
           {/* Listed first: pasting a link is how places actually get
               collected, while typing one by hand is the fallback. */}
@@ -192,6 +197,9 @@ export function PlacesPanel() {
           </button>
           <button className="button button--quiet" onClick={() => setAdding(true)}>
             {t('places.add')}
+          </button>
+          <button className="button button--quiet" onClick={() => setImporting(true)}>
+            {t('maps.import')}
           </button>
         </div>
       )}

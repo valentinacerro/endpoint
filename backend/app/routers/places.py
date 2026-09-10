@@ -1,13 +1,18 @@
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, UploadFile, status
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.deps import DbSession
+from app.enums import PlaceCategory, Priority, default_exposure
 from app.errors import AppError
 from app.models import Place, Stop, Trip
 from app.schemas.place import PlaceCreate, PlaceRead, PlaceUpdate
+from app.services import takeout
 from app.services.lookup import apply_update, child_of_trip, get_or_404
+from app.services.maps import parse_maps_url
 
 router = APIRouter(prefix="/api/trips/{trip_id}/places", tags=["places"])
 
@@ -28,6 +33,71 @@ def create_place(trip_id: uuid.UUID, payload: PlaceCreate, db: DbSession) -> Pla
     db.add(place)
     db.commit()
     return place
+
+
+class ImportSummary(BaseModel):
+    created: int
+    with_position: int
+    without_position: int
+    skipped: int
+
+
+# Declared before "/{place_id}" so "import" is never read as an id.
+@router.post("/import", response_model=ImportSummary)
+def import_from_takeout(
+    trip_id: uuid.UUID,
+    db: DbSession,
+    file: Annotated[UploadFile, File()],
+) -> ImportSummary:
+    """Bulk-create places from a Google Takeout saved list.
+
+    Coordinates are read from each row's link **offline**. Many Takeout URLs
+    carry only a place id and no position, and resolving those means one
+    HTTP redirect each — a few hundred of them inside a single request would
+    take minutes and hammer Google. Those places are created without a
+    position and the app offers to fill them in afterwards, a few at a time.
+    """
+    get_or_404(db, Trip, trip_id)
+
+    rows = takeout.parse(file.file.read())
+
+    # Re-importing the same list should not double every entry.
+    existing = {
+        name.strip().casefold()
+        for name in db.scalars(select(Place.name).where(Place.trip_id == trip_id))
+    }
+
+    created = with_position = skipped = 0
+    for row in rows:
+        if row.name.strip().casefold() in existing:
+            skipped += 1
+            continue
+        existing.add(row.name.strip().casefold())
+
+        found = parse_maps_url(row.url) if row.url else None
+        place = Place(
+            trip_id=trip_id,
+            name=row.name,
+            category=PlaceCategory.SIGHT,
+            priority=Priority.NORMAL,
+            weather_exposure=default_exposure(PlaceCategory.SIGHT),
+            url=row.url,
+            notes=row.note,
+            lat=found.lat if found else None,
+            lon=found.lon if found else None,
+        )
+        db.add(place)
+        created += 1
+        if place.lat is not None:
+            with_position += 1
+
+    db.commit()
+    return ImportSummary(
+        created=created,
+        with_position=with_position,
+        without_position=created - with_position,
+        skipped=skipped,
+    )
 
 
 @router.get("/{place_id}", response_model=PlaceRead)

@@ -20,8 +20,11 @@ class ResolveOut(BaseModel):
 
 
 @router.post("/resolve", response_model=ResolveOut)
-# This endpoint makes an outbound request on demand, so it is capped harder
-# than the rest: it must not become a way to have the server fetch things.
-@limiter.limit("20/minute")
+# This endpoint makes an outbound request on demand, so it is capped: it
+# must not become a way to have the server fetch things on someone's
+# behalf. Sixty a minute is generous enough to work through an imported
+# list of a hundred places in a couple of minutes, and still polite to
+# Google — the client also spaces the calls out.
+@limiter.limit("60/minute")
 async def resolve_link(request: Request, payload: ResolveIn) -> MapsPlace:
     return await maps.resolve(payload.url)
