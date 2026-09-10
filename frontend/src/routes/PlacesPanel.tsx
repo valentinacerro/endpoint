@@ -1,0 +1,167 @@
+import { useState, type FormEvent } from 'react'
+import { Link, useParams } from 'react-router'
+
+import { useCreatePlace, useDeletePlace, useTripBundle } from '../api/trips'
+import { PLACE_CATEGORIES, type PlaceCategory, type Priority } from '../api/types'
+import { t } from '../i18n'
+import { exposureLabel, placeCategoryLabel, priorityLabel } from '../i18n/labels'
+
+const PRIORITIES: readonly Priority[] = ['must_see', 'high', 'normal', 'low']
+
+function AddPlace({ tripId, onDone }: { tripId: string; onDone: () => void }) {
+  const create = useCreatePlace(tripId)
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState<PlaceCategory>('sight')
+  const [priority, setPriority] = useState<Priority>('normal')
+  const [minutes, setMinutes] = useState(60)
+
+  function onSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (!name.trim()) return
+    create.mutate(
+      {
+        name: name.trim(),
+        category,
+        priority,
+        visit_minutes: minutes,
+        // weather_exposure is left out on purpose: the server derives it
+        // from the category, so the form stays short.
+      },
+      { onSuccess: onDone },
+    )
+  }
+
+  return (
+    <form className="card stack" onSubmit={onSubmit}>
+      <label className="field">
+        <span className="field__label">{t('places.name')}</span>
+        <input
+          className="field__input"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          autoFocus
+          required
+        />
+      </label>
+
+      <div className="row">
+        <label className="field field--grow">
+          <span className="field__label">{t('places.category')}</span>
+          <select
+            className="field__input"
+            value={category}
+            onChange={(event) => setCategory(event.target.value as PlaceCategory)}
+          >
+            {PLACE_CATEGORIES.map((option) => (
+              <option key={option} value={option}>
+                {placeCategoryLabel(option)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field field--grow">
+          <span className="field__label">{t('places.priority')}</span>
+          <select
+            className="field__input"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value as Priority)}
+          >
+            {PRIORITIES.map((option) => (
+              <option key={option} value={option}>
+                {priorityLabel(option)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field">
+          <span className="field__label">{t('places.visitMinutes')}</span>
+          <input
+            className="field__input"
+            type="number"
+            min={5}
+            max={1440}
+            step={15}
+            style={{ width: '9ch' }}
+            value={minutes}
+            onChange={(event) => setMinutes(Number(event.target.value))}
+          />
+        </label>
+      </div>
+
+      {create.error && (
+        <p className="field__error" role="alert">
+          {create.error.message || t('common.error')}
+        </p>
+      )}
+
+      <div className="row row--end">
+        <button type="button" className="button button--quiet" onClick={onDone}>
+          {t('common.cancel')}
+        </button>
+        <button className="button" type="submit" disabled={create.isPending || !name.trim()}>
+          {create.isPending ? t('common.saving') : t('common.save')}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export function PlacesPanel() {
+  const { tripId } = useParams<{ tripId: string }>()
+  const bundle = useTripBundle(tripId)
+  const remove = useDeletePlace(tripId ?? '')
+  const [adding, setAdding] = useState(false)
+
+  if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
+  if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
+
+  const places = bundle.data.places
+
+  return (
+    <main className="page stack">
+      <Link className="back" to={`/trips/${tripId}`}>
+        ← {bundle.data.trip.title}
+      </Link>
+      <h1 className="page__title">{t('places.title')}</h1>
+
+      {places.length === 0 && !adding && <p className="empty">{t('places.none')}</p>}
+
+      <ul className="docs">
+        {places.map((place) => (
+          <li key={place.id} className="doc">
+            <span className="doc__open" style={{ cursor: 'default' }}>
+              <span className="doc__name">
+                {place.name}
+                {place.priority === 'must_see' && <span className="pill pill--must">★</span>}
+              </span>
+              <span className="doc__meta">
+                {placeCategoryLabel(place.category)} · {place.visit_minutes} min ·{' '}
+                {exposureLabel(place.weather_exposure)}
+              </span>
+            </span>
+            <button
+              className="chip chip--danger"
+              onClick={() =>
+                confirm(t('common.confirmDelete', { name: place.name })) &&
+                remove.mutate(place.id)
+              }
+              aria-label={t('common.delete')}
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {adding ? (
+        <AddPlace tripId={tripId} onDone={() => setAdding(false)} />
+      ) : (
+        <button className="button" onClick={() => setAdding(true)}>
+          {t('places.add')}
+        </button>
+      )}
+    </main>
+  )
+}

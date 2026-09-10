@@ -128,10 +128,22 @@ export function TripDetail() {
             })}
           </p>
         )}
-        <Link className="back" to={`/trips/${tripId}/offline`}>
-          {t('offline.open')} →
-        </Link>
       </header>
+
+      <nav className="toolbar">
+        <Link className="toolbar__link" to={`/trips/${tripId}/stops`}>
+          {t('stops.open')}
+        </Link>
+        <Link className="toolbar__link" to={`/trips/${tripId}/places`}>
+          {t('places.open')}
+        </Link>
+        <Link className="toolbar__link" to={`/trips/${tripId}/offline`}>
+          {t('offline.open')}
+        </Link>
+        <Link className="toolbar__link" to={`/trips/${tripId}/edit`}>
+          {t('common.edit')}
+        </Link>
+      </nav>
 
       {tripId && <OfflineReminder bundle={bundle.data} tripId={tripId} />}
 

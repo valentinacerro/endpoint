@@ -773,6 +773,99 @@ a.entry__content:hover .entry__title {
   background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
+/* ==========================================================================
+   Trip toolbar
+   ========================================================================== */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.toolbar__link {
+  padding: 7px 13px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.toolbar__link:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* ==========================================================================
+   Stops
+   ========================================================================== */
+
+.stops {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: stop;
+}
+
+.stop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.stop__index {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  border-radius: 50%;
+}
+
+.stop__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.stop__name {
+  font-weight: 600;
+}
+
+.stop__meta {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.stop__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 5px;
+}
+
+.pill--must {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
 .remind {
   display: flex;
   flex-wrap: wrap;

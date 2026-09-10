@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 
-import { useCreateBooking } from '../api/trips'
-import { BOOKING_KINDS, type BookingKind, type Stop } from '../api/types'
+import { useCreateBooking, useUpdateBooking } from '../api/trips'
+import { BOOKING_KINDS, type Booking, type BookingKind, type Stop } from '../api/types'
 import { t } from '../i18n'
 import { bookingKindLabel } from '../i18n/labels'
-import { shortZoneName, zonedInputToInstant } from '../lib/datetime'
+import { instantToZonedInput, shortZoneName, zonedInputToInstant } from '../lib/datetime'
 
 /** Kinds that move you from one place to another, and so have two ends. */
 const TRAVEL_KINDS: ReadonlySet<BookingKind> = new Set([
@@ -28,25 +28,39 @@ interface Props {
   defaultZone: string
   stops: Stop[]
   onDone: () => void
+  /** Present when editing; absent when creating. */
+  booking?: Booking
 }
 
-export function BookingForm({ tripId, defaultZone, stops, onDone }: Props) {
+export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Props) {
   const create = useCreateBooking(tripId)
+  const update = useUpdateBooking(tripId)
+  const saving = booking ? update : create
 
-  const [kind, setKind] = useState<BookingKind>('hotel')
-  const [title, setTitle] = useState('')
-  const [provider, setProvider] = useState('')
-  const [code, setCode] = useState('')
-  const [start, setStart] = useState('')
-  const [startTz, setStartTz] = useState(defaultZone)
-  const [end, setEnd] = useState('')
-  const [endTz, setEndTz] = useState(defaultZone)
-  const [origin, setOrigin] = useState('')
-  const [destination, setDestination] = useState('')
-  const [address, setAddress] = useState('')
+  const startZoneInitial = booking?.start_tz ?? defaultZone
+  const endZoneInitial = booking?.end_tz ?? defaultZone
+
+  const [kind, setKind] = useState<BookingKind>(booking?.kind ?? 'hotel')
+  const [title, setTitle] = useState(booking?.title ?? '')
+  const [provider, setProvider] = useState(booking?.provider ?? '')
+  const [code, setCode] = useState(booking?.confirmation_code ?? '')
+  const [startTz, setStartTz] = useState(startZoneInitial)
+  const [endTz, setEndTz] = useState(endZoneInitial)
+  // Prefilled through the stored zone, not the device's: editing a Tokyo
+  // check-in from Rome must show 15:00, the same as reading it does.
+  const [start, setStart] = useState(
+    booking?.start_at ? instantToZonedInput(booking.start_at, startZoneInitial) : '',
+  )
+  const [end, setEnd] = useState(
+    booking?.end_at ? instantToZonedInput(booking.end_at, endZoneInitial) : '',
+  )
+  const [origin, setOrigin] = useState(booking?.origin_label ?? '')
+  const [destination, setDestination] = useState(booking?.destination_label ?? '')
+  const [address, setAddress] = useState(booking?.address ?? '')
+  const [notes, setNotes] = useState(booking?.notes ?? '')
 
   // The zones actually relevant to this trip, rather than a list of 400.
-  const zones = [...new Set([defaultZone, ...stops.map((stop) => stop.tz)])]
+  const zones = [...new Set([defaultZone, startZoneInitial, endZoneInitial, ...stops.map((s) => s.tz)])]
 
   const isTravel = TRAVEL_KINDS.has(kind)
   const isPlace = PLACE_KINDS.has(kind)
@@ -55,29 +69,38 @@ export function BookingForm({ tripId, defaultZone, stops, onDone }: Props) {
     event.preventDefault()
     if (!title.trim()) return
 
-    create.mutate(
-      {
-        kind,
-        title: title.trim(),
-        status: 'confirmed',
-        // The form always collects a time, never a bare date.
-        start_precision: 'datetime',
-        end_precision: 'datetime',
-        provider: provider.trim() || null,
-        confirmation_code: code.trim() || null,
-        // The typed time is wall-clock time *in the chosen zone*. Reading it
-        // as the device's local time is the mistake this whole app is built
-        // to avoid.
-        start_at: start ? zonedInputToInstant(start, startTz) : null,
-        start_tz: start ? startTz : null,
-        end_at: end ? zonedInputToInstant(end, endTz) : null,
-        end_tz: end ? endTz : null,
-        origin_label: isTravel && origin.trim() ? origin.trim() : null,
-        destination_label: isTravel && destination.trim() ? destination.trim() : null,
-        address: isPlace && address.trim() ? address.trim() : null,
-      },
-      { onSuccess: onDone },
-    )
+    const fields = {
+      kind,
+      title: title.trim(),
+      provider: provider.trim() || null,
+      confirmation_code: code.trim() || null,
+      // The typed time is wall-clock time *in the chosen zone*. Reading it
+      // as the device's local time is the mistake this whole app is built
+      // to avoid.
+      start_at: start ? zonedInputToInstant(start, startTz) : null,
+      start_tz: start ? startTz : null,
+      end_at: end ? zonedInputToInstant(end, endTz) : null,
+      end_tz: end ? endTz : null,
+      origin_label: isTravel && origin.trim() ? origin.trim() : null,
+      destination_label: isTravel && destination.trim() ? destination.trim() : null,
+      address: isPlace && address.trim() ? address.trim() : null,
+      notes: notes.trim() || null,
+    }
+
+    if (booking) {
+      update.mutate({ id: booking.id, ...fields }, { onSuccess: onDone })
+    } else {
+      create.mutate(
+        {
+          ...fields,
+          status: 'confirmed',
+          // The form always collects a time, never a bare date.
+          start_precision: 'datetime',
+          end_precision: 'datetime',
+        },
+        { onSuccess: onDone },
+      )
+    }
   }
 
   const zoneSelect = (value: string, onChange: (next: string) => void, label: string) => (
@@ -203,9 +226,19 @@ export function BookingForm({ tripId, defaultZone, stops, onDone }: Props) {
         </label>
       </div>
 
-      {create.error && (
+      <label className="field">
+        <span className="field__label">{t('booking.field.notes')}</span>
+        <textarea
+          className="field__input"
+          rows={2}
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
+      </label>
+
+      {saving.error && (
         <p className="field__error" role="alert">
-          {create.error.message || t('common.error')}
+          {saving.error.message || t('common.error')}
         </p>
       )}
 
@@ -213,8 +246,8 @@ export function BookingForm({ tripId, defaultZone, stops, onDone }: Props) {
         <button type="button" className="button button--quiet" onClick={onDone}>
           {t('common.cancel')}
         </button>
-        <button className="button" type="submit" disabled={create.isPending || !title.trim()}>
-          {create.isPending ? t('common.saving') : t('common.save')}
+        <button className="button" type="submit" disabled={saving.isPending || !title.trim()}>
+          {saving.isPending ? t('common.saving') : t('common.save')}
         </button>
       </div>
     </form>
