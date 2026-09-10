@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup api web preview tunnel test test-pg lint fmt migrate revision password build
+.PHONY: help setup api web preview tunnel seed types test test-pg test-web lint fmt migrate revision password build
 
 help: ## Show this list
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -25,6 +25,13 @@ tunnel: ## Public HTTPS URL so the phone can install the PWA (brew install cloud
 	@command -v cloudflared >/dev/null || { echo "Missing: brew install cloudflared"; exit 1; }
 	@echo "Run 'make preview' in another terminal first."
 	cloudflared tunnel --url http://localhost:8000
+
+seed: ## Fill the development database with a realistic sample trip
+	cd backend && uv run python -m app.seed
+
+types: ## Regenerate the frontend's types from the backend's OpenAPI schema
+	cd backend && uv run python -m app.openapi_dump > /tmp/openapi.json
+	cd frontend && npx --yes openapi-typescript@7 /tmp/openapi.json -o src/api/schema.d.ts
 
 test: ## Run the backend test suite (SQLite)
 	cd backend && uv run pytest

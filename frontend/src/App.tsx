@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 
 import { useSession } from './api/auth'
 import { SyncBanner } from './components/SyncBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { requestPersistentStorage } from './offline/persister'
-import { Home } from './routes/Home'
 import { Login } from './routes/Login'
+import { TripDetail } from './routes/TripDetail'
+import { TripList } from './routes/TripList'
 
 export default function App() {
   const session = useSession()
@@ -21,7 +23,21 @@ export default function App() {
     <>
       <SyncBanner />
       <UpdatePrompt />
-      {session.isPending ? <div className="splash" /> : authenticated ? <Home /> : <Login />}
+      {session.isPending ? (
+        <div className="splash" />
+      ) : authenticated ? (
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<TripList />} />
+            <Route path="/trips/:tripId" element={<TripDetail />} />
+            {/* Anything else goes home: the service worker serves index.html
+                for every path, so a stale bookmark must not dead-end. */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      ) : (
+        <Login />
+      )}
     </>
   )
 }

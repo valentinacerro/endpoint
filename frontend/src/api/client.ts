@@ -81,6 +81,10 @@ export interface ApiOptions extends Omit<RequestInit, 'body'> {
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options
   const method = (rest.method ?? 'GET').toUpperCase()
+  // A file upload must go out as multipart with a boundary the browser
+  // generates. Setting Content-Type ourselves would omit the boundary and
+  // the server would be unable to parse the request at all.
+  const isMultipart = body instanceof FormData
   // A GET can be repeated with no consequences. A POST cannot: if the timeout
   // fires after the server already processed it, repeating would create a
   // duplicate. So we only retry when it is provably safe.
@@ -93,8 +97,11 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
       const response = await fetch(path, {
         ...rest,
         method,
-        headers: body === undefined ? headers : { 'Content-Type': 'application/json', ...headers },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        headers:
+          body === undefined || isMultipart
+            ? headers
+            : { 'Content-Type': 'application/json', ...headers },
+        body: body === undefined ? undefined : isMultipart ? body : JSON.stringify(body),
         credentials: 'same-origin',
         signal: AbortSignal.timeout(WAKE_TIMEOUT_MS),
       })
