@@ -14,6 +14,7 @@ dependencies = [
     "pyjwt",
     "python-multipart",
     "slowapi",
+    "httpx>=0.28.1",
 ]
 
 [dependency-groups]
@@ -21,6 +22,7 @@ dev = [
     "pytest",
     "httpx",
     "ruff",
+    "anyio>=4.15.1",
 ]
 
 # This is an application, not a library to be installed.

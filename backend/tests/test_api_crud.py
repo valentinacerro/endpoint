@@ -217,6 +217,34 @@ def test_place_exposure_is_derived_from_its_category(client: TestClient) -> None
     assert explicit["weather_exposure"] == "outdoor"
 
 
+def test_a_booking_can_carry_coordinates(client: TestClient) -> None:
+    """They were on the model but missing from the schemas, so they could
+    only ever be written straight into the database."""
+    trip = _create_trip(client)
+    booking = client.post(
+        f"/api/trips/{trip['id']}/bookings",
+        json={"kind": "hotel", "title": "Gracery", "lat": 35.6955, "lon": 139.7006},
+    ).json()
+    assert booking["lat"] == 35.6955
+    assert booking["lon"] == 139.7006
+
+    moved = client.patch(
+        f"/api/trips/{trip['id']}/bookings/{booking['id']}",
+        json={"lat": 34.9855, "lon": 135.7588},
+    ).json()
+    assert moved["lat"] == 34.9855
+
+
+def test_impossible_coordinates_are_refused(client: TestClient) -> None:
+    trip = _create_trip(client)
+    for bad in ({"lat": 91, "lon": 0}, {"lat": 0, "lon": 181}):
+        response = client.post(
+            f"/api/trips/{trip['id']}/bookings",
+            json={"kind": "hotel", "title": "x", **bad},
+        )
+        assert response.status_code == 422, bad
+
+
 def test_a_place_can_be_scheduled_and_unscheduled(client: TestClient) -> None:
     """Putting a wish-list place onto the itinerary, and taking it off again."""
     trip = _create_trip(client)

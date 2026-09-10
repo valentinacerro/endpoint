@@ -25,6 +25,7 @@ from app.routers import (
     bundle,
     day_notes,
     health,
+    maps,
     places,
     stops,
     trips,
@@ -103,6 +104,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(stops.router)
     api.include_router(bookings.router)
     api.include_router(places.router)
+    api.include_router(maps.router)
     api.include_router(day_notes.router)
     api.include_router(attachments.router)
     api.include_router(bundle.router)

@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router'
 
 import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '../api/trips'
 import { PLACE_CATEGORIES, type PlaceCategory, type Priority } from '../api/types'
+import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
+import { MapsLink } from '../components/MapsLink'
 import { t } from '../i18n'
 import { exposureLabel, placeCategoryLabel, priorityLabel } from '../i18n/labels'
 import { dayKeyInZone, formatDayKey, formatDuration, formatTimeInZone } from '../lib/datetime'
@@ -115,6 +117,7 @@ export function PlacesPanel() {
   const remove = useDeletePlace(tripId ?? '')
   const update = useUpdatePlace(tripId ?? '')
   const [adding, setAdding] = useState(false)
+  const [pasting, setPasting] = useState(false)
 
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
@@ -150,6 +153,7 @@ export function PlacesPanel() {
               )}
             </span>
             <div className="doc__actions">
+              <MapsLink place={place} />
               {place.planned_start_at && (
                 <button
                   className="chip"
@@ -176,12 +180,20 @@ export function PlacesPanel() {
         ))}
       </ul>
 
-      {adding ? (
-        <AddPlace tripId={tripId} onDone={() => setAdding(false)} />
-      ) : (
-        <button className="button" onClick={() => setAdding(true)}>
-          {t('places.add')}
-        </button>
+      {pasting && <AddPlaceFromLink tripId={tripId} onDone={() => setPasting(false)} />}
+      {adding && <AddPlace tripId={tripId} onDone={() => setAdding(false)} />}
+
+      {!adding && !pasting && (
+        <div className="row">
+          {/* Listed first: pasting a link is how places actually get
+              collected, while typing one by hand is the fallback. */}
+          <button className="button" onClick={() => setPasting(true)}>
+            {t('maps.fromLink')}
+          </button>
+          <button className="button button--quiet" onClick={() => setAdding(true)}>
+            {t('places.add')}
+          </button>
+        </div>
       )}
     </main>
   )

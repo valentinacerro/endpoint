@@ -165,6 +165,27 @@ export function useDeletePlace(tripId: string) {
   )
 }
 
+// --- Google Maps links ---
+
+export interface ResolvedPlace {
+  name: string | null
+  lat: number | null
+  lon: number | null
+  url: string
+}
+
+/**
+ * Ask the server to read a Google Maps link.
+ *
+ * It has to be the server: a shared link is a `maps.app.goo.gl` redirect,
+ * and the browser cannot follow one cross-origin to see where it lands.
+ */
+export function useResolveMapsLink() {
+  return useMutation<ResolvedPlace, ApiError, string>({
+    mutationFn: (url) => apiFetch<ResolvedPlace>('/api/maps/resolve', { method: 'POST', body: { url } }),
+  })
+}
+
 // --- Day notes ---
 
 export function useSetDayNote(tripId: string) {

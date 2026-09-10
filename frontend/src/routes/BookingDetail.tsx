@@ -5,6 +5,7 @@ import { useDeleteBooking, useTripBundle } from '../api/trips'
 import type { Booking, Trip } from '../api/types'
 import { AttachmentList } from '../components/AttachmentList'
 import { BookingForm } from '../components/BookingForm'
+import { MapsLink } from '../components/MapsLink'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
 import { formatDayKey, formatTimeInZone, shortZoneName } from '../lib/datetime'
@@ -127,6 +128,16 @@ export function BookingDetail() {
       ) : (
         <>
           <Details booking={booking} trip={trip} showZone={showZone} />
+          <MapsLink
+            place={{
+              lat: booking.lat,
+              lon: booking.lon,
+              address: booking.address,
+              // The destination beats the title for anything that moves:
+              // "HND Haneda" finds an airport, "Roma FCO -> Tokyo HND" does not.
+              name: booking.destination_label ?? booking.title,
+            }}
+          />
           <button className="button button--quiet" onClick={() => setEditing(true)}>
             {t('common.edit')}
           </button>

@@ -242,6 +242,23 @@ export interface paths {
         patch: operations["update_place_api_trips__trip_id__places__place_id__patch"];
         trace?: never;
     };
+    "/api/maps/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Link */
+        post: operations["resolve_link_api_maps_resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/days/{day}/note": {
         parameters: {
             query?: never;
@@ -428,6 +445,10 @@ export interface components {
             phone?: string | null;
             /** Url */
             url?: string | null;
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
             /** Price Amount */
             price_amount?: number | string | null;
             /** Price Currency */
@@ -486,6 +507,10 @@ export interface components {
             phone: string | null;
             /** Url */
             url: string | null;
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
             /** Price Amount */
             price_amount: string | null;
             /** Price Currency */
@@ -544,6 +569,10 @@ export interface components {
             phone?: string | null;
             /** Url */
             url?: string | null;
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
             /** Price Amount */
             price_amount?: number | string | null;
             /** Price Currency */
@@ -737,6 +766,22 @@ export interface components {
          * @enum {string}
          */
         Priority: "must_see" | "high" | "normal" | "low";
+        /** ResolveIn */
+        ResolveIn: {
+            /** Url */
+            url: string;
+        };
+        /** ResolveOut */
+        ResolveOut: {
+            /** Name */
+            name: string | null;
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /** Url */
+            url: string;
+        };
         /** SessionOut */
         SessionOut: {
             /** Authenticated */
@@ -1726,6 +1771,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlaceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_link_api_maps_resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolveOut"];
                 };
             };
             /** @description Validation Error */

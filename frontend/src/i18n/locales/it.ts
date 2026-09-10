@@ -143,6 +143,18 @@ export const it = {
   'stops.tzHint':
     'Il fuso della tappa decide in quale giornata finiscono le sue prenotazioni.',
 
+  'maps.open': 'Apri in Maps',
+  'maps.directions': 'Indicazioni',
+  'maps.fromLink': 'Incolla un link di Google Maps',
+  'maps.paste': 'Incolla qui il link condiviso da Maps',
+  'maps.reading': 'Leggo il link…',
+  'maps.add': 'Aggiungi',
+  'maps.error.not_a_maps_link': 'Non sembra un link di Google Maps.',
+  'maps.error.nothing_in_link': 'Da quel link non si ricava nessun luogo.',
+  'maps.error.link_unreachable': 'Non sono riuscito ad aprire quel link.',
+  'maps.error.generic': 'Non sono riuscito a leggere quel link.',
+  'maps.noCoords': 'Nome trovato, ma senza posizione. Puoi aggiungerla dopo.',
+
   'places.title': 'Da vedere',
   'places.open': 'Da vedere',
   'places.none': 'Nessun luogo salvato.',

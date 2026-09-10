@@ -55,6 +55,10 @@ class BookingCreate(WriteModel):
     address: str | None = None
     phone: str | None = Field(default=None, max_length=40)
     url: str | None = None
+    # Where this happens, so it can be opened in a map and, later, fed to
+    # the itinerary optimiser as one of the fixed points of a day.
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
 
     price_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2, max_digits=12)
     price_currency: CurrencyCode | None = None
@@ -95,6 +99,8 @@ class BookingUpdate(WriteModel):
     address: str | None = None
     phone: str | None = Field(default=None, max_length=40)
     url: str | None = None
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
 
     price_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2, max_digits=12)
     price_currency: CurrencyCode | None = None
@@ -126,6 +132,8 @@ class BookingRead(ReadModel):
     address: str | None
     phone: str | None
     url: str | None
+    lat: float | None
+    lon: float | None
     price_amount: Decimal | None
     price_currency: str | None
     details: dict[str, Any]
