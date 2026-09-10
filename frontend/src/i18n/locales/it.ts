@@ -12,6 +12,16 @@
 export const it = {
   'app.name': 'endpoint',
 
+  'tabs.itinerary': 'Itinerario',
+  'tabs.places': 'Luoghi',
+  'tabs.map': 'Mappa',
+  'tabs.money': 'Spese',
+  'tabs.more': 'Altro',
+
+  'more.stopsHint': 'Le città del viaggio e il loro ordine',
+  'more.offlineHint': 'Cosa hai davvero sul telefono',
+  'more.editHint': 'Date, valuta, budget',
+
   'common.save': 'Salva',
   'common.saving': 'Salvataggio…',
   'common.cancel': 'Annulla',

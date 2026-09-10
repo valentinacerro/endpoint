@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 
 import {
   useCreateStop,
@@ -8,6 +8,7 @@ import {
   useTripBundle,
 } from '../api/trips'
 import type { Stop } from '../api/types'
+import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
 import { formatCalendarDate } from '../lib/datetime'
 import { timeZoneOptions } from '../lib/zones'
@@ -149,11 +150,13 @@ export function StopsPanel() {
   }
 
   return (
-    <main className="page stack">
-      <Link className="back" to={`/trips/${tripId}`}>
-        ← {bundle.data.trip.title}
-      </Link>
-      <h1 className="page__title">{t('stops.title')}</h1>
+    <>
+      <AppBar
+        title={t('stops.title')}
+        subtitle={bundle.data.trip.title}
+        back={`/trips/${tripId}/more`}
+      />
+      <main className="page stack">
 
       {stops.length === 0 && !adding && <p className="empty">{t('stops.none')}</p>}
 
@@ -216,6 +219,7 @@ export function StopsPanel() {
           {t('stops.add')}
         </button>
       )}
-    </main>
+      </main>
+    </>
   )
 }

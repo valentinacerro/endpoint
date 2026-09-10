@@ -9,6 +9,8 @@ import { OfflineReminder } from '../components/OfflineReminder'
 import { OptimizeDay } from '../components/OptimizeDay'
 import { SchedulePlace } from '../components/SchedulePlace'
 import { TimelineEntry } from '../components/TimelineEntry'
+import { AppBar } from '../components/AppBar'
+import { Fab } from '../components/Fab'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
 import {
@@ -61,44 +63,18 @@ export function TripDetail() {
     timeline.undatedBookings.length === 0 &&
     timeline.unscheduledPlaces.length === 0
 
+  const dates =
+    trip.start_date && trip.end_date
+      ? t('trips.dates', {
+          from: formatCalendarDate(trip.start_date),
+          to: formatCalendarDate(trip.end_date),
+        })
+      : undefined
+
   return (
-    <main className="page stack">
-      <header className="stack stack--tight">
-        <Link className="back" to="/">
-          ← {t('common.back')}
-        </Link>
-        <h1 className="page__title">{trip.title}</h1>
-        {trip.start_date && trip.end_date && (
-          <p className="muted">
-            {t('trips.dates', {
-              from: formatCalendarDate(trip.start_date),
-              to: formatCalendarDate(trip.end_date),
-            })}
-          </p>
-        )}
-      </header>
-
-      <nav className="toolbar">
-        <Link className="toolbar__link" to={`/trips/${tripId}/stops`}>
-          {t('stops.open')}
-        </Link>
-        <Link className="toolbar__link" to={`/trips/${tripId}/places`}>
-          {t('places.open')}
-        </Link>
-        <Link className="toolbar__link" to={`/trips/${tripId}/expenses`}>
-          {t('money.open')}
-        </Link>
-        <Link className="toolbar__link" to={`/trips/${tripId}/map`}>
-          {t('map.open')}
-        </Link>
-        <Link className="toolbar__link" to={`/trips/${tripId}/offline`}>
-          {t('offline.open')}
-        </Link>
-        <Link className="toolbar__link" to={`/trips/${tripId}/edit`}>
-          {t('common.edit')}
-        </Link>
-      </nav>
-
+    <>
+      <AppBar title={trip.title} subtitle={dates} back="/" />
+      <main className="page stack">
       <OfflineReminder bundle={data} tripId={tripId} />
 
       {next?.start_at && (
@@ -115,17 +91,13 @@ export function TripDetail() {
         </section>
       )}
 
-      {adding ? (
+      {adding && (
         <BookingForm
           tripId={tripId}
           defaultZone={trip.primary_tz}
           stops={data.stops}
           onDone={() => setAdding(false)}
         />
-      ) : (
-        <button className="button" onClick={() => setAdding(true)}>
-          {t('timeline.addBooking')}
-        </button>
       )}
 
       {nothingAtAll && <p className="empty">{t('timeline.empty')}</p>}
@@ -194,6 +166,8 @@ export function TripDetail() {
           </ul>
         </section>
       )}
-    </main>
+      </main>
+      {!adding && <Fab onClick={() => setAdding(true)} label={t('timeline.addBooking')} />}
+    </>
   )
 }

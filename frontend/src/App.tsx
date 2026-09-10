@@ -6,14 +6,16 @@ import { SyncBanner } from './components/SyncBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { requestPersistentStorage } from './offline/persister'
 import { BookingDetail } from './routes/BookingDetail'
-import { Login } from './routes/Login'
 import { Expenses } from './routes/Expenses'
+import { Login } from './routes/Login'
 import { OfflineStatus } from './routes/OfflineStatus'
 import { PlacesPanel } from './routes/PlacesPanel'
 import { StopsPanel } from './routes/StopsPanel'
 import { TripDetail } from './routes/TripDetail'
 import { TripEdit } from './routes/TripEdit'
+import { TripLayout } from './routes/TripLayout'
 import { TripList } from './routes/TripList'
+import { TripMore } from './routes/TripMore'
 
 // Split out: Leaflet and its tiles have no business delaying the screen
 // that has to open instantly, offline, every morning of the trip.
@@ -31,39 +33,46 @@ export default function App() {
     if (authenticated) void requestPersistentStorage()
   }, [authenticated])
 
+  if (session.isPending) return <div className="splash" />
+  if (!authenticated) {
+    return (
+      <>
+        <SyncBanner />
+        <Login />
+      </>
+    )
+  }
+
   return (
-    <>
+    <BrowserRouter>
       <SyncBanner />
       <UpdatePrompt />
-      {session.isPending ? (
-        <div className="splash" />
-      ) : authenticated ? (
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<TripList />} />
-            <Route path="/trips/:tripId" element={<TripDetail />} />
-            <Route path="/trips/:tripId/bookings/:bookingId" element={<BookingDetail />} />
-            <Route path="/trips/:tripId/expenses" element={<Expenses />} />
-            <Route path="/trips/:tripId/offline" element={<OfflineStatus />} />
-            <Route
-              path="/trips/:tripId/map"
-              element={
-                <Suspense fallback={<main className="page">…</main>}>
-                  <MapView />
-                </Suspense>
-              }
-            />
-            <Route path="/trips/:tripId/stops" element={<StopsPanel />} />
-            <Route path="/trips/:tripId/places" element={<PlacesPanel />} />
-            <Route path="/trips/:tripId/edit" element={<TripEdit />} />
-            {/* Anything else goes home: the service worker serves index.html
-                for every path, so a stale bookmark must not dead-end. */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      ) : (
-        <Login />
-      )}
-    </>
+      <Routes>
+        <Route path="/" element={<TripList />} />
+        {/* Everything inside a trip shares the bottom bar, so it never
+            unmounts and never flickers between sections. */}
+        <Route path="/trips/:tripId" element={<TripLayout />}>
+          <Route index element={<TripDetail />} />
+          <Route path="places" element={<PlacesPanel />} />
+          <Route path="expenses" element={<Expenses />} />
+          <Route path="more" element={<TripMore />} />
+          <Route path="stops" element={<StopsPanel />} />
+          <Route path="offline" element={<OfflineStatus />} />
+          <Route path="edit" element={<TripEdit />} />
+          <Route path="bookings/:bookingId" element={<BookingDetail />} />
+          <Route
+            path="map"
+            element={
+              <Suspense fallback={<main className="page" />}>
+                <MapView />
+              </Suspense>
+            }
+          />
+        </Route>
+        {/* Anything else goes home: the service worker serves index.html for
+            every path, so a stale bookmark must not dead-end. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }

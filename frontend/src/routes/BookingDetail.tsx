@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 
 import { useDeleteBooking, useTripBundle } from '../api/trips'
 import type { Booking, Trip } from '../api/types'
 import { AttachmentList } from '../components/AttachmentList'
 import { BookingForm } from '../components/BookingForm'
 import { MapsLink } from '../components/MapsLink'
+import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
 import { formatDayKey, formatTimeInZone, shortZoneName } from '../lib/datetime'
@@ -104,18 +105,13 @@ export function BookingDetail() {
   }
 
   return (
-    <main className="page stack">
-      <Link className="back" to={`/trips/${tripId}`}>
-        ← {trip.title}
-      </Link>
-
-      <header className="stack stack--tight">
-        <span className="muted">
-          <span aria-hidden="true">{BOOKING_KIND_ICON[booking.kind]}</span>{' '}
-          {bookingKindLabel(booking.kind)}
-        </span>
-        <h1 className="page__title">{booking.title}</h1>
-      </header>
+    <>
+      <AppBar
+        title={booking.title}
+        subtitle={`${BOOKING_KIND_ICON[booking.kind]} ${bookingKindLabel(booking.kind)}`}
+        back={`/trips/${tripId}`}
+      />
+      <main className="page stack">
 
       {editing ? (
         <BookingForm
@@ -149,6 +145,7 @@ export function BookingDetail() {
       <button className="button button--quiet button--danger" onClick={onDelete}>
         {t('booking.detail.delete')}
       </button>
-    </main>
+      </main>
+    </>
   )
 }

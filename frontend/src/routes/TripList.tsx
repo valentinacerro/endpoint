@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { useLogout } from '../api/auth'
 import { useCreateTrip, useTrips } from '../api/trips'
 import type { Trip } from '../api/types'
+import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
 import { tripStatusLabel } from '../i18n/labels'
 import { deviceTimeZone, formatCalendarDate } from '../lib/datetime'
@@ -102,13 +103,16 @@ export function TripList() {
   const [adding, setAdding] = useState(false)
 
   return (
-    <main className="page stack">
-      <header className="page__header">
-        <h1 className="page__title">{t('trips.title')}</h1>
-        <button className="button button--quiet" onClick={() => logout.mutate()}>
-          {t('trips.logout')}
-        </button>
-      </header>
+    <>
+      <AppBar
+        title={t('trips.title')}
+        action={
+          <button className="appbar__button" onClick={() => logout.mutate()}>
+            {t('trips.logout')}
+          </button>
+        }
+      />
+      <main className="page stack">
 
       {adding ? (
         <NewTripForm onDone={() => setAdding(false)} />
@@ -137,6 +141,7 @@ export function TripList() {
           </li>
         ))}
       </ul>
-    </main>
+      </main>
+    </>
   )
 }

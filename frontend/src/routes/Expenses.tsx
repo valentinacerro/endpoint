@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 
 import { useDeleteExpense, useFetchRate, usePutExpense, useTripBundle } from '../api/trips'
 import { EXPENSE_CATEGORIES, type ExpenseCategory, type PaymentMethod } from '../api/types'
+import { AppBar } from '../components/AppBar'
+import { Fab } from '../components/Fab'
 import { t } from '../i18n'
 import { expenseCategoryLabel, paymentLabel } from '../i18n/labels'
 import { byDay, formatMoney, summarise } from '../lib/budget'
@@ -208,11 +210,9 @@ export function Expenses() {
   const over = summary.remaining !== null && summary.remaining < 0
 
   return (
-    <main className="page stack">
-      <Link className="back" to={`/trips/${tripId}`}>
-        ← {trip.title}
-      </Link>
-      <h1 className="page__title">{t('money.title')}</h1>
+    <>
+      <AppBar title={t('money.title')} subtitle={trip.title} back={`/trips/${tripId}`} />
+      <main className="page stack">
 
       <section className="card stack stack--tight">
         <div className="totals">
@@ -277,17 +277,13 @@ export function Expenses() {
         </p>
       )}
 
-      {adding ? (
+      {adding && (
         <AddExpense
           tripId={tripId}
           defaultCurrency={trip.primary_currency}
           defaultDate={new Date().toISOString().slice(0, 10)}
           onDone={() => setAdding(false)}
         />
-      ) : (
-        <button className="button" onClick={() => setAdding(true)}>
-          {t('money.add')}
-        </button>
       )}
 
       {expenses.length === 0 && !adding && <p className="empty">{t('money.none')}</p>}
@@ -326,6 +322,8 @@ export function Expenses() {
           </ul>
         </section>
       ))}
-    </main>
+      </main>
+      {!adding && <Fab onClick={() => setAdding(true)} label={t('money.add')} />}
+    </>
   )
 }

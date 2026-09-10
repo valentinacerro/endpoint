@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 
 import { useDeleteTrip, useTripBundle, useUpdateTrip } from '../api/trips'
 import type { TripStatus } from '../api/types'
+import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
 import { tripStatusLabel } from '../i18n/labels'
 import { timeZoneOptions } from '../lib/zones'
@@ -68,11 +69,9 @@ export function TripEdit() {
   }
 
   return (
-    <main className="page stack">
-      <Link className="back" to={`/trips/${tripId}`}>
-        ← {trip.title}
-      </Link>
-      <h1 className="page__title">{t('trip.edit')}</h1>
+    <>
+      <AppBar title={t('trip.edit')} subtitle={trip.title} back={`/trips/${tripId}/more`} />
+      <main className="page stack">
 
       <form className="card stack" onSubmit={onSubmit}>
         <label className="field">
@@ -187,6 +186,7 @@ export function TripEdit() {
       <button className="button button--quiet button--danger" onClick={onDelete}>
         {t('common.delete')}
       </button>
-    </main>
+      </main>
+    </>
   )
 }

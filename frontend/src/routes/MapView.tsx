@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 
 import { useTripBundle } from '../api/trips'
 import type { BookingKind } from '../api/types'
 import { TripMap, type MapPin } from '../components/TripMap'
+import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
 import { formatDayKey } from '../lib/datetime'
 import { buildTimeline, type Day, type PlacedEntry } from '../lib/itinerary'
@@ -83,11 +84,13 @@ export function MapView() {
   const { pins, missing } = pinsFor(shown)
 
   return (
-    <main className="page stack">
-      <Link className="back" to={`/trips/${tripId}`}>
-        ← {bundle.data.trip.title}
-      </Link>
-      <h1 className="page__title">{t('map.title')}</h1>
+    <>
+      <AppBar
+        title={t('map.title')}
+        subtitle={bundle.data.trip.title}
+        back={`/trips/${tripId}`}
+      />
+      <main className="page stack">
 
       {days.length > 1 && (
         <nav className="toolbar">
@@ -116,6 +119,7 @@ export function MapView() {
       <p className="muted small">{t('map.needsNetwork')}</p>
 
       {missing > 0 && <p className="hint">{t('map.missingCoords', { count: missing })}</p>}
-    </main>
+      </main>
+    </>
   )
 }

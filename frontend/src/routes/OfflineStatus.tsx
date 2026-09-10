@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 
 import { attachmentUrl, useTripBundle } from '../api/trips'
+import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
 import { formatSyncTime } from '../lib/datetime'
 import { formatBytes } from '../lib/images'
@@ -56,11 +57,13 @@ export function OfflineStatus() {
   }
 
   return (
-    <main className="page stack">
-      <Link className="back" to={`/trips/${tripId}`}>
-        ← {bundle.data.trip.title}
-      </Link>
-      <h1 className="page__title">{t('offline.title')}</h1>
+    <>
+      <AppBar
+        title={t('offline.title')}
+        subtitle={bundle.data.trip.title}
+        back={`/trips/${tripId}/more`}
+      />
+      <main className="page stack">
       <p className="muted">{t('offline.intro')}</p>
 
       {!supported && <p className="hint">{t('offline.unavailable')}</p>}
@@ -133,6 +136,7 @@ export function OfflineStatus() {
         <p className="muted small">{t('offline.space', { used: formatBytes(space.usage) })}</p>
       )}
       {persisted === false && <p className="hint">{t('offline.notPersisted')}</p>}
-    </main>
+      </main>
+    </>
   )
 }

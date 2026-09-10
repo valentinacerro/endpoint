@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 
 import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '../api/trips'
 import { PLACE_CATEGORIES, type PlaceCategory, type Priority } from '../api/types'
 import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
 import { ImportPlaces } from '../components/ImportPlaces'
 import { MapsLink } from '../components/MapsLink'
+import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
 import { exposureLabel, placeCategoryLabel, priorityLabel } from '../i18n/labels'
 import { dayKeyInZone, formatDayKey, formatDuration, formatTimeInZone } from '../lib/datetime'
@@ -127,11 +128,13 @@ export function PlacesPanel() {
   const places = bundle.data.places
 
   return (
-    <main className="page stack">
-      <Link className="back" to={`/trips/${tripId}`}>
-        ← {bundle.data.trip.title}
-      </Link>
-      <h1 className="page__title">{t('places.title')}</h1>
+    <>
+      <AppBar
+        title={t('places.title')}
+        subtitle={bundle.data.trip.title}
+        back={`/trips/${tripId}`}
+      />
+      <main className="page stack">
 
       {places.length === 0 && !adding && <p className="empty">{t('places.none')}</p>}
 
@@ -203,6 +206,7 @@ export function PlacesPanel() {
           </button>
         </div>
       )}
-    </main>
+      </main>
+    </>
   )
 }
