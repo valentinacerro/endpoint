@@ -330,6 +330,15 @@ select.field__input {
   font-size: 14px;
 }
 
+/* Two fields side by side on a phone leaves each too narrow to read what
+   you typed. The action row keeps its buttons together. */
+@media (max-width: 520px) {
+  .row:not(.row--end) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* ==========================================================================
    Page shell
    ========================================================================== */
@@ -615,9 +624,22 @@ select.field__input {
   --entry-accent: var(--kind-other);
   display: grid;
   grid-template-columns: 4.25rem 1.6rem 1fr;
+  grid-template-areas: 'time marker content';
   align-items: start;
   gap: 0 10px;
   padding: 10px 0;
+}
+
+.entry__time {
+  grid-area: time;
+}
+
+.entry__marker {
+  grid-area: marker;
+}
+
+.entry__content {
+  grid-area: content;
 }
 
 .entry[data-kind='flight'],
@@ -648,6 +670,48 @@ select.field__input {
   font-size: 15px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+
+/* On a phone the time column was eating 114px of about 330, leaving titles
+   to wrap two and three lines. Below this width the time moves above the
+   content and the rail keeps the layout readable as a timeline. */
+@media (max-width: 480px) {
+  .entry {
+    grid-template-columns: 1.6rem 1fr;
+    grid-template-areas:
+      'marker time'
+      'marker content';
+    row-gap: 2px;
+  }
+
+  .entry__time {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 0;
+    font-size: 14px;
+  }
+
+  .entries::before {
+    left: calc(0.8rem - 1px);
+  }
+
+  .gap {
+    grid-template-columns: 1.6rem 1fr;
+  }
+
+  .gap__line {
+    grid-column: 1;
+  }
+
+  .gap__label {
+    grid-column: 2;
+  }
+
+  .entry__clash {
+    grid-column: 2;
+  }
 }
 
 .entry__zone {
@@ -694,13 +758,13 @@ select.field__input {
   font-size: 15.5px;
   font-weight: 600;
   letter-spacing: -0.005em;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .entry__meta {
   font-size: 13px;
   color: var(--text-muted);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .entry__route {
@@ -997,7 +1061,7 @@ a.entry__content:hover .entry__title {
 .stop__meta {
   font-size: 12.5px;
   color: var(--text-muted);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .stop__actions {
@@ -1074,7 +1138,7 @@ a.entry__content:hover .entry__title {
 
 .doc__name {
   font-weight: 550;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .doc__open:hover .doc__name {
