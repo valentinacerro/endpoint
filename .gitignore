@@ -1,0 +1,28 @@
+# Secrets — never commit these
+.env
+.env.local
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+frontend/dist/
+frontend/dev-dist/
+.vite/
+
+# Compiled PWA served by FastAPI (generated, not version-controlled)
+backend/app/static/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

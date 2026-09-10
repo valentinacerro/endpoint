@@ -1,0 +1,26 @@
+# Render service configuration.
+#
+# Values marked `sync: false` are NOT stored here: they are entered by hand in
+# the Render dashboard. This file is version-controlled; the secrets are not.
+
+services:
+  - type: web
+    name: trips
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # European region: the travel data stays in the EU.
+    region: frankfurt
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENV
+        value: prod
+      # Neon connection string (EU region). It must start with
+      # postgresql+psycopg:// so SQLAlchemy uses psycopg 3.
+      - key: DATABASE_URL
+        sync: false
+      # Generated locally with:  make password
+      - key: APP_PASSWORD_HASH
+        sync: false
+      - key: JWT_SECRET
+        sync: false

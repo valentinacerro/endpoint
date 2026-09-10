@@ -1,0 +1,34 @@
+# Keeps the Render service awake during the weeks of a trip.
+#
+# MIND THE ARITHMETIC. Render's free plan gives 750 instance hours per month
+# **per workspace, not per service**. A ping every 10 minutes keeps the service
+# up 24/7, which is ~730 hours a month: it fits, but only if you have no other
+# free service running on Render. Running out of hours **suspends the service
+# until the next month** — mid-trip, that would be the worst possible failure.
+#
+# That is why the schedule is disabled by default: uncomment `schedule` a few
+# days before leaving, and comment it back out on your return.
+#
+# Before enabling it, set the HEALTH_URL secret on the repository:
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+#   HEALTH_URL = https://<your-service>.onrender.com/health
+
+name: keepalive
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '*/10 * * * *'
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake the service
+        run: |
+          if [ -z "${{ secrets.HEALTH_URL }}" ]; then
+            echo "HEALTH_URL is not set: nothing to do."
+            exit 0
+          fi
+          # --max-time 120: a cold start can take up to a minute.
+          curl --fail --silent --show-error --max-time 120 "${{ secrets.HEALTH_URL }}"

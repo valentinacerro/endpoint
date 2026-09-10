@@ -1,0 +1,27 @@
+import datetime as dt
+
+from pydantic import BaseModel, ConfigDict
+
+from app.schemas.attachment import AttachmentRead
+from app.schemas.booking import BookingRead
+from app.schemas.place import PlaceRead
+from app.schemas.stop import StopRead
+from app.schemas.trip import TripRead
+
+
+class TripBundle(BaseModel):
+    """Everything the app needs about one trip, in a single response.
+
+    This is the keystone of the offline design. Against a service that can
+    take a minute to wake up, doing N+1 requests to paint a screen is not an
+    option: one request, one cache entry, one trip through the cold start.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    trip: TripRead
+    stops: list[StopRead]
+    bookings: list[BookingRead]
+    places: list[PlaceRead]
+    attachments: list[AttachmentRead]
+    generated_at: dt.datetime

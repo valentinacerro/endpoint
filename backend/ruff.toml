@@ -1,0 +1,9 @@
+line-length = 100
+target-version = "py313"
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
+
+[lint.per-file-ignores]
+# Alembic generates code with unused imports and conventional naming.
+"migrations/*" = ["E501", "F401"]

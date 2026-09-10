@@ -1,0 +1,37 @@
+[project]
+name = "endpoint-backend"
+version = "0.1.0"
+description = "Travel organizer — FastAPI backend"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy>=2.0",
+    "alembic",
+    "psycopg[binary]",
+    "pydantic-settings",
+    "argon2-cffi",
+    "pyjwt",
+    "python-multipart",
+    "slowapi",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "httpx",
+    "ruff",
+]
+
+# This is an application, not a library to be installed.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Deprecations in our own code are errors; third-party ones are not, otherwise
+# somebody else's release breaks our suite.
+filterwarnings = [
+    "error::DeprecationWarning",
+    "default:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
