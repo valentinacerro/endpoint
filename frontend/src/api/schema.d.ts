@@ -302,6 +302,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/weather": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Weather
+         * @description The forecast for each stop, over the days you are there.
+         *
+         *     Not part of the trip bundle on purpose. The bundle is your data, with
+         *     an ETag built from when you last changed it; a forecast is someone
+         *     else's data that changes on its own several times a day. Mixing them
+         *     would mean either a bundle that never validates or a forecast that
+         *     goes stale silently.
+         */
+        get: operations["get_weather_api_trips__trip_id__weather_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/days/{day}/note": {
         parameters: {
             query?: never;
@@ -812,6 +838,29 @@ export interface components {
         DayNoteWrite: {
             /** Note */
             note: string;
+        };
+        /** DayWeatherOut */
+        DayWeatherOut: {
+            /**
+             * Stop Id
+             * Format: uuid
+             */
+            stop_id: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Weather Code */
+            weather_code: number;
+            /** Precipitation Mm */
+            precipitation_mm: number;
+            /** Precipitation Probability */
+            precipitation_probability: number | null;
+            /** Temp Max */
+            temp_max: number | null;
+            /** Temp Min */
+            temp_min: number | null;
         };
         /**
          * ExpenseCategory
@@ -1359,6 +1408,34 @@ export interface components {
          * @enum {string}
          */
         WeatherExposure: "indoor" | "outdoor" | "mixed";
+        /**
+         * WeatherOut
+         * @description What could be forecast, and — just as important — what could not.
+         *
+         *     Three separate reasons a day can be missing, kept apart because they
+         *     call for different answers from the reader: the trip is too far off,
+         *     a stop has no coordinates yet, or the service did not respond.
+         */
+        WeatherOut: {
+            /** Days */
+            days: components["schemas"]["DayWeatherOut"][];
+            /** Beyond Forecast */
+            beyond_forecast: string[];
+            /** Unlocated Stops */
+            unlocated_stops: string[];
+            /** Unavailable Stops */
+            unavailable_stops: string[];
+            /**
+             * Horizon
+             * Format: date
+             */
+            horizon: string;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2194,6 +2271,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_weather_api_trips__trip_id__weather_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeatherOut"];
                 };
             };
             /** @description Validation Error */

@@ -45,6 +45,9 @@ export const EXPENSE_CATEGORIES = [
   'other',
 ] as const satisfies readonly ExpenseCategory[]
 
+export type Weather = S['WeatherOut']
+export type DayWeather = S['DayWeatherOut']
+
 export type ChecklistItem = S['ChecklistItemRead']
 export type ChecklistItemWrite = S['ChecklistItemWrite']
 export type ChecklistCategory = ChecklistItem['category']

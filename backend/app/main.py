@@ -32,6 +32,7 @@ from app.routers import (
     rates,
     stops,
     trips,
+    weather,
 )
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -109,6 +110,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(places.router)
     api.include_router(maps.router)
     api.include_router(rates.router)
+    api.include_router(weather.router)
     api.include_router(day_notes.router)
     api.include_router(expenses.router)
     api.include_router(checklist.router)

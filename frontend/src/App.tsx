@@ -8,6 +8,7 @@ import { requestPersistentStorage } from './offline/persister'
 import { BookingDetail } from './routes/BookingDetail'
 import { Expenses } from './routes/Expenses'
 import { Packing } from './routes/Packing'
+import { Weather } from './routes/Weather'
 import { Login } from './routes/Login'
 import { OfflineStatus } from './routes/OfflineStatus'
 import { PlacesPanel } from './routes/PlacesPanel'
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="places" element={<PlacesPanel />} />
           <Route path="expenses" element={<Expenses />} />
           <Route path="packing" element={<Packing />} />
+          <Route path="weather" element={<Weather />} />
           <Route path="more" element={<TripMore />} />
           <Route path="stops" element={<StopsPanel />} />
           <Route path="offline" element={<OfflineStatus />} />

@@ -17,6 +17,7 @@ import type {
   TripStatus,
   WeatherExposure,
 } from '../api/types'
+import type { Sky } from '../lib/weather'
 import { t, type TranslationKey } from './index'
 
 const BOOKING_KIND_KEYS = {
@@ -92,6 +93,19 @@ const CHECKLIST_CATEGORY_KEYS = {
 
 export function checklistCategoryLabel(category: ChecklistCategory): string {
   return t(CHECKLIST_CATEGORY_KEYS[category])
+}
+
+const SKY_KEYS = {
+  clear: 'weather.sky.clear',
+  cloudy: 'weather.sky.cloudy',
+  fog: 'weather.sky.fog',
+  rain: 'weather.sky.rain',
+  snow: 'weather.sky.snow',
+  storm: 'weather.sky.storm',
+} as const satisfies Record<Sky, TranslationKey>
+
+export function skyLabel(sky: Sky): string {
+  return t(SKY_KEYS[sky])
 }
 
 export function expenseCategoryLabel(category: ExpenseCategory): string {

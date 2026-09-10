@@ -31,6 +31,7 @@ import type {
   StopUpdate,
   Trip,
   TripBundle,
+  Weather,
   TripCreate,
   TripUpdate,
 } from './types'
@@ -38,6 +39,7 @@ import type {
 export const keys = {
   trips: ['trips'] as const,
   bundle: (tripId: string) => ['trip', tripId, 'bundle'] as const,
+  weather: (tripId: string) => ['trip', tripId, 'weather'] as const,
 }
 
 export function useTrips() {
@@ -300,6 +302,29 @@ export function useFetchRate() {
   return useMutation<RateOut, ApiError, { base: string; quote: string; on: string }>({
     mutationFn: ({ base, quote, on }) =>
       apiFetch<RateOut>(`/api/rates?base=${base}&quote=${quote}&on=${on}`),
+  })
+}
+
+// --- Weather ---
+
+/** Roughly how often a forecast is worth re-fetching. */
+const FORECAST_FRESH_MS = 3 * 60 * 60 * 1000
+
+/**
+ * The forecast for the trip.
+ *
+ * Its own cache entry, not part of the bundle: the bundle is your data,
+ * revalidated by an ETag from when you last changed it, while a forecast
+ * changes several times a day on its own. It is persisted like everything
+ * else, so offline you still see the last one fetched — which is why the
+ * screen always shows when that was.
+ */
+export function useWeather(tripId: string | undefined) {
+  return useQuery({
+    queryKey: keys.weather(tripId ?? ''),
+    queryFn: () => apiFetch<Weather>(`/api/trips/${tripId}/weather`),
+    enabled: Boolean(tripId),
+    staleTime: FORECAST_FRESH_MS,
   })
 }
 

@@ -1692,3 +1692,68 @@ a.entry__content:hover .entry__title {
   padding: 0;
   list-style: none;
 }
+
+/* --- Forecast --- */
+
+.forecast {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.forecast__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+/* A wet day has to be findable by glance, not by reading millimetres. */
+.forecast__row--wet {
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+}
+
+.forecast__day {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forecast__icon {
+  font-size: 15px;
+}
+
+.forecast__sky {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.forecast__rain,
+.forecast__temp {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.section__title {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.swap__line {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
