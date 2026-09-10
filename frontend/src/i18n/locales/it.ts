@@ -143,6 +143,13 @@ export const it = {
   'stops.tzHint':
     'Il fuso della tappa decide in quale giornata finiscono le sue prenotazioni.',
 
+  'map.title': 'Mappa',
+  'map.open': 'Mappa',
+  'map.allDays': 'Tutto il viaggio',
+  'map.nothingToShow': 'Nessuna tappa con una posizione. Aggiungi i luoghi da un link di Maps e compariranno qui.',
+  'map.missingCoords': '{count} tappe non hanno una posizione e non sono sulla mappa.',
+  'map.needsNetwork': 'La mappa ha bisogno della rete: le sue tessere non si possono salvare offline.',
+
   'maps.open': 'Apri in Maps',
   'maps.directions': 'Indicazioni',
   'maps.fromLink': 'Incolla un link di Google Maps',

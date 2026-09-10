@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 
 import { useSession } from './api/auth'
@@ -13,6 +13,12 @@ import { StopsPanel } from './routes/StopsPanel'
 import { TripDetail } from './routes/TripDetail'
 import { TripEdit } from './routes/TripEdit'
 import { TripList } from './routes/TripList'
+
+// Split out: Leaflet and its tiles have no business delaying the screen
+// that has to open instantly, offline, every morning of the trip.
+const MapView = lazy(() =>
+  import('./routes/MapView').then((module) => ({ default: module.MapView })),
+)
 
 export default function App() {
   const session = useSession()
@@ -37,6 +43,14 @@ export default function App() {
             <Route path="/trips/:tripId" element={<TripDetail />} />
             <Route path="/trips/:tripId/bookings/:bookingId" element={<BookingDetail />} />
             <Route path="/trips/:tripId/offline" element={<OfflineStatus />} />
+            <Route
+              path="/trips/:tripId/map"
+              element={
+                <Suspense fallback={<main className="page">…</main>}>
+                  <MapView />
+                </Suspense>
+              }
+            />
             <Route path="/trips/:tripId/stops" element={<StopsPanel />} />
             <Route path="/trips/:tripId/places" element={<PlacesPanel />} />
             <Route path="/trips/:tripId/edit" element={<TripEdit />} />

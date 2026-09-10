@@ -882,6 +882,7 @@ a.entry__content:hover .entry__title {
 
 .toolbar__link {
   padding: 7px 13px;
+  font: inherit;
   font-size: 13.5px;
   font-weight: 600;
   color: var(--text-muted);
@@ -889,11 +890,58 @@ a.entry__content:hover .entry__title {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
+  cursor: pointer;
 }
 
 .toolbar__link:hover {
   color: var(--text);
   border-color: var(--border-strong);
+}
+
+.toolbar__link--on {
+  color: #fff;
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toolbar__link--on {
+    color: #10121a;
+  }
+}
+
+/* ==========================================================================
+   Map
+   ========================================================================== */
+
+.map {
+  /* Leaflet measures its container, so a height has to exist up front or
+     the map renders as nothing at all. */
+  height: 60vh;
+  min-height: 320px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  /* Its own stacking context: Leaflet's internal panes climb to z-index
+     1000 and would otherwise sit on top of the sticky status banner. */
+  position: relative;
+  z-index: 0;
+}
+
+.map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--pin, #7c8090);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
 }
 
 /* ==========================================================================
