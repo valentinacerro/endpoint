@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 import { useTripBundle } from '../api/trips'
 import type { Booking } from '../api/types'
 import { BookingForm } from '../components/BookingForm'
+import { OfflineReminder } from '../components/OfflineReminder'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
 import {
@@ -127,7 +128,12 @@ export function TripDetail() {
             })}
           </p>
         )}
+        <Link className="back" to={`/trips/${tripId}/offline`}>
+          {t('offline.open')} →
+        </Link>
       </header>
+
+      {tripId && <OfflineReminder bundle={bundle.data} tripId={tripId} />}
 
       {next?.start_at && (
         <section className="card next">

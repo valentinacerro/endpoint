@@ -7,6 +7,7 @@ import { UpdatePrompt } from './components/UpdatePrompt'
 import { requestPersistentStorage } from './offline/persister'
 import { BookingDetail } from './routes/BookingDetail'
 import { Login } from './routes/Login'
+import { OfflineStatus } from './routes/OfflineStatus'
 import { TripDetail } from './routes/TripDetail'
 import { TripList } from './routes/TripList'
 
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/" element={<TripList />} />
             <Route path="/trips/:tripId" element={<TripDetail />} />
             <Route path="/trips/:tripId/bookings/:bookingId" element={<BookingDetail />} />
+            <Route path="/trips/:tripId/offline" element={<OfflineStatus />} />
             {/* Anything else goes home: the service worker serves index.html
                 for every path, so a stale bookmark must not dead-end. */}
             <Route path="*" element={<Navigate to="/" replace />} />

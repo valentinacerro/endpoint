@@ -173,6 +173,35 @@ export function homeTimeHint(
   return { time: local, zone: deviceZone }
 }
 
+/**
+ * When something last happened, on the reader's own clock.
+ *
+ * The one place in this file that deliberately uses the device zone: "last
+ * updated" is about you, not about a place. Everywhere else doing that would
+ * be the bug.
+ */
+export function formatSyncTime(
+  timestamp: number,
+  locale: string = DEFAULT_LOCALE,
+  now: Date = new Date(),
+): string {
+  const when = new Date(timestamp)
+  const sameDay = when.toDateString() === now.toDateString()
+  return formatter(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(sameDay ? {} : { day: 'numeric', month: 'short' }),
+  }).format(when)
+}
+
+/** Whole days from today to a calendar date; negative once it has passed. */
+export function daysUntil(date: CalendarDate, now: Date = new Date()): number {
+  const [year, month, day] = date.split('-').map(Number)
+  const target = Date.UTC(year, month - 1, day)
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((target - today) / DAY_MS)
+}
+
 /** "Tokyo" out of "Asia/Tokyo", for a compact label. */
 export function shortZoneName(timeZone: string): string {
   return timeZone.split('/').pop()?.replace(/_/g, ' ') ?? timeZone

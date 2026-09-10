@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   dayKeyInZone,
+  daysUntil,
   eachDay,
   formatCalendarDate,
   formatTimeInZone,
@@ -165,6 +166,31 @@ describe('reading a form field as wall-clock time in a chosen zone', () => {
     // will accept — it would silently blank the field.
     const midnight = zonedInputToInstant('2026-04-12T00:00', TOKYO)
     expect(instantToZonedInput(midnight, TOKYO)).toBe('2026-04-12T00:00')
+  })
+})
+
+describe('counting down to departure', () => {
+  // Midday UTC on purpose: this function answers "what day is it *here*",
+  // so a reference instant near midnight would land on different dates in
+  // Rome and in Tokyo and make the test disagree with itself depending on
+  // the machine running it.
+  const today = new Date('2026-04-09T12:00:00Z')
+
+  it('counts whole days, not hours', () => {
+    expect(daysUntil('2026-04-09', today)).toBe(0)
+    expect(daysUntil('2026-04-11', today)).toBe(2)
+    expect(daysUntil('2026-04-07', today)).toBe(-2)
+  })
+
+  it('does not drift across a month boundary', () => {
+    expect(daysUntil('2026-05-01', new Date('2026-04-29T12:00:00Z'))).toBe(2)
+  })
+
+  it('uses the day it is where you are', () => {
+    // Intentional, not a bug: at 23:00 UTC it is already tomorrow in both
+    // Rome and Tokyo, so a departure on the 1st is one sleep away, not two.
+    // A countdown that argued with the phone's own calendar would be worse.
+    expect(daysUntil('2026-05-01', new Date('2026-04-29T23:00:00Z'))).toBe(1)
   })
 })
 

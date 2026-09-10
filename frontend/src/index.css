@@ -773,6 +773,17 @@ a.entry__content:hover .entry__title {
   background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
+.remind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-left: 4px solid var(--kind-food);
+  background: color-mix(in srgb, var(--kind-food) 8%, var(--surface));
+}
+
 /* ==========================================================================
    Documents
    ========================================================================== */

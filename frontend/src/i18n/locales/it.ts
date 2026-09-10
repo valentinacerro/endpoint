@@ -115,6 +115,30 @@ export const it = {
   'booking.hint.differentZones':
     'Partenza e arrivo hanno fusi diversi: un Roma-Tokyo parte e atterra su due orologi.',
 
+  'offline.title': 'Stato offline',
+  'offline.open': 'Prepara per offline',
+  'offline.intro':
+    'Fallo con il wifi, prima di partire. In viaggio potresti non avere rete proprio quando ti serve un documento.',
+  'offline.data': 'Dati del viaggio',
+  'offline.dataReady': 'Itinerario e prenotazioni sono salvati sul telefono.',
+  'offline.lastSync': 'Ultimo aggiornamento: {when}',
+  'offline.neverSynced': 'Mai sincronizzato.',
+  'offline.documents': 'Documenti',
+  'offline.documentsNone': 'Non ci sono documenti da salvare.',
+  'offline.ready': '{done} di {total} salvati',
+  'offline.downloadAll': 'Scarica tutti ({count})',
+  'offline.downloading': 'Scaricamento {done} di {total}…',
+  'offline.someFailed': '{failed} non scaricati. Riprova con una connessione migliore.',
+  'offline.allReady': 'Tutti i documenti sono disponibili offline.',
+  'offline.space': 'Spazio usato: {used}',
+  'offline.notPersisted':
+    'Il browser potrebbe cancellare questi dati se lo spazio scarseggia. Usare l’app ogni tanto lo rende meno probabile.',
+  'offline.unavailable':
+    'Il salvataggio offline richiede una connessione sicura (https). Apri l’app dall’indirizzo pubblico, non da un indirizzo di rete locale.',
+  'offline.remindTitle': 'Parti fra {days} giorni',
+  'offline.remindBody': 'Ci sono {count} documenti non ancora salvati sul telefono.',
+  'offline.remindAction': 'Preparali ora',
+
   'update.available': 'È disponibile una versione aggiornata.',
   'update.reload': 'Ricarica',
 } as const
