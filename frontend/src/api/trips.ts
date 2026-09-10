@@ -9,7 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { apiFetch } from './client'
+import { ApiError, apiFetch } from './client'
 import type {
   Attachment,
   Booking,
@@ -58,7 +58,9 @@ function useTripMutation<TVars, TData>(
   mutationFn: (vars: TVars) => Promise<TData>,
 ) {
   const queryClient = useQueryClient()
-  return useMutation({
+  // The error type is named explicitly so callers can branch on `code`,
+  // which is how user-facing messages are chosen.
+  return useMutation<TData, ApiError, TVars>({
     mutationFn,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: keys.bundle(tripId) })

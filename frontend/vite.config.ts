@@ -33,7 +33,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // `.mjs` matters: pdf.js ships its worker as one, and without it in
+        // the precache the PDF viewer works online and silently fails in
+        // airplane mode — which is the only time it really has to work.
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
         // The service worker owns the app shell; the app owns the data.
         // Without this exclusion a failed API call would return the home

@@ -694,6 +694,243 @@ select.field__input {
   text-decoration: line-through;
 }
 
+.entry__docs {
+  margin-left: 6px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+a.entry__content {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+a.entry__content:hover .entry__title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ==========================================================================
+   Booking detail
+   ========================================================================== */
+
+.section__title {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.detail__value {
+  margin: 0;
+  font-size: 15.5px;
+  overflow-wrap: anywhere;
+}
+
+.detail__value code {
+  padding: 2px 7px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  background: var(--surface-sunken);
+  border-radius: 6px;
+  /* Selectable and set apart: this is the string you read out at a
+     reception desk or type into a kiosk. */
+  user-select: all;
+}
+
+.button--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.button--danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+/* ==========================================================================
+   Documents
+   ========================================================================== */
+
+.docs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.doc__open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.doc__name {
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+
+.doc__open:hover .doc__name {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.doc__meta {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.doc__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.chip {
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chip--on {
+  color: var(--kind-stay);
+  background: color-mix(in srgb, var(--kind-stay) 14%, transparent);
+}
+
+.chip--danger {
+  padding: 5px 11px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--danger);
+}
+
+.small {
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Document viewer
+   ========================================================================== */
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+
+.viewer__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.viewer__name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer__stage {
+  flex: 1;
+  overflow: auto;
+  padding: 14px;
+  text-align: center;
+  /* A neutral mat, so a white page has an edge and a dark scan does not
+     bleed into the background. */
+  background: var(--surface-sunken);
+}
+
+.viewer__canvas,
+.viewer__image {
+  max-width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+}
+
+.viewer__pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
 /* ==========================================================================
    Update prompt
    ========================================================================== */

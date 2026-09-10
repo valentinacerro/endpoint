@@ -13,7 +13,7 @@ import {
   homeTimeHint,
   shortZoneName,
 } from '../lib/datetime'
-import { buildTimeline, nextBooking } from '../lib/itinerary'
+import { attachmentsOf, buildTimeline, nextBooking } from '../lib/itinerary'
 
 function StatusPill({ status }: { status: Booking['status'] }) {
   if (status === 'confirmed') return null
@@ -28,10 +28,14 @@ function BookingRow({
   booking,
   zone,
   showZone,
+  tripId,
+  documents,
 }: {
   booking: Booking
   zone: string
   showZone: boolean
+  tripId: string
+  documents: number
 }) {
   const hint = booking.start_at ? homeTimeHint(booking.start_at, zone) : null
   const meta = [
@@ -66,10 +70,15 @@ function BookingRow({
         </span>
       </div>
 
-      <div className="entry__content">
+      <Link className="entry__content" to={`/trips/${tripId}/bookings/${booking.id}`}>
         <span className="entry__title">
           {booking.title}
           <StatusPill status={booking.status} />
+          {documents > 0 && (
+            <span className="entry__docs" title={`${documents}`} aria-hidden="true">
+              📎
+            </span>
+          )}
         </span>
         {(booking.origin_label || booking.destination_label) && (
           <span className="entry__route">
@@ -77,7 +86,7 @@ function BookingRow({
           </span>
         )}
         <span className="entry__meta">{meta.join(' · ')}</span>
-      </div>
+      </Link>
     </li>
   )
 }
@@ -168,6 +177,8 @@ export function TripDetail() {
                   booking={entry.booking}
                   zone={entry.zone}
                   showZone={showZone}
+                  tripId={tripId!}
+                  documents={attachmentsOf(bundle.data!, entry.booking.id).length}
                 />
               ))}
             </ul>
@@ -187,6 +198,8 @@ export function TripDetail() {
                 booking={booking}
                 zone={trip.primary_tz}
                 showZone={false}
+                tripId={tripId!}
+                documents={attachmentsOf(bundle.data!, booking.id).length}
               />
             ))}
           </ul>
