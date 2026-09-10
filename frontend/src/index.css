@@ -1290,3 +1290,55 @@ a.entry__content:hover .entry__title {
     max-width: 380px;
   }
 }
+
+/* ==========================================================================
+   Money
+   ========================================================================== */
+
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.totals > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.totals__big {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals__big--over {
+  color: var(--danger);
+}
+
+.meter {
+  height: 8px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border-radius: 999px;
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--kind-stay);
+  border-radius: 999px;
+  transition: width 200ms ease;
+}
+
+.meter__fill--over {
+  background: var(--danger);
+}
+
+.doc__amount {
+  flex-shrink: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}

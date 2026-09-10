@@ -29,6 +29,22 @@ export type PlaceUpdate = S['PlaceUpdate']
 
 export type DayNote = S['DayNoteRead']
 
+export type Expense = S['ExpenseRead']
+export type ExpenseWrite = S['ExpenseWrite']
+export type ExpenseCategory = Expense['category']
+export type PaymentMethod = Expense['payment_method']
+
+export const EXPENSE_CATEGORIES = [
+  'food',
+  'transport',
+  'lodging',
+  'tickets',
+  'shopping',
+  'gifts',
+  'fees',
+  'other',
+] as const satisfies readonly ExpenseCategory[]
+
 export type Attachment = S['AttachmentRead']
 export type TripBundle = S['TripBundle']
 

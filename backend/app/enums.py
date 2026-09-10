@@ -86,6 +86,37 @@ class Priority(StrEnum):
     LOW = "low"
 
 
+class ExpenseCategory(StrEnum):
+    FOOD = "food"
+    TRANSPORT = "transport"
+    LODGING = "lodging"
+    TICKETS = "tickets"
+    SHOPPING = "shopping"
+    GIFTS = "gifts"
+    FEES = "fees"
+    OTHER = "other"
+
+
+class PaymentMethod(StrEnum):
+    """Worth tracking in Japan, where cash is still very much alive and the
+    two come out of different pockets."""
+
+    CASH = "cash"
+    CARD = "card"
+
+
+class RateSource(StrEnum):
+    """Where a conversion rate came from.
+
+    `ECB` is the reference rate, which is *not* what a card charges — banks
+    add a spread. Recording the source is what lets a rate be replaced later
+    with the real one off a statement.
+    """
+
+    ECB = "ecb"
+    MANUAL = "manual"
+
+
 class AttachmentKind(StrEnum):
     VOUCHER = "voucher"
     TICKET = "ticket"

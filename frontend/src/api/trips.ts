@@ -16,6 +16,8 @@ import type {
   BookingCreate,
   BookingUpdate,
   DayNote,
+  Expense,
+  ExpenseWrite,
   Place,
   PlaceCreate,
   PlaceUpdate,
@@ -201,6 +203,39 @@ export function useImportPlaces(tripId: string) {
       method: 'POST',
       body: form,
     })
+  })
+}
+
+// --- Expenses ---
+
+export interface RateOut {
+  rate: number
+  date: string
+  source: 'ecb' | 'manual'
+}
+
+/**
+ * Write an expense at an id the client chose.
+ *
+ * PUT, not POST: you record a coffee where there is no signal, the write is
+ * queued, and a replay must leave one coffee rather than two.
+ */
+export function usePutExpense(tripId: string) {
+  return useTripMutation(tripId, ({ id, ...body }: ExpenseWrite & { id: string }) =>
+    apiFetch<Expense>(`/api/trips/${tripId}/expenses/${id}`, { method: 'PUT', body }),
+  )
+}
+
+export function useDeleteExpense(tripId: string) {
+  return useTripMutation(tripId, (expenseId: string) =>
+    apiFetch<void>(`/api/trips/${tripId}/expenses/${expenseId}`, { method: 'DELETE' }),
+  )
+}
+
+export function useFetchRate() {
+  return useMutation<RateOut, ApiError, { base: string; quote: string; on: string }>({
+    mutationFn: ({ base, quote, on }) =>
+      apiFetch<RateOut>(`/api/rates?base=${base}&quote=${quote}&on=${on}`),
   })
 }
 

@@ -7,6 +7,7 @@ import { UpdatePrompt } from './components/UpdatePrompt'
 import { requestPersistentStorage } from './offline/persister'
 import { BookingDetail } from './routes/BookingDetail'
 import { Login } from './routes/Login'
+import { Expenses } from './routes/Expenses'
 import { OfflineStatus } from './routes/OfflineStatus'
 import { PlacesPanel } from './routes/PlacesPanel'
 import { StopsPanel } from './routes/StopsPanel'
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/" element={<TripList />} />
             <Route path="/trips/:tripId" element={<TripDetail />} />
             <Route path="/trips/:tripId/bookings/:bookingId" element={<BookingDetail />} />
+            <Route path="/trips/:tripId/expenses" element={<Expenses />} />
             <Route path="/trips/:tripId/offline" element={<OfflineStatus />} />
             <Route
               path="/trips/:tripId/map"

@@ -13,7 +13,7 @@ import uuid
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Attachment, Booking, DayNote, Place, Stop, Trip
+from app.models import Attachment, Booking, DayNote, Expense, Place, Stop, Trip
 from app.schemas.bundle import TripBundle
 
 
@@ -41,7 +41,7 @@ def compute_etag(db: Session, trip: Trip) -> str:
     """
     parts = [f"trip:{trip.updated_at}"]
 
-    for model in (Stop, Booking, Place, DayNote):
+    for model in (Stop, Booking, Place, DayNote, Expense):
         newest, count = db.execute(
             select(func.max(model.updated_at), func.count()).where(model.trip_id == trip.id)
         ).one()
@@ -71,6 +71,9 @@ def build(db: Session, trip: Trip) -> TripBundle:
         )
     )
     places = list(db.scalars(select(Place).where(Place.trip_id == trip.id).order_by(Place.name)))
+    expenses = list(
+        db.scalars(select(Expense).where(Expense.trip_id == trip.id).order_by(Expense.spent_at))
+    )
     day_notes = list(
         db.scalars(select(DayNote).where(DayNote.trip_id == trip.id).order_by(DayNote.day))
     )
@@ -86,6 +89,7 @@ def build(db: Session, trip: Trip) -> TripBundle:
             "stops": stops,
             "bookings": bookings,
             "places": places,
+            "expenses": expenses,
             "day_notes": day_notes,
             "attachments": attachments,
             "generated_at": dt.datetime.now(dt.UTC),

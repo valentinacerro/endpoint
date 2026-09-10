@@ -285,6 +285,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rate */
+        get: operations["get_rate_api_rates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/days/{day}/note": {
         parameters: {
             query?: never;
@@ -306,6 +323,49 @@ export interface paths {
         post?: never;
         /** Clear Note */
         delete: operations["clear_note_api_trips__trip_id__days__day__note_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trips/{trip_id}/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Expenses */
+        get: operations["list_expenses_api_trips__trip_id__expenses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trips/{trip_id}/expenses/{expense_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Expense
+         * @description Create or replace an expense at an id the client chose.
+         *
+         *     PUT rather than POST on purpose. You record a coffee in a station with
+         *     no signal; the write is queued and replayed later, possibly twice if the
+         *     first attempt's response never came back. Addressed by a client-chosen
+         *     id, a repeat is the same write and leaves one expense, not two.
+         */
+        put: operations["put_expense_api_trips__trip_id__expenses__expense_id__put"];
+        post?: never;
+        /** Delete Expense */
+        delete: operations["delete_expense_api_trips__trip_id__expenses__expense_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -653,6 +713,94 @@ export interface components {
             /** Note */
             note: string;
         };
+        /**
+         * ExpenseCategory
+         * @enum {string}
+         */
+        ExpenseCategory: "food" | "transport" | "lodging" | "tickets" | "shopping" | "gifts" | "fees" | "other";
+        /** ExpenseRead */
+        ExpenseRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Trip Id
+             * Format: uuid
+             */
+            trip_id: string;
+            /** Stop Id */
+            stop_id: string | null;
+            /** Booking Id */
+            booking_id: string | null;
+            category: components["schemas"]["ExpenseCategory"];
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /** Rate */
+            rate: string | null;
+            /** Rate Date */
+            rate_date: string | null;
+            rate_source: components["schemas"]["RateSource"] | null;
+            /**
+             * Spent At
+             * Format: date
+             */
+            spent_at: string;
+            payment_method: components["schemas"]["PaymentMethod"];
+            /** Notes */
+            notes: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ExpenseWrite
+         * @description The body of a write; the id comes from the URL.
+         *
+         *     Addressed by an id the client chooses, so writing the same expense twice
+         *     stores it once. That is what lets a queued write be replayed after a
+         *     tunnel without wondering whether the first attempt got through.
+         */
+        ExpenseWrite: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number | string;
+            /** Currency */
+            currency: string;
+            /**
+             * Spent At
+             * Format: date
+             */
+            spent_at: string;
+            /** @default other */
+            category: components["schemas"]["ExpenseCategory"];
+            /** @default card */
+            payment_method: components["schemas"]["PaymentMethod"];
+            /** Stop Id */
+            stop_id?: string | null;
+            /** Booking Id */
+            booking_id?: string | null;
+            /** Rate */
+            rate?: number | string | null;
+            /** Rate Date */
+            rate_date?: string | null;
+            rate_source?: components["schemas"]["RateSource"] | null;
+            /** Notes */
+            notes?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -674,6 +822,13 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * PaymentMethod
+         * @description Worth tracking in Japan, where cash is still very much alive and the
+         *     two come out of different pockets.
+         * @enum {string}
+         */
+        PaymentMethod: "cash" | "card";
         /**
          * PlaceCategory
          * @description What kind of thing a candidate place is.
@@ -808,6 +963,27 @@ export interface components {
          * @enum {string}
          */
         Priority: "must_see" | "high" | "normal" | "low";
+        /** RateOut */
+        RateOut: {
+            /** Rate */
+            rate: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            source: components["schemas"]["RateSource"];
+        };
+        /**
+         * RateSource
+         * @description Where a conversion rate came from.
+         *
+         *     `ECB` is the reference rate, which is *not* what a card charges — banks
+         *     add a spread. Recording the source is what lets a rate be replaced later
+         *     with the real one off a statement.
+         * @enum {string}
+         */
+        RateSource: "ecb" | "manual";
         /** ResolveIn */
         ResolveIn: {
             /** Url */
@@ -950,6 +1126,8 @@ export interface components {
             bookings: components["schemas"]["BookingRead"][];
             /** Places */
             places: components["schemas"]["PlaceRead"][];
+            /** Expenses */
+            expenses: components["schemas"]["ExpenseRead"][];
             /** Day Notes */
             day_notes: components["schemas"]["DayNoteRead"][];
             /** Attachments */
@@ -1894,6 +2072,39 @@ export interface operations {
             };
         };
     };
+    get_rate_api_rates_get: {
+        parameters: {
+            query: {
+                base: string;
+                quote: string;
+                on: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_note_api_trips__trip_id__days__day__note_put: {
         parameters: {
             query?: never;
@@ -1937,6 +2148,103 @@ export interface operations {
             path: {
                 trip_id: string;
                 day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_expenses_api_trips__trip_id__expenses_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_expense_api_trips__trip_id__expenses__expense_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                expense_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_expense_api_trips__trip_id__expenses__expense_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                expense_id: string;
             };
             cookie?: never;
         };

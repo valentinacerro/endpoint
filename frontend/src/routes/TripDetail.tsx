@@ -84,6 +84,9 @@ export function TripDetail() {
         <Link className="toolbar__link" to={`/trips/${tripId}/places`}>
           {t('places.open')}
         </Link>
+        <Link className="toolbar__link" to={`/trips/${tripId}/expenses`}>
+          {t('money.open')}
+        </Link>
         <Link className="toolbar__link" to={`/trips/${tripId}/map`}>
           {t('map.open')}
         </Link>

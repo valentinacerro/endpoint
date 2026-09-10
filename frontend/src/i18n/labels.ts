@@ -9,6 +9,8 @@
 
 import type {
   BookingKind,
+  ExpenseCategory,
+  PaymentMethod,
   PlaceCategory,
   Priority,
   TripStatus,
@@ -61,6 +63,30 @@ const EXPOSURE_KEYS = {
   outdoor: 'places.exposure.outdoor',
   mixed: 'places.exposure.mixed',
 } as const satisfies Record<WeatherExposure, TranslationKey>
+
+const EXPENSE_CATEGORY_KEYS = {
+  food: 'money.category.food',
+  transport: 'money.category.transport',
+  lodging: 'money.category.lodging',
+  tickets: 'money.category.tickets',
+  shopping: 'money.category.shopping',
+  gifts: 'money.category.gifts',
+  fees: 'money.category.fees',
+  other: 'money.category.other',
+} as const satisfies Record<ExpenseCategory, TranslationKey>
+
+const PAYMENT_KEYS = {
+  cash: 'money.payment.cash',
+  card: 'money.payment.card',
+} as const satisfies Record<PaymentMethod, TranslationKey>
+
+export function expenseCategoryLabel(category: ExpenseCategory): string {
+  return t(EXPENSE_CATEGORY_KEYS[category])
+}
+
+export function paymentLabel(method: PaymentMethod): string {
+  return t(PAYMENT_KEYS[method])
+}
 
 export function bookingKindLabel(kind: BookingKind): string {
   return t(BOOKING_KIND_KEYS[kind])

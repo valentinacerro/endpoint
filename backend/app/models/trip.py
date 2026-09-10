@@ -14,6 +14,7 @@ from app.models.base import Timestamps, UuidPk, enum_check
 if TYPE_CHECKING:
     from app.models.booking import Booking
     from app.models.day_note import DayNote
+    from app.models.expense import Expense
     from app.models.place import Place
     from app.models.stop import Stop
 
@@ -62,6 +63,12 @@ class Trip(Base, UuidPk, Timestamps):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="Place.name",
+    )
+    expenses: Mapped[list[Expense]] = relationship(
+        back_populates="trip",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="Expense.spent_at",
     )
     day_notes: Mapped[list[DayNote]] = relationship(
         back_populates="trip",
