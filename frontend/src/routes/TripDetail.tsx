@@ -73,7 +73,25 @@ export function TripDetail() {
 
   return (
     <>
-      <AppBar title={trip.title} subtitle={dates} back="/" />
+      <AppBar
+        title={trip.title}
+        subtitle={dates}
+        back="/"
+        action={
+          <Link className="appbar__button" to={`/trips/${tripId}/search`} aria-label={t('search.title')}>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
+              <path
+                d="M16 16l4 4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </Link>
+        }
+      />
       <main className="page stack">
       <OfflineReminder bundle={data} tripId={tripId} />
 

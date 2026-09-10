@@ -23,6 +23,7 @@ export const it = {
   'more.editHint': 'Date, valuta, budget',
   'more.packingHint': 'Cosa mettere in valigia',
   'more.weatherHint': 'Previsioni e spostamenti al coperto',
+  'more.searchHint': 'Trova una prenotazione, un codice, un documento',
 
   'common.save': 'Salva',
   'common.saving': 'Salvataggio…',
@@ -365,6 +366,20 @@ export const it = {
   'weather.sky.rain': 'Pioggia',
   'weather.sky.snow': 'Neve',
   'weather.sky.storm': 'Temporale',
+
+  'search.title': 'Cerca',
+  'search.label': 'Cerca nel viaggio',
+  'search.placeholder': 'Nome, codice di conferma, indirizzo…',
+  'search.hint': 'Cerca fra prenotazioni, luoghi, tappe, spese, valigia, note e documenti. Funziona anche senza rete.',
+  'search.none': 'Nessun risultato.',
+  'search.more': 'Altri {count} risultati non mostrati. Aggiungi una parola per restringere.',
+  'search.kind.booking': 'Prenotazione',
+  'search.kind.place': 'Luogo',
+  'search.kind.stop': 'Tappa',
+  'search.kind.expense': 'Spesa',
+  'search.kind.checklist': 'Valigia',
+  'search.kind.note': 'Nota',
+  'search.kind.document': 'Documento',
 
   'update.available': 'È disponibile una versione aggiornata.',
   'update.reload': 'Ricarica',

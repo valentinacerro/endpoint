@@ -17,6 +17,7 @@ import type {
   TripStatus,
   WeatherExposure,
 } from '../api/types'
+import type { ResultKind } from '../lib/search'
 import type { Sky } from '../lib/weather'
 import { t, type TranslationKey } from './index'
 
@@ -106,6 +107,20 @@ const SKY_KEYS = {
 
 export function skyLabel(sky: Sky): string {
   return t(SKY_KEYS[sky])
+}
+
+const SEARCH_KIND_KEYS = {
+  booking: 'search.kind.booking',
+  place: 'search.kind.place',
+  stop: 'search.kind.stop',
+  expense: 'search.kind.expense',
+  checklist: 'search.kind.checklist',
+  note: 'search.kind.note',
+  document: 'search.kind.document',
+} as const satisfies Record<ResultKind, TranslationKey>
+
+export function searchKindLabel(kind: ResultKind): string {
+  return t(SEARCH_KIND_KEYS[kind])
 }
 
 export function expenseCategoryLabel(category: ExpenseCategory): string {

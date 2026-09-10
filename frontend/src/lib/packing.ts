@@ -9,6 +9,7 @@
 
 import { CHECKLIST_CATEGORIES, type ChecklistCategory, type ChecklistItem } from '../api/types'
 import { t, type TranslationKey } from '../i18n'
+import { fold } from './text'
 
 export interface Group {
   category: ChecklistCategory
@@ -71,17 +72,10 @@ export function nextPosition(items: readonly ChecklistItem[]): number {
  * Two lines count as the same thing if they read the same.
  *
  * Used only to avoid offering a suggestion that is already on the list.
- * Accents are folded because "spazzolino" typed in a hurry may not match
- * the suggestion character for character.
+ * Accents are folded because "carta d'identità" typed in a hurry may not
+ * match the suggestion character for character.
  */
-export function normalise(text: string): string {
-  return text
-    .trim()
-    .toLocaleLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/\s+/g, ' ')
-}
+export const normalise = fold
 
 export interface Suggestion {
   text: string
