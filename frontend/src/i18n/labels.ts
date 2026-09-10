@@ -9,6 +9,7 @@
 
 import type {
   BookingKind,
+  ChecklistCategory,
   ExpenseCategory,
   PaymentMethod,
   PlaceCategory,
@@ -79,6 +80,19 @@ const PAYMENT_KEYS = {
   cash: 'money.payment.cash',
   card: 'money.payment.card',
 } as const satisfies Record<PaymentMethod, TranslationKey>
+
+const CHECKLIST_CATEGORY_KEYS = {
+  documents: 'packing.category.documents',
+  clothes: 'packing.category.clothes',
+  electronics: 'packing.category.electronics',
+  toiletries: 'packing.category.toiletries',
+  health: 'packing.category.health',
+  other: 'packing.category.other',
+} as const satisfies Record<ChecklistCategory, TranslationKey>
+
+export function checklistCategoryLabel(category: ChecklistCategory): string {
+  return t(CHECKLIST_CATEGORY_KEYS[category])
+}
 
 export function expenseCategoryLabel(category: ExpenseCategory): string {
   return t(EXPENSE_CATEGORY_KEYS[category])

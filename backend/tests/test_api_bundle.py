@@ -5,6 +5,8 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.schemas.bundle import TripBundle
+from app.services.bundle import TRIP_CHILDREN
 from tests.factories import make_attachment
 
 
@@ -121,3 +123,22 @@ def test_the_etag_notices_a_new_document(client: TestClient, db_session: Session
 
     make_attachment(db_session, booking_id=UUID(made["booking"]["id"]))
     assert client.get(url).headers["etag"] != before
+
+
+def test_every_collection_in_the_bundle_is_in_the_etag() -> None:
+    """A table added to the bundle but not to the ETag is invisible.
+
+    The failure is quiet and nasty: tick something off on the laptop, open
+    the phone, and the conditional request answers 304 because nothing the
+    ETag looks at has moved. The list stays stale until some unrelated edit
+    happens to change it.
+    """
+    collections = {
+        name
+        for name, field in TripBundle.model_fields.items()
+        if getattr(field.annotation, "__origin__", None) is list
+    }
+
+    covered = {name for name, _model in TRIP_CHILDREN} | {"attachments"}
+
+    assert collections == covered

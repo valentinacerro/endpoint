@@ -45,6 +45,20 @@ export const EXPENSE_CATEGORIES = [
   'other',
 ] as const satisfies readonly ExpenseCategory[]
 
+export type ChecklistItem = S['ChecklistItemRead']
+export type ChecklistItemWrite = S['ChecklistItemWrite']
+export type ChecklistCategory = ChecklistItem['category']
+
+/** Roughly the order you actually pack in: papers first, then the bag. */
+export const CHECKLIST_CATEGORIES = [
+  'documents',
+  'clothes',
+  'electronics',
+  'toiletries',
+  'health',
+  'other',
+] as const satisfies readonly ChecklistCategory[]
+
 export type Attachment = S['AttachmentRead']
 export type TripBundle = S['TripBundle']
 

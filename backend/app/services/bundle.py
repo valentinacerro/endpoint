@@ -31,6 +31,22 @@ def attachments_of_trip(trip_id: uuid.UUID) -> ColumnElement[bool]:
     )
 
 
+#: The bundle's collections that hang directly off a trip, paired with the
+#: field they arrive in. Named here rather than inline so a table added to
+#: the bundle without being added to the ETag is a test failure, not a
+#: phone that keeps showing yesterday's list because a 304 said nothing
+#: had changed. `attachments` is absent on purpose: it is reached through
+#: three different owners and is handled just below.
+TRIP_CHILDREN: tuple[tuple[str, type], ...] = (
+    ("stops", Stop),
+    ("bookings", Booking),
+    ("places", Place),
+    ("day_notes", DayNote),
+    ("expenses", Expense),
+    ("checklist", ChecklistItem),
+)
+
+
 def compute_etag(db: Session, trip: Trip) -> str:
     """A strong ETag over everything the bundle contains.
 
@@ -41,7 +57,7 @@ def compute_etag(db: Session, trip: Trip) -> str:
     """
     parts = [f"trip:{trip.updated_at}"]
 
-    for model in (Stop, Booking, Place, DayNote, Expense, ChecklistItem):
+    for _field, model in TRIP_CHILDREN:
         newest, count = db.execute(
             select(func.max(model.updated_at), func.count()).where(model.trip_id == trip.id)
         ).one()

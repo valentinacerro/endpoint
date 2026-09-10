@@ -371,6 +371,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Items */
+        get: operations["list_items_api_trips__trip_id__checklist_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trips/{trip_id}/checklist/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Item
+         * @description Create or replace one line at an id the client chose.
+         *
+         *     Ticking a box offline queues this write; replaying it must leave the
+         *     box ticked once, not add a second copy of the line.
+         */
+        put: operations["put_item_api_trips__trip_id__checklist__item_id__put"];
+        post?: never;
+        /** Delete Item */
+        delete: operations["delete_item_api_trips__trip_id__checklist__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/attachments": {
         parameters: {
             query?: never;
@@ -674,6 +715,65 @@ export interface components {
             } | null;
             /** Notes */
             notes?: string | null;
+        };
+        /**
+         * ChecklistCategory
+         * @enum {string}
+         */
+        ChecklistCategory: "documents" | "clothes" | "electronics" | "toiletries" | "health" | "other";
+        /** ChecklistItemRead */
+        ChecklistItemRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Trip Id
+             * Format: uuid
+             */
+            trip_id: string;
+            /** Text */
+            text: string;
+            category: components["schemas"]["ChecklistCategory"];
+            /** Is Done */
+            is_done: boolean;
+            /** Position */
+            position: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ChecklistItemWrite
+         * @description The body of a write; the id comes from the URL.
+         *
+         *     Addressed by an id the client chooses, like expenses and for the same
+         *     reason: ticking things off happens while packing, often with the phone
+         *     on a table and the wifi flaky, so the write has to be safe to replay.
+         */
+        ChecklistItemWrite: {
+            /** Text */
+            text: string;
+            /** @default other */
+            category: components["schemas"]["ChecklistCategory"];
+            /**
+             * Is Done
+             * @default false
+             */
+            is_done: boolean;
+            /**
+             * Position
+             * @default 0
+             */
+            position: number;
         };
         /** DayNoteRead */
         DayNoteRead: {
@@ -1126,6 +1226,8 @@ export interface components {
             bookings: components["schemas"]["BookingRead"][];
             /** Places */
             places: components["schemas"]["PlaceRead"][];
+            /** Checklist */
+            checklist: components["schemas"]["ChecklistItemRead"][];
             /** Expenses */
             expenses: components["schemas"]["ExpenseRead"][];
             /** Day Notes */
@@ -2245,6 +2347,103 @@ export interface operations {
             path: {
                 trip_id: string;
                 expense_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_items_api_trips__trip_id__checklist_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistItemRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_item_api_trips__trip_id__checklist__item_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChecklistItemWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_item_api_trips__trip_id__checklist__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                item_id: string;
             };
             cookie?: never;
         };

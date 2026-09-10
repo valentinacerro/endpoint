@@ -18,6 +18,8 @@ import type {
   Booking,
   BookingCreate,
   BookingUpdate,
+  ChecklistItem,
+  ChecklistItemWrite,
   DayNote,
   Expense,
   ExpenseWrite,
@@ -298,6 +300,116 @@ export function useFetchRate() {
   return useMutation<RateOut, ApiError, { base: string; quote: string; on: string }>({
     mutationFn: ({ base, quote, on }) =>
       apiFetch<RateOut>(`/api/rates?base=${base}&quote=${quote}&on=${on}`),
+  })
+}
+
+// --- Packing checklist ---
+
+function patchChecklist(
+  queryClient: QueryClient,
+  tripId: string,
+  change: (items: ChecklistItem[]) => ChecklistItem[],
+) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle ? { ...bundle, checklist: change(bundle.checklist) } : bundle,
+  )
+}
+
+/** The bundle as it stands, so a failed write can be put back. */
+function snapshotBundle(queryClient: QueryClient, tripId: string) {
+  return queryClient.getQueryData<TripBundle>(keys.bundle(tripId))
+}
+
+function restore(queryClient: QueryClient, tripId: string, bundle: TripBundle | undefined) {
+  if (bundle) queryClient.setQueryData(keys.bundle(tripId), bundle)
+}
+
+/**
+ * Write one line of the packing list, at an id the client chose.
+ *
+ * The write this queue was built for. Packing happens at home the night
+ * before and in hotel rooms, both places where the phone may have nothing,
+ * so a tick has to land on the screen at once and reach the server later.
+ *
+ * The tick is applied to the cache before the request goes out. Waiting for
+ * a reply would mean a box that ignores you for the length of a cold start,
+ * which reads as a broken checkbox rather than a slow server. If the write
+ * genuinely fails — not offline, an actual rejection — the box goes back.
+ *
+ * The queue key is per item, so tapping the same box four times underground
+ * sends one write carrying the state it ended in, not four.
+ */
+export function usePutChecklistItem(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<
+    ChecklistItem,
+    ApiError,
+    ChecklistItemWrite & { id: string },
+    { previous: TripBundle | undefined }
+  >({
+    mutationFn: async ({ id, ...body }) => {
+      const url = `/api/trips/${tripId}/checklist/${id}`
+      try {
+        return await apiFetch<ChecklistItem>(url, { method: 'PUT', body })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `checklist:${id}`, method: 'PUT', url, body })
+        const now = new Date().toISOString()
+        return { ...body, id, trip_id: tripId, created_at: now, updated_at: now } as ChecklistItem
+      }
+    },
+    onMutate: async ({ id, ...body }) => {
+      // Stop an in-flight bundle refresh from landing on top of the tick.
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      const existing = previous?.checklist.find((item) => item.id === id)
+      const now = new Date().toISOString()
+      const optimistic = {
+        ...body,
+        id,
+        trip_id: tripId,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      } as ChecklistItem
+      patchChecklist(queryClient, tripId, (items) => [
+        ...items.filter((item) => item.id !== id),
+        optimistic,
+      ])
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    // What the server stored replaces the guess, but no invalidate:
+    // refetching the whole bundle on every tap would make a list of thirty
+    // items unusable on a slow connection. The next sync reconciles it.
+    onSuccess: (item) =>
+      patchChecklist(queryClient, tripId, (items) => [
+        ...items.filter((entry) => entry.id !== item.id),
+        item,
+      ]),
+  })
+}
+
+export function useDeleteChecklistItem(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string, { previous: TripBundle | undefined }>({
+    mutationFn: async (itemId) => {
+      const url = `/api/trips/${tripId}/checklist/${itemId}`
+      try {
+        await apiFetch<void>(url, { method: 'DELETE' })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `checklist:${itemId}`, method: 'DELETE', url })
+      }
+    },
+    onMutate: async (itemId) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchChecklist(queryClient, tripId, (items) =>
+        items.filter((item) => item.id !== itemId),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
   })
 }
 

@@ -1608,3 +1608,87 @@ a.entry__content:hover .entry__title {
   border-radius: 999px;
   cursor: pointer;
 }
+
+/* --- Packing list --- */
+
+.day__count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pack__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding-right: 8px;
+}
+
+/* The whole row ticks the box: aiming at a 20px square on a moving train
+   is a worse experience than the tap target being the entire line. */
+.pack__tick {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 8px 0 8px 12px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.pack__box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: transparent;
+  background: var(--surface-sunken);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 6px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.pack__box--on {
+  color: #fff;
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.pack__text {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.pack__text--on {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
