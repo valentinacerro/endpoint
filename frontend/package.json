@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:tz": "TZ=Europe/Rome vitest run && TZ=Asia/Tokyo vitest run"
+    "test:tz": "TZ=Europe/Rome vitest run && TZ=Asia/Tokyo vitest run",
+    "check:classes": "node scripts/check-classes.mjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

@@ -157,6 +157,24 @@ export function PlacesPanel() {
                 </span>
               )}
             </span>
+            <label className="doc__stop">
+              {/* The link between a place and a day: without a city, no
+                  day can claim it and the optimiser cannot see it. */}
+              <select
+                className="field__input field__input--compact"
+                value={place.stop_id ?? ''}
+                onChange={(event) =>
+                  update.mutate({ id: place.id, stop_id: event.target.value || null })
+                }
+              >
+                <option value="">{t('places.noStop')}</option>
+                {bundle.data!.stops.map((stop) => (
+                  <option key={stop.id} value={stop.id}>
+                    {stop.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="doc__actions">
               <MapsLink place={place} />
               {place.planned_start_at && (

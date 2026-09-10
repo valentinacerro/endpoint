@@ -41,8 +41,9 @@ test-pg: ## Same suite on real Postgres:  make test-pg TEST_DATABASE_URL=postgre
 		{ echo "Usage: make test-pg TEST_DATABASE_URL=postgresql+psycopg://user:pw@host/db"; exit 1; }
 	cd backend && TEST_DATABASE_URL="$(TEST_DATABASE_URL)" uv run pytest
 
-lint: ## Check style and formatting
+lint: ## Check style, formatting, and that CSS classes agree
 	cd backend && uv run ruff check . && uv run ruff format --check .
+	cd frontend && npm run check:classes
 
 fmt: ## Fix style and formatting
 	cd backend && uv run ruff check --fix . && uv run ruff format .

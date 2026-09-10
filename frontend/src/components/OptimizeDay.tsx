@@ -57,6 +57,15 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
 
   const zone = day.stop?.tz ?? bundle.trip.primary_tz
   const places = useMemo(() => candidatesFor(bundle, day), [bundle, day])
+  const withCoordinates = useMemo(
+    () => bundle.places.filter((place) => place.lat !== null && place.lon !== null),
+    [bundle.places],
+  )
+  /** Have coordinates but no city yet, so no day can claim them. */
+  const unassigned = useMemo(
+    () => withCoordinates.filter((place) => !place.stop_id && !place.planned_start_at).length,
+    [withCoordinates],
+  )
   const byId = useMemo(() => new Map(places.map((place) => [place.id, place])), [places])
 
   function compute() {
@@ -112,13 +121,34 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
     setPlan(null)
   }
 
-  if (places.length === 0) return null
-
   if (!plan) {
+    // Never hidden. A feature that disappears when it cannot run is
+    // indistinguishable from one that was never built, and this one needs
+    // coordinates and a stop before it can do anything — so it says which
+    // of those is missing rather than vanishing.
+    const reason =
+      places.length > 0
+        ? null
+        : day.stop === null
+          ? t('plan.needStop')
+          : withCoordinates.length === 0
+            ? t('plan.needPlaces')
+            : t('plan.needAssigned', { stop: day.stop.name })
+
     return (
-      <button className="button button--quiet button--small" onClick={compute}>
-        ✨ {t('plan.optimise')}
-      </button>
+      <div className="stack stack--tight">
+        <button
+          className="button button--quiet button--small"
+          onClick={compute}
+          disabled={places.length === 0}
+        >
+          ✨ {t('plan.optimise')}
+        </button>
+        {reason && <p className="muted small">{reason}</p>}
+        {unassigned > 0 && places.length === 0 && (
+          <p className="muted small">{t('plan.unassigned', { count: unassigned })}</p>
+        )}
+      </div>
     )
   }
 

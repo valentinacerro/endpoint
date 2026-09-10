@@ -1569,3 +1569,17 @@ a.entry__content:hover .entry__title {
   font-size: 20px;
   color: var(--border-strong);
 }
+
+.doc__stop {
+  flex-shrink: 0;
+}
+
+.field__input--compact {
+  width: auto;
+  min-width: 8ch;
+  padding: 6px 26px 6px 9px;
+  font-size: 13px;
+  background-position:
+    calc(100% - 13px) calc(50% + 2px),
+    calc(100% - 9px) calc(50% + 2px);
+}

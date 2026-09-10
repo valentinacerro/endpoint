@@ -109,6 +109,12 @@ export const it = {
   'timeline.moveNextDay': 'Sposta al giorno dopo',
 
   'plan.optimise': 'Ottimizza la giornata',
+  'plan.needStop':
+    'Questa giornata non appartiene a nessuna tappa: dai date di arrivo e partenza alle tappe.',
+  'plan.needPlaces':
+    'Nessun luogo ha una posizione. Aggiungine incollando un link di Google Maps.',
+  'plan.needAssigned': 'Nessun luogo assegnato alla tappa {stop}.',
+  'plan.unassigned': '{count} luoghi hanno una posizione ma nessuna tappa.',
   'plan.preview': 'Come verrebbe',
   'plan.apply': 'Applica',
   'plan.travelTotal': 'Circa {duration} di spostamenti in tutto.',
@@ -192,6 +198,7 @@ export const it = {
 
   'places.title': 'Da vedere',
   'places.open': 'Da vedere',
+  'places.noStop': 'Nessuna tappa',
   'places.none': 'Nessun luogo salvato.',
   'places.add': 'Aggiungi luogo',
   'places.name': 'Nome',
