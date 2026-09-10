@@ -27,6 +27,7 @@ export function Login() {
   return (
     <main className="login">
       <form className="card login__card" onSubmit={onSubmit}>
+        <img className="login__mark" src="/icons/icon-192.png" alt="" width={56} height={56} />
         <h1 className="login__title">{t('login.title')}</h1>
         <p className="login__subtitle">{t('login.subtitle')}</p>
 

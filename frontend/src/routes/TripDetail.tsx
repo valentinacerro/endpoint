@@ -15,38 +15,68 @@ import {
 } from '../lib/datetime'
 import { buildTimeline, nextBooking } from '../lib/itinerary'
 
-function BookingRow({ booking, zone }: { booking: Booking; zone: string }) {
+function StatusPill({ status }: { status: Booking['status'] }) {
+  if (status === 'confirmed') return null
+  return (
+    <span className={`pill pill--${status}`}>
+      {status === 'pending' ? t('booking.status.pending') : t('booking.status.cancelled')}
+    </span>
+  )
+}
+
+function BookingRow({
+  booking,
+  zone,
+  showZone,
+}: {
+  booking: Booking
+  zone: string
+  showZone: boolean
+}) {
   const hint = booking.start_at ? homeTimeHint(booking.start_at, zone) : null
+  const meta = [
+    bookingKindLabel(booking.kind),
+    booking.provider,
+    booking.confirmation_code,
+  ].filter(Boolean)
 
   return (
-    <li className="entry">
+    <li className="entry" data-kind={booking.kind}>
       <div className="entry__time">
         {booking.start_at ? (
           <>
-            <strong>{formatTimeInZone(booking.start_at, zone)}</strong>
-            {/* Only shown when the two clocks actually differ and the event
-                is imminent — otherwise it would be on every single row. */}
+            <span>{formatTimeInZone(booking.start_at, zone)}</span>
+            {/* The zone label only when the trip spans more than one, so a
+                single-country trip is not shouted at on every row. */}
+            {showZone && <span className="entry__zone">{shortZoneName(zone)}</span>}
+            {/* And the home clock only when it differs *and* the event is
+                imminent — otherwise it would be on every row too. */}
             {hint && <span className="entry__hint">{t('timeline.inYourZone', hint)}</span>}
           </>
         ) : (
-          <span aria-hidden="true">·</span>
+          <span className="entry__zone" aria-hidden="true">
+            —
+          </span>
         )}
       </div>
 
-      <div className="entry__body">
-        <span className="entry__title">
-          <span aria-hidden="true">{BOOKING_KIND_ICON[booking.kind]}</span> {booking.title}
+      <div className="entry__marker">
+        <span className="entry__dot" aria-hidden="true">
+          {BOOKING_KIND_ICON[booking.kind]}
         </span>
-        <span className="entry__meta">
-          {bookingKindLabel(booking.kind)}
-          {booking.provider && ` · ${booking.provider}`}
-          {booking.confirmation_code && ` · ${booking.confirmation_code}`}
+      </div>
+
+      <div className="entry__content">
+        <span className="entry__title">
+          {booking.title}
+          <StatusPill status={booking.status} />
         </span>
         {(booking.origin_label || booking.destination_label) && (
-          <span className="entry__meta">
+          <span className="entry__route">
             {booking.origin_label} → {booking.destination_label}
           </span>
         )}
+        <span className="entry__meta">{meta.join(' · ')}</span>
       </div>
     </li>
   )
@@ -63,6 +93,15 @@ export function TripDetail() {
   const { trip } = bundle.data
   const timeline = buildTimeline(bundle.data)
   const next = nextBooking(bundle.data)
+
+  // Zone labels only earn their place on a trip that actually spans more
+  // than one; on a single-country trip they are noise on every row.
+  const zones = new Set<string>([
+    trip.primary_tz,
+    ...bundle.data.stops.map((stop) => stop.tz),
+    ...bundle.data.bookings.flatMap((booking) => (booking.start_tz ? [booking.start_tz] : [])),
+  ])
+  const showZone = zones.size > 1
 
   return (
     <main className="page stack">
@@ -109,7 +148,7 @@ export function TripDetail() {
       )}
 
       {timeline.days.length === 0 && timeline.undated.length === 0 && (
-        <p className="muted">{t('timeline.empty')}</p>
+        <p className="empty">{t('timeline.empty')}</p>
       )}
 
       {timeline.days.map((day) => (
@@ -124,7 +163,12 @@ export function TripDetail() {
           ) : (
             <ul className="entries">
               {day.entries.map((entry) => (
-                <BookingRow key={entry.booking.id} booking={entry.booking} zone={entry.zone} />
+                <BookingRow
+                  key={entry.booking.id}
+                  booking={entry.booking}
+                  zone={entry.zone}
+                  showZone={showZone}
+                />
               ))}
             </ul>
           )}
@@ -138,7 +182,12 @@ export function TripDetail() {
           </h2>
           <ul className="entries">
             {timeline.undated.map((booking) => (
-              <BookingRow key={booking.id} booking={booking} zone={trip.primary_tz} />
+              <BookingRow
+                key={booking.id}
+                booking={booking}
+                zone={trip.primary_tz}
+                showZone={false}
+              />
             ))}
           </ul>
         </section>

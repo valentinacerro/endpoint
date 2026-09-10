@@ -120,7 +120,7 @@ export function TripList() {
 
       {trips.isPending && <p className="muted">{t('common.loading')}</p>}
 
-      {trips.data?.length === 0 && !adding && <p className="muted">{t('trips.empty')}</p>}
+      {trips.data?.length === 0 && !adding && <p className="empty">{t('trips.empty')}</p>}
 
       <ul className="list">
         {trips.data?.map((trip) => (
@@ -129,6 +129,9 @@ export function TripList() {
               <span className="list__title">{trip.title}</span>
               <span className="list__meta">
                 {dateLabel(trip)} · {tripStatusLabel(trip.status)}
+              </span>
+              <span className="list__chevron" aria-hidden="true">
+                ›
               </span>
             </Link>
           </li>

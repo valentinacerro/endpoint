@@ -1,30 +1,63 @@
+/* ==========================================================================
+   Tokens
+   ========================================================================== */
+
 :root {
   --brand: #1e2952;
+  --brand-soft: #2f3d6e;
   --accent: #e85d54;
 
-  --bg: #f4f5f8;
+  /* A warm paper tone rather than a cold grey: the app is mostly read, and
+     long lists of text sit more comfortably on it. */
+  --bg: #f6f5f2;
   --surface: #ffffff;
-  --border: #dcdfe8;
-  --text: #1b1e2a;
-  --text-muted: #5d6478;
+  --surface-sunken: #efeeea;
+  --border: #e2e0da;
+  --border-strong: #cfccc3;
+  --text: #1a1c24;
+  --text-muted: #6b6f7d;
   --danger: #b3261e;
-  --shadow: 0 1px 2px rgb(27 30 42 / 8%), 0 8px 24px rgb(27 30 42 / 6%);
 
-  --radius: 12px;
+  --shadow-sm: 0 1px 2px rgb(26 28 36 / 6%);
+  --shadow: 0 1px 2px rgb(26 28 36 / 6%), 0 6px 20px rgb(26 28 36 / 6%);
+
+  --radius: 14px;
+  --radius-sm: 9px;
   --gap: 16px;
+
+  /* Per-kind accents, muted enough to sit next to each other in a list. */
+  --kind-travel: #3f6fb5;
+  --kind-stay: #2f8f6f;
+  --kind-food: #c9812f;
+  --kind-see: #7a5bb5;
+  --kind-other: #7c8090;
 
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14161f;
-    --surface: #1d202b;
-    --border: #2f3442;
+    --brand: #8ea4e8;
+    --brand-soft: #6c83c8;
+    --accent: #ff7a70;
+
+    --bg: #14161d;
+    --surface: #1c1f28;
+    --surface-sunken: #232733;
+    --border: #2e3341;
+    --border-strong: #414757;
     --text: #e9ebf2;
     --text-muted: #9aa1b5;
     --danger: #ff8a80;
+
+    --shadow-sm: none;
     --shadow: none;
+
+    --kind-travel: #7ea6e8;
+    --kind-stay: #5fc3a0;
+    --kind-food: #e8b565;
+    --kind-see: #b39ae8;
+    --kind-other: #9aa1b5;
   }
 }
 
@@ -42,32 +75,48 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   /* On Android the installed app extends under the system bars. */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
     env(safe-area-inset-left);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .splash {
   height: 100%;
 }
 
-/* --- Status strip --- */
+/* ==========================================================================
+   Status strip
+   ========================================================================== */
 
 .sync-banner {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 16px;
+  gap: 5px;
+  padding: 9px 16px;
   font-size: 13px;
+  font-weight: 500;
   text-align: center;
   color: #fff;
   background: var(--brand);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sync-banner {
+    color: #10121a;
+  }
 }
 
 .sync-banner--offline {
@@ -99,130 +148,17 @@ body {
   }
 }
 
-/* --- Blocks --- */
+/* ==========================================================================
+   Primitives
+   ========================================================================== */
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
 }
-
-.login {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-  padding: 24px;
-}
-
-.login__card {
-  width: 100%;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap);
-}
-
-.login__title {
-  margin: 0;
-  font-size: 22px;
-}
-
-.login__subtitle {
-  margin: -8px 0 0;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field__label {
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-.field__input {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px; /* below 16px Android zooms the page on focus */
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.field__input:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 1px;
-}
-
-.field__error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 14px;
-}
-
-.button {
-  padding: 12px 16px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--brand);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  /* Comfortable thumb target. */
-  min-height: 44px;
-}
-
-.button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.button--quiet {
-  color: var(--text-muted);
-  background: transparent;
-  font-weight: 500;
-}
-
-.button--small {
-  min-height: 36px;
-  padding: 6px 12px;
-  font-size: 14px;
-}
-
-/* --- Pages --- */
-
-.page {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: var(--gap);
-}
-
-.page__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap);
-}
-
-.page__title {
-  margin: 0;
-  font-size: 20px;
-}
-
-.page__empty {
-  color: var(--text-muted);
-}
-
-/* --- Layout helpers --- */
 
 .stack {
   display: flex;
@@ -231,7 +167,7 @@ body {
 }
 
 .stack--tight {
-  gap: 4px;
+  gap: 6px;
 }
 
 .row {
@@ -255,96 +191,340 @@ body {
 
 .hint {
   margin: 0;
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
   color: var(--text-muted);
-  background: var(--bg);
+  background: var(--surface-sunken);
   border-left: 3px solid var(--brand);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   align-self: flex-start;
+  padding: 4px 0;
   font-size: 14px;
+  font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
 }
 
-/* --- Trip list --- */
+.back:hover {
+  color: var(--text);
+}
+
+/* --- Fields --- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.field__input {
+  width: 100%;
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 16px; /* below 16px Android zooms the page on focus */
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 120ms ease;
+}
+
+.field__input:hover {
+  border-color: var(--text-muted);
+}
+
+.field__input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+select.field__input {
+  appearance: none;
+  padding-right: 32px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 17px) calc(50% + 2px),
+    calc(100% - 12px) calc(50% + 2px);
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.field__error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+/* --- Buttons --- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px; /* comfortable thumb target */
+  padding: 12px 18px;
+  font: inherit;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    transform 80ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .button {
+    color: #10121a;
+  }
+}
+
+.button:hover:not(:disabled) {
+  background: var(--brand-soft);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.button--quiet {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: var(--border-strong);
+  font-weight: 500;
+}
+
+.button--quiet:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+.button--small {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   Page shell
+   ========================================================================== */
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px var(--gap) 64px;
+}
+
+.page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.page__title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page__empty {
+  color: var(--text-muted);
+}
+
+.empty {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+
+/* ==========================================================================
+   Login
+   ========================================================================== */
+
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 24px;
+}
+
+.login__card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  box-shadow: var(--shadow);
+}
+
+.login__mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+}
+
+.login__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.login__subtitle {
+  margin: -10px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   Trip list
+   ========================================================================== */
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .list__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 16px 18px;
   color: inherit;
   text-decoration: none;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 120ms ease,
+    transform 80ms ease;
+}
+
+.list__item:hover {
+  border-color: var(--border-strong);
+}
+
+.list__item:active {
+  transform: translateY(1px);
 }
 
 .list__title {
-  font-weight: 600;
+  grid-column: 1;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .list__meta {
-  font-size: 14px;
+  grid-column: 1;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
-/* --- What is next --- */
+.list__chevron {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 20px;
+  color: var(--border-strong);
+}
+
+/* ==========================================================================
+   What is next
+   ========================================================================== */
 
 .next {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 14px 16px;
-  border-left: 3px solid var(--accent);
+  gap: 3px;
+  padding: 16px 18px;
+  border-left: 4px solid var(--accent);
+  box-shadow: var(--shadow);
 }
 
 .next__label {
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--accent);
 }
 
 .next__title {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
-/* --- Timeline --- */
+/* ==========================================================================
+   Timeline
+   ========================================================================== */
 
 .day {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .day__header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
-  padding-bottom: 6px;
+  padding: 10px 0 8px;
   font-size: 15px;
+  /* Sticky over a transparent background would let rows show through. */
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
+}
+
+.sync-banner ~ * .day__header {
+  top: 38px;
 }
 
 .day__number {
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .day__date {
@@ -354,59 +534,129 @@ body {
 
 .day__stop {
   margin-left: auto;
-  padding: 2px 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #fff;
-  background: var(--brand);
+  padding: 3px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
   border-radius: 999px;
 }
 
 .day__empty {
-  margin: 0;
+  margin: 0 0 4px;
+  padding-left: 4px;
   font-size: 14px;
   color: var(--text-muted);
 }
 
 .entries {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* One continuous rail for the whole day, drawn behind the dots.
+   Stitching a segment onto each row instead leaves hairline gaps wherever
+   padding and gap do not add up exactly. */
+.entries::before {
+  content: '';
+  position: absolute;
+  /* Centre of the marker column: time column + gap + half the dot. */
+  left: calc(4.25rem + 10px + 0.8rem - 1px);
+  top: calc(10px + 0.8rem);
+  bottom: calc(10px + 0.8rem);
+  width: 2px;
+  background: var(--border);
+}
+
 .entry {
-  display: flex;
-  gap: 12px;
-  padding: 12px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  --entry-accent: var(--kind-other);
+  display: grid;
+  grid-template-columns: 4.25rem 1.6rem 1fr;
+  align-items: start;
+  gap: 0 10px;
+  padding: 10px 0;
+}
+
+.entry[data-kind='flight'],
+.entry[data-kind='train'],
+.entry[data-kind='bus'],
+.entry[data-kind='ferry'],
+.entry[data-kind='car_rental'] {
+  --entry-accent: var(--kind-travel);
+}
+
+.entry[data-kind='hotel'] {
+  --entry-accent: var(--kind-stay);
+}
+
+.entry[data-kind='restaurant'] {
+  --entry-accent: var(--kind-food);
+}
+
+.entry[data-kind='activity'] {
+  --entry-accent: var(--kind-see);
 }
 
 .entry__time {
   display: flex;
   flex-direction: column;
-  flex: 0 0 5.5rem;
+  align-items: flex-end;
+  padding-top: 2px;
+  font-size: 15px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
-.entry__hint {
-  font-size: 12px;
+.entry__zone {
+  font-size: 11.5px;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
-.entry__body {
+.entry__hint {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.entry__marker {
+  display: flex;
+  justify-content: center;
+}
+
+.entry__dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--surface);
+  border: 2px solid var(--entry-accent);
+  border-radius: 50%;
+}
+
+.entry__content {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  padding-bottom: 2px;
 }
 
 .entry__title {
+  font-size: 15.5px;
   font-weight: 600;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
 }
 
 .entry__meta {
@@ -415,12 +665,45 @@ body {
   overflow-wrap: anywhere;
 }
 
+.entry__route {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--entry-accent);
+}
+
+.pill {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+
+.pill--pending {
+  color: var(--kind-food);
+  background: color-mix(in srgb, var(--kind-food) 16%, transparent);
+}
+
+.pill--cancelled {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  text-decoration: line-through;
+}
+
+/* ==========================================================================
+   Update prompt
+   ========================================================================== */
+
 .update-prompt {
   position: fixed;
   left: 16px;
   right: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom));
-  z-index: 20;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -431,4 +714,12 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+}
+
+@media (min-width: 640px) {
+  .update-prompt {
+    left: auto;
+    right: 24px;
+    max-width: 380px;
+  }
 }

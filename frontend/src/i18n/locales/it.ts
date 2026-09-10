@@ -75,6 +75,9 @@ export const it = {
   'booking.kind.restaurant': 'Ristorante',
   'booking.kind.other': 'Altro',
 
+  'booking.status.pending': 'Da confermare',
+  'booking.status.cancelled': 'Annullata',
+
   'booking.field.kind': 'Tipo',
   'booking.field.title': 'Nome',
   'booking.field.provider': 'Fornitore',
