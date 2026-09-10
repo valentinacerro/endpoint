@@ -2,95 +2,14 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
 import { useTripBundle } from '../api/trips'
-import type { Booking } from '../api/types'
 import { BookingForm } from '../components/BookingForm'
 import { OfflineReminder } from '../components/OfflineReminder'
+import { SchedulePlace } from '../components/SchedulePlace'
+import { TimelineEntry } from '../components/TimelineEntry'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
-import {
-  formatCalendarDate,
-  formatDayKey,
-  formatTimeInZone,
-  homeTimeHint,
-  shortZoneName,
-} from '../lib/datetime'
+import { formatCalendarDate, formatDayKey, formatTimeInZone, shortZoneName } from '../lib/datetime'
 import { attachmentsOf, buildTimeline, nextBooking } from '../lib/itinerary'
-
-function StatusPill({ status }: { status: Booking['status'] }) {
-  if (status === 'confirmed') return null
-  return (
-    <span className={`pill pill--${status}`}>
-      {status === 'pending' ? t('booking.status.pending') : t('booking.status.cancelled')}
-    </span>
-  )
-}
-
-function BookingRow({
-  booking,
-  zone,
-  showZone,
-  tripId,
-  documents,
-}: {
-  booking: Booking
-  zone: string
-  showZone: boolean
-  tripId: string
-  documents: number
-}) {
-  const hint = booking.start_at ? homeTimeHint(booking.start_at, zone) : null
-  const meta = [
-    bookingKindLabel(booking.kind),
-    booking.provider,
-    booking.confirmation_code,
-  ].filter(Boolean)
-
-  return (
-    <li className="entry" data-kind={booking.kind}>
-      <div className="entry__time">
-        {booking.start_at ? (
-          <>
-            <span>{formatTimeInZone(booking.start_at, zone)}</span>
-            {/* The zone label only when the trip spans more than one, so a
-                single-country trip is not shouted at on every row. */}
-            {showZone && <span className="entry__zone">{shortZoneName(zone)}</span>}
-            {/* And the home clock only when it differs *and* the event is
-                imminent — otherwise it would be on every row too. */}
-            {hint && <span className="entry__hint">{t('timeline.inYourZone', hint)}</span>}
-          </>
-        ) : (
-          <span className="entry__zone" aria-hidden="true">
-            —
-          </span>
-        )}
-      </div>
-
-      <div className="entry__marker">
-        <span className="entry__dot" aria-hidden="true">
-          {BOOKING_KIND_ICON[booking.kind]}
-        </span>
-      </div>
-
-      <Link className="entry__content" to={`/trips/${tripId}/bookings/${booking.id}`}>
-        <span className="entry__title">
-          {booking.title}
-          <StatusPill status={booking.status} />
-          {documents > 0 && (
-            <span className="entry__docs" title={`${documents}`} aria-hidden="true">
-              📎
-            </span>
-          )}
-        </span>
-        {(booking.origin_label || booking.destination_label) && (
-          <span className="entry__route">
-            {booking.origin_label} → {booking.destination_label}
-          </span>
-        )}
-        <span className="entry__meta">{meta.join(' · ')}</span>
-      </Link>
-    </li>
-  )
-}
 
 export function TripDetail() {
   const { tripId } = useParams<{ tripId: string }>()
@@ -98,20 +17,26 @@ export function TripDetail() {
   const [adding, setAdding] = useState(false)
 
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
-  if (!bundle.data) return <main className="page">{t('common.error')}</main>
+  if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
 
-  const { trip } = bundle.data
-  const timeline = buildTimeline(bundle.data)
-  const next = nextBooking(bundle.data)
+  const data = bundle.data
+  const { trip } = data
+  const timeline = buildTimeline(data)
+  const next = nextBooking(data)
 
   // Zone labels only earn their place on a trip that actually spans more
   // than one; on a single-country trip they are noise on every row.
   const zones = new Set<string>([
     trip.primary_tz,
-    ...bundle.data.stops.map((stop) => stop.tz),
-    ...bundle.data.bookings.flatMap((booking) => (booking.start_tz ? [booking.start_tz] : [])),
+    ...data.stops.map((stop) => stop.tz),
+    ...data.bookings.flatMap((booking) => (booking.start_tz ? [booking.start_tz] : [])),
   ])
   const showZone = zones.size > 1
+
+  const nothingAtAll =
+    timeline.days.length === 0 &&
+    timeline.undatedBookings.length === 0 &&
+    timeline.unscheduledPlaces.length === 0
 
   return (
     <main className="page stack">
@@ -145,7 +70,7 @@ export function TripDetail() {
         </Link>
       </nav>
 
-      {tripId && <OfflineReminder bundle={bundle.data} tripId={tripId} />}
+      <OfflineReminder bundle={data} tripId={tripId} />
 
       {next?.start_at && (
         <section className="card next">
@@ -156,16 +81,16 @@ export function TripDetail() {
           <span className="muted">
             {formatDayKey(next.start_at.slice(0, 10))} ·{' '}
             {formatTimeInZone(next.start_at, next.start_tz ?? trip.primary_tz)}{' '}
-            {shortZoneName(next.start_tz ?? trip.primary_tz)}
+            {showZone && shortZoneName(next.start_tz ?? trip.primary_tz)}
           </span>
         </section>
       )}
 
-      {adding && tripId ? (
+      {adding ? (
         <BookingForm
           tripId={tripId}
           defaultZone={trip.primary_tz}
-          stops={bundle.data.stops}
+          stops={data.stops}
           onDone={() => setAdding(false)}
         />
       ) : (
@@ -174,9 +99,7 @@ export function TripDetail() {
         </button>
       )}
 
-      {timeline.days.length === 0 && timeline.undated.length === 0 && (
-        <p className="empty">{t('timeline.empty')}</p>
-      )}
+      {nothingAtAll && <p className="empty">{t('timeline.empty')}</p>}
 
       {timeline.days.map((day) => (
         <section key={day.key} className="day">
@@ -189,14 +112,17 @@ export function TripDetail() {
             <p className="day__empty">{t('timeline.emptyDay')}</p>
           ) : (
             <ul className="entries">
-              {day.entries.map((entry) => (
-                <BookingRow
-                  key={entry.booking.id}
-                  booking={entry.booking}
-                  zone={entry.zone}
+              {day.entries.map((placed) => (
+                <TimelineEntry
+                  key={placed.entry.id}
+                  placed={placed}
                   showZone={showZone}
-                  tripId={tripId!}
-                  documents={attachmentsOf(bundle.data!, entry.booking.id).length}
+                  tripId={tripId}
+                  documents={
+                    placed.entry.type === 'booking'
+                      ? attachmentsOf(data, placed.entry.booking.id).length
+                      : 0
+                  }
                 />
               ))}
             </ul>
@@ -204,21 +130,33 @@ export function TripDetail() {
         </section>
       ))}
 
-      {timeline.undated.length > 0 && (
+      {/* The wish list, kept at the bottom where it reads as "still to
+          decide" rather than competing with the plan itself. */}
+      {(timeline.unscheduledPlaces.length > 0 || timeline.undatedBookings.length > 0) && (
         <section className="day">
           <h2 className="day__header">
-            <span className="day__number">{t('timeline.undated')}</span>
+            <span className="day__number">{t('timeline.unscheduled')}</span>
           </h2>
-          <ul className="entries">
-            {timeline.undated.map((booking) => (
-              <BookingRow
-                key={booking.id}
-                booking={booking}
-                zone={trip.primary_tz}
-                showZone={false}
-                tripId={tripId!}
-                documents={attachmentsOf(bundle.data!, booking.id).length}
+
+          <ul className="docs">
+            {timeline.unscheduledPlaces.map((item) => (
+              <SchedulePlace
+                key={item.id}
+                tripId={tripId}
+                place={item}
+                defaultZone={data.stops[0]?.tz ?? trip.primary_tz}
+                defaultDay={trip.start_date}
               />
+            ))}
+            {timeline.undatedBookings.map((item) => (
+              <li key={item.id} className="doc">
+                <Link className="doc__open" to={`/trips/${tripId}/bookings/${item.id}`}>
+                  <span className="doc__name">
+                    <span aria-hidden="true">{BOOKING_KIND_ICON[item.kind]}</span> {item.title}
+                  </span>
+                  <span className="doc__meta">{bookingKindLabel(item.kind)}</span>
+                </Link>
+              </li>
             ))}
           </ul>
         </section>

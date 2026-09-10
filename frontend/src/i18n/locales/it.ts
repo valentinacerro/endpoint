@@ -88,6 +88,13 @@ export const it = {
   'timeline.next': 'Prossimo',
   'timeline.inYourZone': 'le {time} da te',
   'timeline.addBooking': 'Aggiungi prenotazione',
+  'timeline.gap': '{duration} liberi',
+  'timeline.overlap': 'Si sovrappone a quello prima',
+  'timeline.unscheduled': 'Da programmare',
+  'timeline.visit': 'Visita · {duration}',
+  'timeline.schedule': 'Programma',
+  'timeline.unschedule': 'Togli dal programma',
+  'timeline.scheduleOn': 'Quando',
 
   'booking.kind.hotel': 'Hotel',
   'booking.kind.flight': 'Volo',

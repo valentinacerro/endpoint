@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router'
 
-import { useCreatePlace, useDeletePlace, useTripBundle } from '../api/trips'
+import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '../api/trips'
 import { PLACE_CATEGORIES, type PlaceCategory, type Priority } from '../api/types'
 import { t } from '../i18n'
 import { exposureLabel, placeCategoryLabel, priorityLabel } from '../i18n/labels'
+import { dayKeyInZone, formatDayKey, formatDuration, formatTimeInZone } from '../lib/datetime'
 
 const PRIORITIES: readonly Priority[] = ['must_see', 'high', 'normal', 'low']
 
@@ -112,6 +113,7 @@ export function PlacesPanel() {
   const { tripId } = useParams<{ tripId: string }>()
   const bundle = useTripBundle(tripId)
   const remove = useDeletePlace(tripId ?? '')
+  const update = useUpdatePlace(tripId ?? '')
   const [adding, setAdding] = useState(false)
 
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
@@ -137,20 +139,39 @@ export function PlacesPanel() {
                 {place.priority === 'must_see' && <span className="pill pill--must">★</span>}
               </span>
               <span className="doc__meta">
-                {placeCategoryLabel(place.category)} · {place.visit_minutes} min ·{' '}
-                {exposureLabel(place.weather_exposure)}
+                {placeCategoryLabel(place.category)} ·{' '}
+                {formatDuration(place.visit_minutes)} · {exposureLabel(place.weather_exposure)}
               </span>
+              {place.planned_start_at && place.planned_tz && (
+                <span className="doc__meta doc__meta--planned">
+                  {formatDayKey(dayKeyInZone(place.planned_start_at, place.planned_tz))} ·{' '}
+                  {formatTimeInZone(place.planned_start_at, place.planned_tz)}
+                </span>
+              )}
             </span>
-            <button
-              className="chip chip--danger"
-              onClick={() =>
-                confirm(t('common.confirmDelete', { name: place.name })) &&
-                remove.mutate(place.id)
-              }
-              aria-label={t('common.delete')}
-            >
-              ×
-            </button>
+            <div className="doc__actions">
+              {place.planned_start_at && (
+                <button
+                  className="chip"
+                  onClick={() =>
+                    update.mutate({ id: place.id, planned_start_at: null, planned_tz: null })
+                  }
+                  disabled={update.isPending}
+                >
+                  {t('timeline.unschedule')}
+                </button>
+              )}
+              <button
+                className="chip chip--danger"
+                onClick={() =>
+                  confirm(t('common.confirmDelete', { name: place.name })) &&
+                  remove.mutate(place.id)
+                }
+                aria-label={t('common.delete')}
+              >
+                ×
+              </button>
+            </div>
           </li>
         ))}
       </ul>

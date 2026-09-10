@@ -1,45 +1,100 @@
 /**
- * Turning a trip bundle into the day-by-day timeline.
+ * Turning a trip bundle into the day-by-day plan.
  *
  * Pure functions over plain data: no fetching, no React. That is what makes
- * the awkward parts — which day does a red-eye flight belong to, what about
- * a hotel with no dates yet — testable rather than something you discover on
- * the road.
+ * the awkward parts — which day a red-eye flight belongs to, whether an
+ * afternoon actually has room for one more temple — testable rather than
+ * something you discover on the road.
  */
 
-import type { Booking, Stop, TripBundle } from '../api/types'
+import type { Booking, BookingKind, Place, Stop, TripBundle } from '../api/types'
 import { dayKeyInZone, eachDay, type CalendarDate } from './datetime'
 
-export interface DayEntry {
-  booking: Booking
-  /** The zone this row should be read in — the event's own, never the device's. */
-  zone: string
+/**
+ * Bookings that span days rather than occupying an afternoon.
+ *
+ * A hotel runs from check-in to check-out, so counting it as busy time would
+ * mark every single activity of the next three days as overlapping it. These
+ * appear on the timeline as markers and take up no room in the day.
+ */
+const SPANS_DAYS: ReadonlySet<BookingKind> = new Set(['hotel', 'car_rental'])
+
+/** Ignore slivers: a nine-minute gap is not an opportunity. */
+const MEANINGFUL_GAP_MINUTES = 30
+
+const MINUTE_MS = 60_000
+
+export type DayEntry =
+  | {
+      type: 'booking'
+      id: string
+      startAt: string
+      /** When it stops occupying the day; null for things that just span it. */
+      busyUntil: string | null
+      zone: string
+      booking: Booking
+    }
+  | {
+      type: 'place'
+      id: string
+      startAt: string
+      busyUntil: string
+      zone: string
+      place: Place
+    }
+
+export interface PlacedEntry {
+  entry: DayEntry
+  /** Free minutes before this starts, when there are enough to matter. */
+  gapMinutes: number | null
+  /** This begins before the previous one has finished. */
+  overlaps: boolean
 }
 
 export interface Day {
   key: CalendarDate
   /** 1-based, as shown to the user: "Day 3". */
   number: number
-  entries: DayEntry[]
+  entries: PlacedEntry[]
   /** The stop you are based at that day, when it can be worked out. */
   stop: Stop | null
 }
 
 export interface Timeline {
   days: Day[]
-  /** Bookings with no date yet: real, but not placeable on the calendar. */
-  undated: Booking[]
+  /** Real, but not yet placeable on the calendar. */
+  undatedBookings: Booking[]
+  unscheduledPlaces: Place[]
 }
 
-/**
- * The zone a booking's start should be read in.
- *
- * Falls back to the trip's own zone. A booking cannot store `start_at`
- * without `start_tz` — the database refuses it — so the fallback only ever
- * applies to a booking with no time at all.
- */
-function zoneFor(booking: Booking, fallback: string): string {
-  return booking.start_tz ?? fallback
+function addMinutes(instant: string, minutes: number): string {
+  return new Date(new Date(instant).getTime() + minutes * MINUTE_MS).toISOString()
+}
+
+function toEntry(booking: Booking, fallbackZone: string): DayEntry | null {
+  if (!booking.start_at) return null
+  return {
+    type: 'booking',
+    id: booking.id,
+    startAt: booking.start_at,
+    busyUntil: SPANS_DAYS.has(booking.kind) ? null : booking.end_at,
+    // A booking cannot store a time without its zone — the database refuses
+    // it — so the fallback only applies to one with no time at all.
+    zone: booking.start_tz ?? fallbackZone,
+    booking,
+  }
+}
+
+function placeEntry(place: Place, fallbackZone: string): DayEntry | null {
+  if (!place.planned_start_at) return null
+  return {
+    type: 'place',
+    id: place.id,
+    startAt: place.planned_start_at,
+    busyUntil: addMinutes(place.planned_start_at, place.visit_minutes),
+    zone: place.planned_tz ?? fallbackZone,
+    place,
+  }
 }
 
 /** The stop covering a given day, if its dates say so. */
@@ -52,21 +107,51 @@ function stopForDay(stops: Stop[], day: CalendarDate): Stop | null {
   return null
 }
 
+/** Work out the free time and clashes running down a single day. */
+function place(entries: DayEntry[]): PlacedEntry[] {
+  let busyUntil: string | null = null
+
+  return entries.map((entry) => {
+    let gapMinutes: number | null = null
+    let overlaps = false
+
+    if (busyUntil) {
+      const minutes = (new Date(entry.startAt).getTime() - new Date(busyUntil).getTime()) / MINUTE_MS
+      if (minutes < 0) overlaps = true
+      else if (minutes >= MEANINGFUL_GAP_MINUTES) gapMinutes = Math.round(minutes)
+    }
+
+    // Carry the later end forward, so a long visit still shields the ones
+    // that follow instead of being forgotten by the next comparison.
+    if (entry.busyUntil && (!busyUntil || entry.busyUntil > busyUntil)) {
+      busyUntil = entry.busyUntil
+    }
+
+    return { entry, gapMinutes, overlaps }
+  })
+}
+
 export function buildTimeline(bundle: TripBundle): Timeline {
   const fallbackZone = bundle.trip.primary_tz
-  const undated: Booking[] = []
+  const undatedBookings: Booking[] = []
+  const unscheduledPlaces: Place[] = []
   const byDay = new Map<CalendarDate, DayEntry[]>()
 
+  const add = (entry: DayEntry) => {
+    const key = dayKeyInZone(entry.startAt, entry.zone)
+    byDay.set(key, [...(byDay.get(key) ?? []), entry])
+  }
+
   for (const booking of bundle.bookings) {
-    if (!booking.start_at) {
-      undated.push(booking)
-      continue
-    }
-    const zone = zoneFor(booking, fallbackZone)
-    const key = dayKeyInZone(booking.start_at, zone)
-    const entries = byDay.get(key) ?? []
-    entries.push({ booking, zone })
-    byDay.set(key, entries)
+    const entry = toEntry(booking, fallbackZone)
+    if (entry) add(entry)
+    else undatedBookings.push(booking)
+  }
+
+  for (const item of bundle.places) {
+    const entry = placeEntry(item, fallbackZone)
+    if (entry) add(entry)
+    else unscheduledPlaces.push(item)
   }
 
   // The days of the trip itself, so a day with nothing planned still appears
@@ -84,14 +169,14 @@ export function buildTimeline(bundle: TripBundle): Timeline {
     key,
     number: index + 1,
     stop: stopForDay(bundle.stops, key),
-    entries: (byDay.get(key) ?? []).sort((a, b) =>
-      // Both are instants in UTC, so a plain string comparison is a correct
-      // chronological sort regardless of the zones they display in.
-      (a.booking.start_at ?? '').localeCompare(b.booking.start_at ?? ''),
+    entries: place(
+      // Both are instants in UTC, so a plain string comparison sorts them
+      // chronologically regardless of the zones they display in.
+      (byDay.get(key) ?? []).sort((a, b) => a.startAt.localeCompare(b.startAt)),
     ),
   }))
 
-  return { days, undated }
+  return { days, undatedBookings, unscheduledPlaces }
 }
 
 /** Attachments belonging to one booking. */

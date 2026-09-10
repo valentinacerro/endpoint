@@ -202,6 +202,15 @@ export function daysUntil(date: CalendarDate, now: Date = new Date()): number {
   return Math.round((target - today) / DAY_MS)
 }
 
+/** "2h 30min", "45min" — a span of time, not a moment. */
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (hours === 0) return `${rest}min`
+  if (rest === 0) return `${hours}h`
+  return `${hours}h ${rest}min`
+}
+
 /** "Tokyo" out of "Asia/Tokyo", for a compact label. */
 export function shortZoneName(timeZone: string): string {
   return timeZone.split('/').pop()?.replace(/_/g, ' ') ?? timeZone

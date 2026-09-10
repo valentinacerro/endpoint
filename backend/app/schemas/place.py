@@ -3,10 +3,10 @@ import re
 import uuid
 from typing import Any, Self
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from app.enums import PlaceCategory, Priority, WeatherExposure, default_exposure
-from app.schemas.common import ReadModel, ShortText, WriteModel
+from app.schemas.common import ReadModel, ShortText, TimeZoneName, WriteModel
 
 _WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 _TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
@@ -55,6 +55,8 @@ class PlaceCreate(WriteModel):
     url: str | None = None
     notes: str | None = None
     visit_minutes: int = Field(default=60, gt=0, le=24 * 60)
+    planned_start_at: AwareDatetime | None = None
+    planned_tz: TimeZoneName | None = None
     opening_hours: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("opening_hours")
@@ -74,6 +76,12 @@ class PlaceCreate(WriteModel):
             self.weather_exposure = default_exposure(self.category)
         return self
 
+    @model_validator(mode="after")
+    def _planned_time_needs_a_zone(self) -> Self:
+        if self.planned_start_at is not None and not self.planned_tz:
+            raise ValueError("planned_tz is required when planned_start_at is set")
+        return self
+
 
 class PlaceUpdate(WriteModel):
     name: ShortText | None = None
@@ -89,6 +97,8 @@ class PlaceUpdate(WriteModel):
     url: str | None = None
     notes: str | None = None
     visit_minutes: int | None = Field(default=None, gt=0, le=24 * 60)
+    planned_start_at: AwareDatetime | None = None
+    planned_tz: TimeZoneName | None = None
     opening_hours: dict[str, Any] | None = None
 
     @field_validator("opening_hours")
@@ -111,6 +121,8 @@ class PlaceRead(ReadModel):
     url: str | None
     notes: str | None
     visit_minutes: int
+    planned_start_at: dt.datetime | None
+    planned_tz: str | None
     opening_hours: dict[str, Any]
     created_at: dt.datetime
     updated_at: dt.datetime

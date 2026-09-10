@@ -1,5 +1,7 @@
 """The API surface: what it accepts, what it refuses, and with which code."""
 
+import datetime as dt
+
 from fastapi.testclient import TestClient
 
 
@@ -213,6 +215,83 @@ def test_place_exposure_is_derived_from_its_category(client: TestClient) -> None
         json={"name": "Rooftop museum", "category": "museum", "weather_exposure": "outdoor"},
     ).json()
     assert explicit["weather_exposure"] == "outdoor"
+
+
+def test_a_place_can_be_scheduled_and_unscheduled(client: TestClient) -> None:
+    """Putting a wish-list place onto the itinerary, and taking it off again."""
+    trip = _create_trip(client)
+    place = client.post(
+        f"/api/trips/{trip['id']}/places", json={"name": "Senso-ji", "category": "temple"}
+    ).json()
+    assert place["planned_start_at"] is None
+
+    scheduled = client.patch(
+        f"/api/trips/{trip['id']}/places/{place['id']}",
+        json={"planned_start_at": "2026-04-13T10:00:00+09:00", "planned_tz": "Asia/Tokyo"},
+    ).json()
+    assert scheduled["planned_tz"] == "Asia/Tokyo"
+    # Compared as an instant, not as a string. A write echoes back the offset
+    # the client sent, while a read from the database comes back in UTC —
+    # the same moment either way, and nothing should depend on which spelling
+    # it arrives in.
+    assert dt.datetime.fromisoformat(scheduled["planned_start_at"]) == dt.datetime(
+        2026, 4, 13, 1, 0, tzinfo=dt.UTC
+    )
+
+    # Back to the wish list.
+    cleared = client.patch(
+        f"/api/trips/{trip['id']}/places/{place['id']}",
+        json={"planned_start_at": None, "planned_tz": None},
+    ).json()
+    assert cleared["planned_start_at"] is None
+
+
+def test_scheduling_only_the_time_works_when_the_zone_is_already_stored(
+    client: TestClient,
+) -> None:
+    trip = _create_trip(client)
+    place = client.post(
+        f"/api/trips/{trip['id']}/places",
+        json={
+            "name": "Senso-ji",
+            "planned_start_at": "2026-04-13T10:00:00+09:00",
+            "planned_tz": "Asia/Tokyo",
+        },
+    ).json()
+
+    moved = client.patch(
+        f"/api/trips/{trip['id']}/places/{place['id']}",
+        json={"planned_start_at": "2026-04-14T09:00:00+09:00"},
+    )
+    assert moved.status_code == 200
+    assert moved.json()["planned_tz"] == "Asia/Tokyo"
+
+
+def test_a_planned_time_without_a_zone_is_refused(client: TestClient) -> None:
+    trip = _create_trip(client)
+    response = client.post(
+        f"/api/trips/{trip['id']}/places",
+        json={"name": "x", "planned_start_at": "2026-04-13T10:00:00+09:00"},
+    )
+    assert response.status_code == 422
+
+    # And the same rule holds when it is reached by updating.
+    place = client.post(f"/api/trips/{trip['id']}/places", json={"name": "y"}).json()
+    patched = client.patch(
+        f"/api/trips/{trip['id']}/places/{place['id']}",
+        json={"planned_start_at": "2026-04-13T10:00:00+09:00"},
+    )
+    assert patched.status_code == 422
+    assert patched.json()["error"]["code"] == "invalid_time_fields"
+
+
+def test_a_naive_planned_time_is_refused(client: TestClient) -> None:
+    trip = _create_trip(client)
+    response = client.post(
+        f"/api/trips/{trip['id']}/places",
+        json={"name": "x", "planned_start_at": "2026-04-13T10:00:00", "planned_tz": "Asia/Tokyo"},
+    )
+    assert response.status_code == 422
 
 
 def test_malformed_opening_hours_are_refused(client: TestClient) -> None:

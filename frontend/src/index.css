@@ -671,6 +671,51 @@ select.field__input {
   color: var(--entry-accent);
 }
 
+/* Free time gets its own row rather than a note on the next item: an empty
+   afternoon is something you can plan into, so it should look like a slot. */
+.gap {
+  display: grid;
+  grid-template-columns: 4.25rem 1.6rem 1fr;
+  align-items: center;
+  gap: 0 10px;
+  padding: 4px 0;
+}
+
+.gap__line {
+  grid-column: 2;
+  justify-self: center;
+  width: 2px;
+  height: 20px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--border-strong) 0 3px,
+    transparent 3px 6px
+  );
+}
+
+.gap__label {
+  grid-column: 3;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.entry--clash {
+  position: relative;
+}
+
+.entry--clash .entry__dot {
+  border-color: var(--danger);
+}
+
+.entry__clash {
+  grid-column: 3;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
 .pill {
   display: inline-block;
   margin-left: 6px;
@@ -900,6 +945,18 @@ a.entry__content:hover .entry__title {
   border-radius: var(--radius-sm);
 }
 
+.doc--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.doc__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .doc__open {
   display: flex;
   flex: 1;
@@ -928,6 +985,11 @@ a.entry__content:hover .entry__title {
 .doc__meta {
   font-size: 12.5px;
   color: var(--text-muted);
+}
+
+.doc__meta--planned {
+  font-weight: 600;
+  color: var(--kind-see);
 }
 
 .doc__actions {

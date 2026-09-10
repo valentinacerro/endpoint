@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 6a246a192d23
+Revision ID: b01ae6b768d9
 Revises:
-Create Date: 2026-09-10 12:16:29.121732
+Create Date: 2026-09-10 15:01:21.370922
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 from app.models.base import UtcDateTime
 
 # revision identifiers, used by Alembic.
-revision: str = "6a246a192d23"
+revision: str = "b01ae6b768d9"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -152,6 +152,8 @@ def upgrade() -> None:
         sa.Column("url", sa.Text(), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("visit_minutes", sa.Integer(), nullable=False),
+        sa.Column("planned_start_at", UtcDateTime(), nullable=True),
+        sa.Column("planned_tz", sa.String(length=64), nullable=True),
         sa.Column(
             "opening_hours",
             sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql"),
@@ -173,6 +175,9 @@ def upgrade() -> None:
         sa.CheckConstraint("lat IS NULL OR (lat >= -90 AND lat <= 90)", name="ck_place_lat_range"),
         sa.CheckConstraint(
             "lon IS NULL OR (lon >= -180 AND lon <= 180)", name="ck_place_lon_range"
+        ),
+        sa.CheckConstraint(
+            "planned_start_at IS NULL OR planned_tz IS NOT NULL", name="ck_place_planned_tz"
         ),
         sa.CheckConstraint("visit_minutes > 0", name="ck_place_visit_minutes_positive"),
         sa.ForeignKeyConstraint(["stop_id"], ["stop.id"], ondelete="SET NULL"),

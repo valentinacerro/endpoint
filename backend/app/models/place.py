@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import uuid
 from typing import TYPE_CHECKING, Any
 
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 from app.enums import PlaceCategory, Priority, WeatherExposure
-from app.models.base import Timestamps, UuidPk, enum_check
+from app.models.base import Timestamps, UtcDateTime, UuidPk, enum_check
 
 if TYPE_CHECKING:
     from app.models.stop import Stop
@@ -55,6 +56,17 @@ class Place(Base, UuidPk, Timestamps):
     # cannot tell you whether the day actually fits.
     visit_minutes: Mapped[int] = mapped_column(Integer, default=60)
 
+    # When you plan to be here. Null means "on the wish list, not yet placed".
+    # Same instant-plus-zone pairing as a booking, and for the same reason: a
+    # visit at 10:00 in Kyoto has to read 10:00 while you are still at home.
+    #
+    # These live on the place itself rather than in a separate plan table, so
+    # the itinerary optimiser will have somewhere to write its answer without
+    # a new concept. The trade is that one place appears at most once in a
+    # trip, which for a wish list is the normal case.
+    planned_start_at: Mapped[dt.datetime | None] = mapped_column(UtcDateTime)
+    planned_tz: Mapped[str | None] = mapped_column(String(64))
+
     # Opening hours, keyed by weekday:
     #   {"mon": [["09:00", "17:00"]], "tue": [], "wed": [["09:00", "12:00"],
     #    ["13:00", "17:00"]]}
@@ -73,6 +85,10 @@ class Place(Base, UuidPk, Timestamps):
         enum_check("priority", Priority, "ck_place_priority"),
         enum_check("weather_exposure", WeatherExposure, "ck_place_weather_exposure"),
         CheckConstraint("visit_minutes > 0", name="ck_place_visit_minutes_positive"),
+        # An instant with no zone cannot be displayed, exactly as for bookings.
+        CheckConstraint(
+            "planned_start_at IS NULL OR planned_tz IS NOT NULL", name="ck_place_planned_tz"
+        ),
         CheckConstraint("lat IS NULL OR (lat >= -90 AND lat <= 90)", name="ck_place_lat_range"),
         CheckConstraint("lon IS NULL OR (lon >= -180 AND lon <= 180)", name="ck_place_lon_range"),
     )

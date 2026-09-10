@@ -171,6 +171,10 @@ def main() -> int:
                     weather_exposure=WeatherExposure.OUTDOOR,
                     visit_minutes=90,
                     opening_hours={day: [["06:00", "17:00"]] for day in ("mon", "tue", "wed")},
+                    # Already placed on the itinerary, so the timeline shows
+                    # a visit sitting alongside the bookings.
+                    planned_start_at=dt.datetime(2026, 4, 13, 8, 30, tzinfo=TOKYO),
+                    planned_tz="Asia/Tokyo",
                 ),
                 Place(
                     trip_id=trip.id,

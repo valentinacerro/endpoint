@@ -4,6 +4,7 @@ from fastapi import APIRouter, status
 from sqlalchemy import select
 
 from app.deps import DbSession
+from app.errors import AppError
 from app.models import Place, Stop, Trip
 from app.schemas.place import PlaceCreate, PlaceRead, PlaceUpdate
 from app.services.lookup import apply_update, child_of_trip, get_or_404
@@ -43,6 +44,17 @@ def update_place(
         child_of_trip(db, Stop, payload.stop_id, trip_id)
 
     apply_update(place, payload)
+
+    # Checked against the merged result, not the payload: scheduling a place
+    # that already has a zone stored is a legitimate one-field update.
+    if place.planned_start_at is not None and not place.planned_tz:
+        raise AppError(
+            "invalid_time_fields",
+            "planned_tz is required when planned_start_at is set",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            field="planned_tz",
+        )
+
     db.commit()
     return place
 

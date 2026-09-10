@@ -17,6 +17,7 @@ import type {
   BookingUpdate,
   Place,
   PlaceCreate,
+  PlaceUpdate,
   Stop,
   StopCreate,
   StopUpdate,
@@ -148,6 +149,12 @@ export function useDeleteBooking(tripId: string) {
 export function useCreatePlace(tripId: string) {
   return useTripMutation(tripId, (body: PlaceCreate) =>
     apiFetch<Place>(`/api/trips/${tripId}/places`, { method: 'POST', body }),
+  )
+}
+
+export function useUpdatePlace(tripId: string) {
+  return useTripMutation(tripId, ({ id, ...body }: PlaceUpdate & { id: string }) =>
+    apiFetch<Place>(`/api/trips/${tripId}/places/${id}`, { method: 'PATCH', body }),
   )
 }
 

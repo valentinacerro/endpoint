@@ -575,6 +575,10 @@ export interface components {
              * @default 60
              */
             visit_minutes: number;
+            /** Planned Start At */
+            planned_start_at?: string | null;
+            /** Planned Tz */
+            planned_tz?: string | null;
             /** Opening Hours */
             opening_hours?: {
                 [key: string]: unknown;
@@ -611,6 +615,10 @@ export interface components {
             notes: string | null;
             /** Visit Minutes */
             visit_minutes: number;
+            /** Planned Start At */
+            planned_start_at: string | null;
+            /** Planned Tz */
+            planned_tz: string | null;
             /** Opening Hours */
             opening_hours: {
                 [key: string]: unknown;
@@ -647,6 +655,10 @@ export interface components {
             notes?: string | null;
             /** Visit Minutes */
             visit_minutes?: number | null;
+            /** Planned Start At */
+            planned_start_at?: string | null;
+            /** Planned Tz */
+            planned_tz?: string | null;
             /** Opening Hours */
             opening_hours?: {
                 [key: string]: unknown;
