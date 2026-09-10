@@ -43,10 +43,32 @@ class Settings(BaseSettings):
         if not self.is_prod:
             return self
         if len(self.jwt_secret) < 32:
-            raise ValueError("JWT_SECRET missing or shorter than 32 characters with ENV=prod")
+            raise ValueError(
+                f"JWT_SECRET is {len(self.jwt_secret)} characters; at least 32 are required "
+                "with ENV=prod. Generate one with `make password`."
+            )
         if not self.app_password_hash.startswith("$argon2"):
-            raise ValueError("APP_PASSWORD_HASH missing or not an Argon2 hash with ENV=prod")
+            raise ValueError(
+                "APP_PASSWORD_HASH must be an Argon2 hash starting with '$argon2', "
+                f"but it {_describe(self.app_password_hash)}. Run `make password` and copy only "
+                "the part after the first '=' — not the whole printed line."
+            )
         return self
+
+
+def _describe(value: str) -> str:
+    """Say enough about a bad secret to diagnose it, without printing it.
+
+    The three ways this goes wrong all look identical from the outside — the
+    variable is unset, the whole `NAME=value` line was pasted into the value
+    box, or a quote came along for the ride — and an error that just says
+    "invalid" leaves you guessing at a deploy log. Ten characters is enough
+    to tell them apart and far short of anything useful to an attacker,
+    especially as this is a one-way hash to begin with.
+    """
+    if not value:
+        return "is empty or unset"
+    return f"starts with {value[:10]!r} ({len(value)} characters)"
 
 
 @lru_cache

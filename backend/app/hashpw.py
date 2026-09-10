@@ -22,9 +22,22 @@ def main() -> int:
         print("The two passwords do not match.", file=sys.stderr)
         return 1
 
-    print("\nPaste these two lines into your .env (and into Render's env vars):\n")
-    print(f"APP_PASSWORD_HASH={hash_password(password)}")
-    print(f"JWT_SECRET={secrets.token_urlsafe(48)}")
+    password_hash = hash_password(password)
+    jwt_secret = secrets.token_urlsafe(48)
+
+    # Printed twice, in the two shapes they are actually needed in. A single
+    # `NAME=value` line invites pasting the whole thing into a dashboard's
+    # value box, where it becomes part of the secret and the app refuses to
+    # start with a puzzling error.
+    print("\n--- for backend/.env: paste both lines ---\n")
+    print(f"APP_PASSWORD_HASH={password_hash}")
+    print(f"JWT_SECRET={jwt_secret}")
+
+    print("\n--- for Render: paste each value on its own, without the name ---\n")
+    print(f"  APP_PASSWORD_HASH  ->  {password_hash}")
+    print(f"  JWT_SECRET         ->  {jwt_secret}")
+    print("\nCopy only what follows the arrow. Keep the password itself in a")
+    print("password manager: there is no recovery, only regenerating this.\n")
     return 0
 
 
