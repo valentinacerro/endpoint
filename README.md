@@ -63,6 +63,16 @@ the backend, reproducing the single origin you get in production.
 | `make migrate` | Apply migrations |
 | `make revision m="..."` | Create a migration from the models |
 
+> **Never rewrite or delete a migration that has been deployed.** A live
+> database records the revision it last applied; remove that file and it can
+> no longer tell where it is, and the service refuses to start with
+> `Can't locate revision`. This happened once, on 10 September: an "initial"
+> migration was being regenerated on every model change, which is harmless
+> locally — the dev database is deleted too — and fatal once production has
+> applied one. Always add a new migration on top. `tests/test_migration_chain.py`
+> checks the history stays walkable, but it cannot know what production has
+> already run.
+
 ---
 
 ## Testing before deploying

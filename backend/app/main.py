@@ -23,6 +23,7 @@ from app.routers import (
     auth,
     bookings,
     bundle,
+    checklist,
     day_notes,
     expenses,
     health,
@@ -110,6 +111,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(rates.router)
     api.include_router(day_notes.router)
     api.include_router(expenses.router)
+    api.include_router(checklist.router)
     api.include_router(attachments.router)
     api.include_router(bundle.router)
     app.include_router(api)

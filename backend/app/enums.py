@@ -86,6 +86,15 @@ class Priority(StrEnum):
     LOW = "low"
 
 
+class ChecklistCategory(StrEnum):
+    DOCUMENTS = "documents"
+    CLOTHES = "clothes"
+    ELECTRONICS = "electronics"
+    TOILETRIES = "toiletries"
+    HEALTH = "health"
+    OTHER = "other"
+
+
 class ExpenseCategory(StrEnum):
     FOOD = "food"
     TRANSPORT = "transport"

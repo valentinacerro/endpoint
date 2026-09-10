@@ -8,6 +8,7 @@ database schema.
 
 from app.models.attachment import Attachment, AttachmentBlob
 from app.models.booking import Booking
+from app.models.checklist import ChecklistItem
 from app.models.day_note import DayNote
 from app.models.expense import Expense
 from app.models.place import Place
@@ -18,6 +19,7 @@ __all__ = [
     "Attachment",
     "AttachmentBlob",
     "Booking",
+    "ChecklistItem",
     "DayNote",
     "Expense",
     "Place",

@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.attachment import AttachmentRead
 from app.schemas.booking import BookingRead
+from app.schemas.checklist import ChecklistItemRead
 from app.schemas.day_note import DayNoteRead
 from app.schemas.expense import ExpenseRead
 from app.schemas.place import PlaceRead
@@ -25,6 +26,7 @@ class TripBundle(BaseModel):
     stops: list[StopRead]
     bookings: list[BookingRead]
     places: list[PlaceRead]
+    checklist: list[ChecklistItemRead]
     expenses: list[ExpenseRead]
     day_notes: list[DayNoteRead]
     attachments: list[AttachmentRead]
