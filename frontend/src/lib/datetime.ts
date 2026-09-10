@@ -202,6 +202,22 @@ export function daysUntil(date: CalendarDate, now: Date = new Date()): number {
   return Math.round((target - today) / DAY_MS)
 }
 
+/**
+ * Move an instant by whole days, keeping the same time on the local clock.
+ *
+ * Not the same as adding 24 hours. On the night the clocks change, a day is
+ * 23 or 25 hours long, and adding a fixed span would quietly move a 09:00
+ * visit to 08:00 or 10:00. Going out to wall-clock time, shifting the date,
+ * and converting back keeps the appointment where the user put it.
+ */
+export function shiftZonedDays(instant: Instant, timeZone: string, days: number): string {
+  const local = instantToZonedInput(instant, timeZone)
+  const [datePart, timePart] = local.split('T')
+  const [year, month, day] = datePart.split('-').map(Number)
+  const shifted = new Date(Date.UTC(year, month - 1, day + days))
+  return zonedInputToInstant(`${shifted.toISOString().slice(0, 10)}T${timePart}`, timeZone)
+}
+
 /** "2h 30min", "45min" — a span of time, not a moment. */
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60)

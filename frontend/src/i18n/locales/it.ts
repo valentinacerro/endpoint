@@ -95,6 +95,11 @@ export const it = {
   'timeline.schedule': 'Programma',
   'timeline.unschedule': 'Togli dal programma',
   'timeline.scheduleOn': 'Quando',
+  'timeline.movePrevDay': 'Sposta al giorno prima',
+  'timeline.moveNextDay': 'Sposta al giorno dopo',
+
+  'daynote.add': 'Nota per la giornata',
+  'daynote.placeholder': 'Giornata libera, chiusure, cose da ricordare…',
 
   'booking.kind.hotel': 'Hotel',
   'booking.kind.flight': 'Volo',

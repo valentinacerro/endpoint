@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: b01ae6b768d9
+Revision ID: af430f5fc515
 Revises:
-Create Date: 2026-09-10 15:01:21.370922
+Create Date: 2026-09-10 15:12:45.538031
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 from app.models.base import UtcDateTime
 
 # revision identifiers, used by Alembic.
-revision: str = "b01ae6b768d9"
+revision: str = "af430f5fc515"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -51,6 +51,21 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
+    op.create_table(
+        "day_note",
+        sa.Column("trip_id", sa.Uuid(), nullable=False),
+        sa.Column("day", sa.Date(), nullable=False),
+        sa.Column("note", sa.Text(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("created_at", UtcDateTime(), nullable=False),
+        sa.Column("updated_at", UtcDateTime(), nullable=False),
+        sa.ForeignKeyConstraint(["trip_id"], ["trip.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("trip_id", "day", name="uq_day_note_trip_day"),
+    )
+    with op.batch_alter_table("day_note", schema=None) as batch_op:
+        batch_op.create_index(batch_op.f("ix_day_note_trip_id"), ["trip_id"], unique=False)
+
     op.create_table(
         "stop",
         sa.Column("trip_id", sa.Uuid(), nullable=False),
@@ -260,5 +275,9 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f("ix_stop_trip_id"))
 
     op.drop_table("stop")
+    with op.batch_alter_table("day_note", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_day_note_trip_id"))
+
+    op.drop_table("day_note")
     op.drop_table("trip")
     # ### end Alembic commands ###

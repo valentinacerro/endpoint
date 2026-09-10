@@ -15,6 +15,7 @@ import type {
   Booking,
   BookingCreate,
   BookingUpdate,
+  DayNote,
   Place,
   PlaceCreate,
   PlaceUpdate,
@@ -161,6 +162,25 @@ export function useUpdatePlace(tripId: string) {
 export function useDeletePlace(tripId: string) {
   return useTripMutation(tripId, (placeId: string) =>
     apiFetch<void>(`/api/trips/${tripId}/places/${placeId}`, { method: 'DELETE' }),
+  )
+}
+
+// --- Day notes ---
+
+export function useSetDayNote(tripId: string) {
+  return useTripMutation(tripId, ({ day, note }: { day: string; note: string }) =>
+    // PUT addressed by date: there is at most one note per day, so the
+    // client already knows the address and repeating the call is harmless.
+    apiFetch<DayNote>(`/api/trips/${tripId}/days/${day}/note`, {
+      method: 'PUT',
+      body: { note },
+    }),
+  )
+}
+
+export function useClearDayNote(tripId: string) {
+  return useTripMutation(tripId, (day: string) =>
+    apiFetch<void>(`/api/trips/${tripId}/days/${day}/note`, { method: 'DELETE' }),
   )
 }
 

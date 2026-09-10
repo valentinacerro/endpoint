@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-import type { Booking } from '../api/types'
+import type { Booking, Place } from '../api/types'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel, placeCategoryLabel } from '../i18n/labels'
 import {
@@ -27,9 +27,10 @@ interface Props {
   showZone: boolean
   tripId: string
   documents: number
+  onMoveDays?: (place: Place, days: number) => void
 }
 
-export function TimelineEntry({ placed, showZone, tripId, documents }: Props) {
+export function TimelineEntry({ placed, showZone, tripId, documents, onMoveDays }: Props) {
   const { entry, gapMinutes, overlaps } = placed
   const hint = homeTimeHint(entry.startAt, entry.zone)
 
@@ -101,7 +102,27 @@ export function TimelineEntry({ placed, showZone, tripId, documents }: Props) {
             {body}
           </Link>
         ) : (
-          <div className="entry__content">{body}</div>
+          <div className="entry__content">
+            {body}
+            {/* Shuffling a plan is cheap; a booking is a fact and has to be
+                edited deliberately on its own screen. */}
+            <span className="entry__move">
+              <button
+                className="chip"
+                onClick={() => onMoveDays?.(entry.place, -1)}
+                aria-label={t('timeline.movePrevDay')}
+              >
+                ‹
+              </button>
+              <button
+                className="chip"
+                onClick={() => onMoveDays?.(entry.place, 1)}
+                aria-label={t('timeline.moveNextDay')}
+              >
+                ›
+              </button>
+            </span>
+          </div>
         )}
 
         {overlaps && <span className="entry__clash">{t('timeline.overlap')}</span>}

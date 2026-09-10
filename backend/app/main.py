@@ -18,7 +18,17 @@ from app.config import Settings, get_settings
 from app.deps import current_session
 from app.errors import register_error_handlers
 from app.limiter import limiter
-from app.routers import attachments, auth, bookings, bundle, health, places, stops, trips
+from app.routers import (
+    attachments,
+    auth,
+    bookings,
+    bundle,
+    day_notes,
+    health,
+    places,
+    stops,
+    trips,
+)
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -93,6 +103,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(stops.router)
     api.include_router(bookings.router)
     api.include_router(places.router)
+    api.include_router(day_notes.router)
     api.include_router(attachments.router)
     api.include_router(bundle.router)
     app.include_router(api)

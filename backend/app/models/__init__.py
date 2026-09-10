@@ -8,8 +8,9 @@ database schema.
 
 from app.models.attachment import Attachment, AttachmentBlob
 from app.models.booking import Booking
+from app.models.day_note import DayNote
 from app.models.place import Place
 from app.models.stop import Stop
 from app.models.trip import Trip
 
-__all__ = ["Attachment", "AttachmentBlob", "Booking", "Place", "Stop", "Trip"]
+__all__ = ["Attachment", "AttachmentBlob", "Booking", "DayNote", "Place", "Stop", "Trip"]

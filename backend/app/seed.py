@@ -28,7 +28,7 @@ from app.enums import (
     TripStatus,
     WeatherExposure,
 )
-from app.models import Attachment, AttachmentBlob, Booking, Place, Stop, Trip
+from app.models import Attachment, AttachmentBlob, Booking, DayNote, Place, Stop, Trip
 
 TOKYO = ZoneInfo("Asia/Tokyo")
 ROME = ZoneInfo("Europe/Rome")
@@ -187,6 +187,21 @@ def main() -> int:
             ]
         )
 
+        db.add_all(
+            [
+                DayNote(
+                    trip_id=trip.id,
+                    day=dt.date(2026, 4, 12),
+                    note="Ritirare il JR Pass alla stazione di Shinjuku prima delle 19.",
+                ),
+                DayNote(
+                    trip_id=trip.id,
+                    day=dt.date(2026, 4, 14),
+                    note="Giornata libera. Il Mori Art Museum chiude il martedì.",
+                ),
+            ]
+        )
+
         db.flush()
         attachment = Attachment(
             booking_id=hotel.id,
@@ -202,7 +217,10 @@ def main() -> int:
         db.add(AttachmentBlob(attachment_id=attachment.id, data=VOUCHER))
 
         db.commit()
-        print(f'Seeded "{TITLE}": 2 stops, {len(bookings)} bookings, 2 places, 1 attachment.')
+        print(
+            f'Seeded "{TITLE}": 2 stops, {len(bookings)} bookings, '
+            "2 places, 2 day notes, 1 attachment."
+        )
         return 0
     finally:
         db.close()

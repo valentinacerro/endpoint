@@ -242,6 +242,32 @@ export interface paths {
         patch: operations["update_place_api_trips__trip_id__places__place_id__patch"];
         trace?: never;
     };
+    "/api/trips/{trip_id}/days/{day}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Note
+         * @description Write the note for a day, creating it if it is not there yet.
+         *
+         *     PUT addressed by date rather than POST returning an id: there is at most
+         *     one note per day, so the client already knows the address and never has
+         *     to ask whether one exists. Writing the same thing twice is harmless,
+         *     which is what the offline write queue in Phase 2 will need.
+         */
+        put: operations["set_note_api_trips__trip_id__days__day__note_put"];
+        post?: never;
+        /** Clear Note */
+        delete: operations["clear_note_api_trips__trip_id__days__day__note_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/attachments": {
         parameters: {
             query?: never;
@@ -529,6 +555,44 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** DayNoteRead */
+        DayNoteRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Trip Id
+             * Format: uuid
+             */
+            trip_id: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Note */
+            note: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DayNoteWrite
+         * @description The body of a write; the day itself comes from the URL.
+         */
+        DayNoteWrite: {
+            /** Note */
+            note: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -799,6 +863,8 @@ export interface components {
             bookings: components["schemas"]["BookingRead"][];
             /** Places */
             places: components["schemas"]["PlaceRead"][];
+            /** Day Notes */
+            day_notes: components["schemas"]["DayNoteRead"][];
             /** Attachments */
             attachments: components["schemas"]["AttachmentRead"][];
             /**
@@ -1661,6 +1727,72 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PlaceRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_note_api_trips__trip_id__days__day__note_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DayNoteWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_note_api_trips__trip_id__days__day__note_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

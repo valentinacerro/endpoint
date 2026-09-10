@@ -1,20 +1,29 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
-import { useTripBundle } from '../api/trips'
+import { useTripBundle, useUpdatePlace } from '../api/trips'
+import type { Place } from '../api/types'
 import { BookingForm } from '../components/BookingForm'
+import { DayNoteEditor } from '../components/DayNoteEditor'
 import { OfflineReminder } from '../components/OfflineReminder'
 import { SchedulePlace } from '../components/SchedulePlace'
 import { TimelineEntry } from '../components/TimelineEntry'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
-import { formatCalendarDate, formatDayKey, formatTimeInZone, shortZoneName } from '../lib/datetime'
+import {
+  formatCalendarDate,
+  formatDayKey,
+  formatTimeInZone,
+  shiftZonedDays,
+  shortZoneName,
+} from '../lib/datetime'
 import { attachmentsOf, buildTimeline, nextBooking } from '../lib/itinerary'
 
 export function TripDetail() {
   const { tripId } = useParams<{ tripId: string }>()
   const bundle = useTripBundle(tripId)
   const [adding, setAdding] = useState(false)
+  const updatePlace = useUpdatePlace(tripId ?? '')
 
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
@@ -32,6 +41,19 @@ export function TripDetail() {
     ...data.bookings.flatMap((booking) => (booking.start_tz ? [booking.start_tz] : [])),
   ])
   const showZone = zones.size > 1
+
+  const notesByDay = new Map(data.day_notes.map((note) => [note.day, note]))
+
+  /** Nudge a planned visit onto the previous or next day. */
+  function movePlace(item: Place, days: number) {
+    if (!item.planned_start_at || !item.planned_tz) return
+    updatePlace.mutate({
+      id: item.id,
+      // Whole days on the local clock, not a flat 24 hours: on the night
+      // the clocks change that would move the visit by an hour.
+      planned_start_at: shiftZonedDays(item.planned_start_at, item.planned_tz, days),
+    })
+  }
 
   const nothingAtAll =
     timeline.days.length === 0 &&
@@ -108,6 +130,8 @@ export function TripDetail() {
             <span className="day__date">{formatDayKey(day.key)}</span>
             {day.stop && <span className="day__stop">{day.stop.name}</span>}
           </h2>
+
+          <DayNoteEditor tripId={tripId} day={day.key} note={notesByDay.get(day.key)} />
           {day.entries.length === 0 ? (
             <p className="day__empty">{t('timeline.emptyDay')}</p>
           ) : (
@@ -123,6 +147,7 @@ export function TripDetail() {
                       ? attachmentsOf(data, placed.entry.booking.id).length
                       : 0
                   }
+                  onMoveDays={movePlace}
                 />
               ))}
             </ul>

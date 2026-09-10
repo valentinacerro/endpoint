@@ -27,6 +27,8 @@ export type Place = S['PlaceRead']
 export type PlaceCreate = S['PlaceCreate']
 export type PlaceUpdate = S['PlaceUpdate']
 
+export type DayNote = S['DayNoteRead']
+
 export type Attachment = S['AttachmentRead']
 export type TripBundle = S['TripBundle']
 

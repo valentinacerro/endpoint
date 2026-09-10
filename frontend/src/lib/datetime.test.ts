@@ -8,6 +8,7 @@ import {
   formatTimeInZone,
   homeTimeHint,
   instantToZonedInput,
+  shiftZonedDays,
   shortZoneName,
   zonedInputToInstant,
 } from './datetime'
@@ -166,6 +167,39 @@ describe('reading a form field as wall-clock time in a chosen zone', () => {
     // will accept — it would silently blank the field.
     const midnight = zonedInputToInstant('2026-04-12T00:00', TOKYO)
     expect(instantToZonedInput(midnight, TOKYO)).toBe('2026-04-12T00:00')
+  })
+})
+
+describe('moving something by a day', () => {
+  it('keeps the same time on the local clock', () => {
+    const at10 = zonedInputToInstant('2026-04-13T10:00', TOKYO)
+    const nextDay = shiftZonedDays(at10, 'Asia/Tokyo', 1)
+    expect(instantToZonedInput(nextDay, 'Asia/Tokyo')).toBe('2026-04-14T10:00')
+  })
+
+  it('goes backwards too', () => {
+    const at10 = zonedInputToInstant('2026-04-13T10:00', TOKYO)
+    expect(instantToZonedInput(shiftZonedDays(at10, 'Asia/Tokyo', -1), 'Asia/Tokyo')).toBe(
+      '2026-04-12T10:00',
+    )
+  })
+
+  it('survives the night the clocks change', () => {
+    // Italy moves to summer time on 29 March 2026, so that day is 23 hours
+    // long. Adding a flat 24 hours would drag a 09:00 visit to 10:00.
+    const beforeChange = zonedInputToInstant('2026-03-28T09:00', ROME)
+    const after = shiftZonedDays(beforeChange, 'Europe/Rome', 1)
+    expect(instantToZonedInput(after, 'Europe/Rome')).toBe('2026-03-29T09:00')
+    // And the underlying instant really did move by 23 hours, not 24.
+    const hours = (new Date(after).getTime() - new Date(beforeChange).getTime()) / 3_600_000
+    expect(hours).toBe(23)
+  })
+
+  it('crosses a month boundary', () => {
+    const lastOfMonth = zonedInputToInstant('2026-04-30T18:00', TOKYO)
+    expect(instantToZonedInput(shiftZonedDays(lastOfMonth, 'Asia/Tokyo', 1), 'Asia/Tokyo')).toBe(
+      '2026-05-01T18:00',
+    )
   })
 })
 
