@@ -6,6 +6,7 @@ import type { Place } from '../api/types'
 import { BookingForm } from '../components/BookingForm'
 import { DayNoteEditor } from '../components/DayNoteEditor'
 import { OfflineReminder } from '../components/OfflineReminder'
+import { OptimizeDay } from '../components/OptimizeDay'
 import { SchedulePlace } from '../components/SchedulePlace'
 import { TimelineEntry } from '../components/TimelineEntry'
 import { t } from '../i18n'
@@ -138,6 +139,7 @@ export function TripDetail() {
           </h2>
 
           <DayNoteEditor tripId={tripId} day={day.key} note={notesByDay.get(day.key)} />
+          <OptimizeDay bundle={data} day={day} tripId={tripId} />
           {day.entries.length === 0 ? (
             <p className="day__empty">{t('timeline.emptyDay')}</p>
           ) : (

@@ -98,6 +98,16 @@ export const it = {
   'timeline.movePrevDay': 'Sposta al giorno prima',
   'timeline.moveNextDay': 'Sposta al giorno dopo',
 
+  'plan.optimise': 'Ottimizza la giornata',
+  'plan.preview': 'Come verrebbe',
+  'plan.apply': 'Applica',
+  'plan.travelTotal': 'Circa {duration} di spostamenti in tutto.',
+  'plan.dropped': 'Non ci stanno: {names}.',
+  'plan.closed': 'chiuso',
+  'plan.hoursUnknown': 'Gli orari di apertura segnati con ? non li conosciamo: verificali.',
+  'plan.estimates':
+    'I tempi di spostamento sono stime, non orari reali dei treni. Servono a evitare lo zig-zag, non a farti prendere una coincidenza.',
+
   'daynote.add': 'Nota per la giornata',
   'daynote.placeholder': 'Giornata libera, chiusure, cose da ricordare…',
 

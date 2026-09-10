@@ -1,0 +1,207 @@
+import { describe, expect, it } from 'vitest'
+
+import { travelMinutes } from './geo'
+import {
+  opennessOn,
+  planDay,
+  twoOpt,
+  type Anchor,
+  type Candidate,
+  type OpeningHours,
+} from './optimizer'
+
+const ZONE = 'Asia/Tokyo'
+const DAY = '2026-04-13' // a Monday
+
+// Real Tokyo places, so a wrong order is recognisable as wrong on a map.
+const ASAKUSA = { lat: 35.7148, lon: 139.7967 }
+const SKYTREE = { lat: 35.7101, lon: 139.8107 }
+const UENO = { lat: 35.7141, lon: 139.7774 }
+const SHIBUYA = { lat: 35.6595, lon: 139.7005 }
+
+function place(over: Partial<Candidate> & { id: string; point: Candidate['point'] }): Candidate {
+  return {
+    visitMinutes: 60,
+    priority: 'normal',
+    openingHours: {},
+    label: over.id,
+    ...over,
+  }
+}
+
+const at = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number)
+  // 09:00 in Tokyo is 00:00 UTC.
+  return new Date(Date.UTC(2026, 3, 13, h - 9, m)).toISOString()
+}
+
+describe('knowing whether somewhere is open', () => {
+  const hours: OpeningHours = {
+    mon: [['09:00', '17:00']],
+    tue: [],
+    wed: [
+      ['09:00', '12:00'],
+      ['13:00', '17:00'],
+    ],
+  }
+
+  it('reads the hours for the right weekday', () => {
+    expect(opennessOn(hours, '2026-04-13')).toEqual({
+      kind: 'open',
+      windows: [[540, 1020]],
+    })
+  })
+
+  it('treats an empty list as shut', () => {
+    expect(opennessOn(hours, '2026-04-14').kind).toBe('closed')
+  })
+
+  it('treats a missing day as unknown, not as shut', () => {
+    // Almost nothing imported from Maps has opening hours. Reading silence
+    // as "closed" would empty the itinerary; reading it as "open" without
+    // saying so would be worse. Unknown is its own answer.
+    expect(opennessOn(hours, '2026-04-16').kind).toBe('unknown')
+    expect(opennessOn({}, '2026-04-13').kind).toBe('unknown')
+  })
+
+  it('keeps a lunch break as two windows', () => {
+    const wednesday = opennessOn(hours, '2026-04-15')
+    expect(wednesday).toEqual({ kind: 'open', windows: [[540, 720], [780, 1020]] })
+  })
+})
+
+describe('untangling a route', () => {
+  it('removes a crossing that nearest-neighbour would leave', () => {
+    const items = [
+      place({ id: 'shibuya', point: SHIBUYA }),
+      place({ id: 'asakusa', point: ASAKUSA }),
+      place({ id: 'skytree', point: SKYTREE }),
+      place({ id: 'ueno', point: UENO }),
+    ]
+    const ordered = twoOpt(items, ASAKUSA)
+    const cost = (list: Candidate[]) => {
+      let total = travelMinutes(ASAKUSA, list[0].point)
+      for (let i = 1; i < list.length; i += 1) {
+        total += travelMinutes(list[i - 1].point, list[i].point)
+      }
+      return total
+    }
+    expect(cost(ordered)).toBeLessThanOrEqual(cost(items))
+    // Shibuya is far from the other three, so it must not sit in the middle.
+    expect(ordered.findIndex((item) => item.id === 'shibuya')).toBe(ordered.length - 1)
+  })
+
+  it('leaves one or two stops alone', () => {
+    const one = [place({ id: 'a', point: ASAKUSA })]
+    expect(twoOpt(one, null)).toEqual(one)
+  })
+})
+
+describe('planning a day', () => {
+  it('orders visits so the day does not zig-zag', () => {
+    const plan = planDay(
+      [],
+      [
+        place({ id: 'shibuya', point: SHIBUYA }),
+        place({ id: 'asakusa', point: ASAKUSA }),
+        place({ id: 'skytree', point: SKYTREE }),
+      ],
+      { day: DAY, zone: ZONE },
+    )
+    const order = plan.visits.map((visit) => visit.id)
+    // The two neighbours belong next to each other, whichever end they
+    // start from; Shibuya is the outlier and belongs at one end.
+    expect(Math.abs(order.indexOf('asakusa') - order.indexOf('skytree'))).toBe(1)
+    expect([0, 2]).toContain(order.indexOf('shibuya'))
+  })
+
+  it('works around something that cannot move', () => {
+    const lunch: Anchor = {
+      id: 'tour',
+      startAt: at('12:00'),
+      endAt: at('14:00'),
+      point: UENO,
+      label: 'tour prenotato',
+    }
+    const plan = planDay(
+      [lunch],
+      [place({ id: 'a', point: ASAKUSA, visitMinutes: 60 })],
+      { day: DAY, zone: ZONE },
+    )
+    const visit = plan.visits[0]
+    // It has to end before the tour starts, travel included.
+    expect(new Date(visit.startAt).getTime()).toBeLessThan(new Date(at('12:00')).getTime())
+  })
+
+  it('does not schedule anywhere shut that day', () => {
+    const plan = planDay(
+      [],
+      [place({ id: 'chiuso', point: ASAKUSA, openingHours: { mon: [] } })],
+      { day: DAY, zone: ZONE },
+    )
+    expect(plan.visits).toHaveLength(0)
+    expect(plan.dropped).toEqual([{ id: 'chiuso', reason: 'closed' }])
+  })
+
+  it('waits for opening time rather than arriving to a locked door', () => {
+    const plan = planDay(
+      [],
+      [place({ id: 'tardi', point: ASAKUSA, openingHours: { mon: [['14:00', '18:00']] } })],
+      { day: DAY, zone: ZONE, dayStart: '09:00' },
+    )
+    const start = new Date(plan.visits[0].startAt).getTime()
+    expect(start).toBeGreaterThanOrEqual(new Date(at('14:00')).getTime())
+  })
+
+  it('flags a visit it scheduled without knowing the hours', () => {
+    const plan = planDay([], [place({ id: 'boh', point: ASAKUSA })], { day: DAY, zone: ZONE })
+    expect(plan.visits[0].hoursUnknown).toBe(true)
+  })
+
+  it('drops the optional things first when the day overflows', () => {
+    // Six four-hour visits cannot fit between 09:00 and 21:00, so the
+    // choice of what falls off is the whole point.
+    const many = [
+      place({ id: 'must', point: ASAKUSA, visitMinutes: 240, priority: 'must_see' }),
+      place({ id: 'high', point: SKYTREE, visitMinutes: 240, priority: 'high' }),
+      place({ id: 'low1', point: UENO, visitMinutes: 240, priority: 'low' }),
+      place({ id: 'low2', point: SHIBUYA, visitMinutes: 240, priority: 'low' }),
+    ]
+    const plan = planDay([], many, { day: DAY, zone: ZONE })
+
+    const kept = plan.visits.map((visit) => visit.id)
+    expect(kept).toContain('must')
+    expect(plan.dropped.map((item) => item.id)).toContain('low2')
+    expect(plan.dropped.every((item) => item.reason === 'no_room')).toBe(true)
+  })
+
+  it('reports the travel it expects', () => {
+    const plan = planDay(
+      [],
+      [place({ id: 'a', point: ASAKUSA }), place({ id: 'b', point: SKYTREE })],
+      { day: DAY, zone: ZONE },
+    )
+    expect(plan.travelMinutes).toBeGreaterThan(0)
+  })
+
+  it('leaves an empty day empty', () => {
+    const plan = planDay([], [], { day: DAY, zone: ZONE })
+    expect(plan).toEqual({ visits: [], dropped: [], travelMinutes: 0 })
+  })
+
+  it('never schedules two visits over each other', () => {
+    const plan = planDay(
+      [],
+      [
+        place({ id: 'a', point: ASAKUSA, visitMinutes: 90 }),
+        place({ id: 'b', point: SKYTREE, visitMinutes: 90 }),
+        place({ id: 'c', point: UENO, visitMinutes: 90 }),
+      ],
+      { day: DAY, zone: ZONE },
+    )
+    const times = plan.visits.map((visit) => new Date(visit.startAt).getTime())
+    for (let i = 1; i < times.length; i += 1) {
+      expect(times[i]).toBeGreaterThan(times[i - 1])
+    }
+  })
+})
