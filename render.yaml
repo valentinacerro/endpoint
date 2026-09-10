@@ -5,7 +5,11 @@
 
 services:
   - type: web
-    name: trips
+    # This also decides the public address: <name>-xxxx.onrender.com.
+    # Renaming a service that already exists changes its URL, which breaks
+    # any installed copy of the app — so leave an existing one alone unless
+    # you mean to reinstall it.
+    name: endpoint
     runtime: docker
     dockerfilePath: ./Dockerfile
     # European region: the travel data stays in the EU.

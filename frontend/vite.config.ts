@@ -11,8 +11,8 @@ export default defineConfig({
       // Manifest strings are user interface, so they follow the UI language
       // (Italian), not the language of the codebase.
       manifest: {
-        name: 'Organizzatore di viaggi',
-        short_name: 'Viaggi',
+        name: 'endpoint',
+        short_name: 'endpoint',
         description: 'Itinerari, prenotazioni e documenti, consultabili anche offline.',
         lang: 'it',
         start_url: '/',

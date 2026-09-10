@@ -10,7 +10,7 @@
  */
 
 export const it = {
-  'app.name': 'Viaggi',
+  'app.name': 'endpoint',
 
   'common.save': 'Salva',
   'common.saving': 'Salvataggio…',

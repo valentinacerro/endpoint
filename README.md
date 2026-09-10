@@ -1,4 +1,4 @@
-# Trips
+# endpoint
 
 A personal travel organizer: itineraries, bookings and documents, **readable
 without a network connection**. FastAPI backend, React frontend installable as

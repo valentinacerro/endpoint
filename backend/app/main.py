@@ -54,7 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     hide_docs = settings.is_prod
 
     app = FastAPI(
-        title="Travel organizer",
+        title="endpoint",
         version="0.1.0",
         # In production the interactive docs would enumerate the whole API on a
         # public URL, so they are switched off.
