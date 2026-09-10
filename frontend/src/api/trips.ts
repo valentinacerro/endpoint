@@ -7,7 +7,10 @@
  * handling anywhere.
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+
+import { enqueue } from '../offline/outbox'
+import { shouldKeep } from '../offline/useOutbox'
 
 import { ApiError, apiFetch } from './client'
 import type {
@@ -220,16 +223,75 @@ export interface RateOut {
  * PUT, not POST: you record a coffee where there is no signal, the write is
  * queued, and a replay must leave one coffee rather than two.
  */
-export function usePutExpense(tripId: string) {
-  return useTripMutation(tripId, ({ id, ...body }: ExpenseWrite & { id: string }) =>
-    apiFetch<Expense>(`/api/trips/${tripId}/expenses/${id}`, { method: 'PUT', body }),
+/** Put the expense straight into the cached trip, so it shows at once. */
+function cacheExpense(queryClient: QueryClient, tripId: string, expense: Expense) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) => {
+    if (!bundle) return bundle
+    const without = bundle.expenses.filter((item) => item.id !== expense.id)
+    return { ...bundle, expenses: [...without, expense] }
+  })
+}
+
+function uncacheExpense(queryClient: QueryClient, tripId: string, expenseId: string) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle
+      ? { ...bundle, expenses: bundle.expenses.filter((item) => item.id !== expenseId) }
+      : bundle,
   )
 }
 
+export function usePutExpense(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<Expense, ApiError, ExpenseWrite & { id: string }>({
+    mutationFn: async ({ id, ...body }) => {
+      const url = `/api/trips/${tripId}/expenses/${id}`
+      try {
+        return await apiFetch<Expense>(url, { method: 'PUT', body })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        // No signal: queue it and hand back a stand-in, so the list shows
+        // the coffee you just paid for instead of looking like it failed.
+        await enqueue({ key: `expense:${id}`, method: 'PUT', url, body })
+        const now = new Date().toISOString()
+        return {
+          ...body,
+          id,
+          trip_id: tripId,
+          rate: body.rate ?? null,
+          rate_date: body.rate_date ?? null,
+          rate_source: body.rate_source ?? null,
+          stop_id: body.stop_id ?? null,
+          booking_id: body.booking_id ?? null,
+          notes: body.notes ?? null,
+          created_at: now,
+          updated_at: now,
+        } as Expense
+      }
+    },
+    onSuccess: async (expense) => {
+      cacheExpense(queryClient, tripId, expense)
+      await queryClient.invalidateQueries({ queryKey: keys.bundle(tripId) })
+    },
+  })
+}
+
 export function useDeleteExpense(tripId: string) {
-  return useTripMutation(tripId, (expenseId: string) =>
-    apiFetch<void>(`/api/trips/${tripId}/expenses/${expenseId}`, { method: 'DELETE' }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string>({
+    mutationFn: async (expenseId) => {
+      const url = `/api/trips/${tripId}/expenses/${expenseId}`
+      try {
+        await apiFetch<void>(url, { method: 'DELETE' })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `expense:${expenseId}`, method: 'DELETE', url })
+      }
+    },
+    onSuccess: async (_result, expenseId) => {
+      uncacheExpense(queryClient, tripId, expenseId)
+      await queryClient.invalidateQueries({ queryKey: keys.bundle(tripId) })
+    },
+  })
 }
 
 export function useFetchRate() {

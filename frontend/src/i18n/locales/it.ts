@@ -69,6 +69,8 @@ export const it = {
   'sync.offline': 'Offline',
   'sync.waking': 'Riattivazione del server… può richiedere fino a un minuto',
   'sync.online': 'Aggiornato',
+  'sync.pending': '{count} modifiche da inviare',
+  'sync.now': 'Invia ora',
   'sync.updated': 'Aggiornato: {when}',
 
   'trips.title': 'I tuoi viaggi',
