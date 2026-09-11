@@ -32,10 +32,22 @@ the memory map, and Italian/English.
   set and its `schedule` uncommented a few days before leaving — and
   commented back out on return. Read the arithmetic at the top of that file
   first.
-- **Only some writes survive being offline.** Expenses, the packing list,
-  the diary and memory points are queued and replayed. Bookings, stops,
-  places, day notes and document uploads still need a connection, and say so
-  rather than failing quietly.
+- **Only some writes survive being offline.** Which ones, exactly, is the
+  table below.
+
+---
+
+## What works with no network
+
+| | Offline |
+| --- | --- |
+| Reading the trip — itinerary, bookings, places, stops, search, nearby, packing, diary, print, and any document you pinned | **Yes**, from the cached bundle |
+| Expenses, packing list, diary, memory points | **Yes** — queued and replayed when there is a network again |
+| Bookings, stops, places (applying a plan included), day notes, document uploads, creating or editing a trip | **No**, and they say so rather than failing quietly |
+| Place search, resolving a Maps link, the forecast, exchange rates, the Takeout import, map tiles | **No** — each one is a call to somebody else's service |
+
+Queued writes are addressed by an id the client chose and sent with `PUT`, so
+a request whose response was lost in a tunnel leaves one coffee, not two.
 
 ---
 
@@ -75,9 +87,12 @@ the backend, reproducing the single origin you get in production.
 | Command | What it does |
 | --- | --- |
 | `make` | List every command |
+| `make seed` | Fill the development database with a realistic sample trip |
 | `make test` | Backend test suite (SQLite) |
 | `make test-pg TEST_DATABASE_URL=...` | The same suite against real Postgres |
+| `make test-web` | The frontend suite, under both timezones |
 | `make lint` / `make fmt` | Check / fix style and formatting |
+| `make types` | Regenerate the frontend's types from the backend's OpenAPI schema |
 | `make build` | Compile the PWA into `backend/app/static` |
 | `make preview` | Serve exactly like production, on one origin |
 | `make tunnel` | Public HTTPS URL, so the phone can install the PWA |
