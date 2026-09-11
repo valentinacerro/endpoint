@@ -1757,3 +1757,35 @@ a.entry__content:hover .entry__title {
   font-size: 15px;
   line-height: 1.4;
 }
+
+/* --- Nearby --- */
+
+.nearby__name {
+  font-size: 16px;
+  font-weight: 650;
+  color: inherit;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.nearby__meta {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.nearby__distance {
+  font-weight: 650;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.nearby__open {
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.nearby__shut {
+  font-weight: 600;
+  color: var(--danger);
+}

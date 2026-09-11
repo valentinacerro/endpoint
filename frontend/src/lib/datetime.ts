@@ -56,6 +56,27 @@ export function dayKeyInZone(instant: Instant, timeZone: string): CalendarDate {
   }).format(new Date(instant))
 }
 
+/**
+ * Minutes since local midnight, in a given zone.
+ *
+ * The counterpart to `dayKeyInZone`, and needed for the same reason:
+ * asking "is this open right now" is a question about the clock on the
+ * wall next to the door, not the one in your pocket. They usually agree
+ * once you have landed — but not while you are planning from home, and
+ * not on the flight.
+ */
+export function minutesOfDayInZone(instant: Instant, timeZone: string): number {
+  const parts = formatter('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(instant))
+  const [hours, minutes] = parts.split(':').map(Number)
+  // Midnight renders as 24:00 in some locales; the day starts at zero.
+  return (hours % 24) * 60 + minutes
+}
+
 export function formatTimeInZone(
   instant: Instant,
   timeZone: string,

@@ -24,6 +24,7 @@ export const it = {
   'more.packingHint': 'Cosa mettere in valigia',
   'more.weatherHint': 'Previsioni e spostamenti al coperto',
   'more.searchHint': 'Trova una prenotazione, un codice, un documento',
+  'more.nearbyHint': 'Cosa hai salvato qui intorno',
 
   'common.save': 'Salva',
   'common.saving': 'Salvataggio…',
@@ -380,6 +381,29 @@ export const it = {
   'search.kind.checklist': 'Valigia',
   'search.kind.note': 'Nota',
   'search.kind.document': 'Documento',
+
+  'nearby.title': 'Qui intorno',
+  'nearby.intro':
+    'Cerca fra i luoghi e le prenotazioni che hai salvato tu, non in un elenco di terzi. La posizione resta sul telefono e non viene mandata a nessuno. Funziona anche senza rete.',
+  'nearby.locate': 'Trova la mia posizione',
+  'nearby.locating': 'Cerco la posizione…',
+  'nearby.again': 'Aggiorna',
+  'nearby.fix': 'Posizione a ±{accuracy} m, rilevata alle {when}',
+  'nearby.denied':
+    'Il permesso di posizione è negato. Si riattiva dalle impostazioni del sito in Chrome: tocca il lucchetto accanto all’indirizzo → Autorizzazioni → Posizione.',
+  'nearby.unavailable':
+    'Questo browser non dà la posizione, oppure la pagina non è su https. Apri l’app dal suo indirizzo pubblico.',
+  'nearby.failed':
+    'Non sono riuscito a rilevare la posizione. Al chiuso o sottoterra capita: prova all’aperto.',
+  'nearby.none': 'Niente di tuo entro 10 km da qui.',
+  'nearby.onFoot': '{minutes} a piedi',
+  'nearby.byTransit': '{minutes} coi mezzi, stimati',
+  'nearby.openUntil': 'Aperto, chiude fra {minutes}',
+  'nearby.closed': 'Chiuso adesso',
+  'nearby.hoursUnknown': 'Orari sconosciuti',
+  'nearby.planned': 'in programma il {day}',
+  'nearby.noCoordinates':
+    '{count} fra luoghi e prenotazioni non hanno coordinate, quindi non compaiono qui.',
 
   'update.available': 'È disponibile una versione aggiornata.',
   'update.reload': 'Ricarica',
