@@ -3,6 +3,7 @@ import { useParams } from 'react-router'
 
 import { attachmentUrl, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
+import { Icon } from '../components/Icon'
 import { count, t } from '../i18n'
 import { formatSyncTime } from '../lib/datetime'
 import { formatBytes } from '../lib/images'
@@ -101,7 +102,7 @@ export function OfflineStatus() {
                       <span className="doc__meta">{formatBytes(attachment.byte_size)}</span>
                     </span>
                     <span className={`chip ${isReady ? 'chip--on' : ''}`}>
-                      {isReady ? '✓' : '—'}
+                      {isReady ? <Icon name="check" size={14} title={t('document.savedOffline')} /> : '—'}
                     </span>
                   </li>
                 )

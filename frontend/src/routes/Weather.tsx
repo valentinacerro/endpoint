@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 import { useTripBundle, useUpdatePlace, useWeather } from '../api/trips'
 import type { DayWeather } from '../api/types'
 import { AppBar } from '../components/AppBar'
+import { Icon } from '../components/Icon'
 import { count, t } from '../i18n'
 import { skyLabel } from '../i18n/labels'
 import { formatCalendarDate, formatDayKey, formatSyncTime } from '../lib/datetime'
@@ -207,7 +208,7 @@ function ForecastRow({ day, entry }: { day: string; entry: DayWeather | undefine
     <li className={`forecast__row ${isWet ? 'forecast__row--wet' : ''}`}>
       <span className="forecast__day">{formatDayKey(day)}</span>
       <span className="forecast__icon" aria-hidden="true">
-        {sky ? SKY_ICON[sky] : '·'}
+        {sky ? <Icon name={SKY_ICON[sky]} size={17} /> : '·'}
       </span>
       <span className="forecast__sky">{sky ? skyLabel(sky) : t('weather.dayUnknown')}</span>
       {entry && (

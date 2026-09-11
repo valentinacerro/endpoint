@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 
 import type { Booking, Place } from '../api/types'
+import { Icon, type IconName } from './Icon'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel, placeCategoryLabel } from '../i18n/labels'
 import {
@@ -11,7 +12,7 @@ import {
 } from '../lib/datetime'
 import type { PlacedEntry } from '../lib/itinerary'
 
-const PLACE_ICON = '📍'
+const PLACE_ICON: IconName = 'pin'
 
 function StatusPill({ status }: { status: Booking['status'] }) {
   if (status === 'confirmed') return null
@@ -53,8 +54,8 @@ export function TimelineEntry({ placed, showZone, tripId, documents, onMoveDays 
         {isBooking ? entry.booking.title : entry.place.name}
         {isBooking && <StatusPill status={entry.booking.status} />}
         {documents > 0 && (
-          <span className="entry__docs" aria-hidden="true">
-            📎
+          <span className="entry__docs">
+            <Icon name="paperclip" size={13} title={t('timeline.hasDocuments')} />
           </span>
         )}
       </span>

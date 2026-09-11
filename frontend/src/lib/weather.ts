@@ -12,6 +12,7 @@
  */
 
 import type { DayWeather, Place } from '../api/types'
+import type { IconName } from '../components/Icon'
 import type { CalendarDate } from './datetime'
 import { opennessOn, type OpeningHours } from './optimizer'
 
@@ -211,11 +212,12 @@ export function skyOf(code: number): Sky {
   return 'rain'
 }
 
-export const SKY_ICON: Record<Sky, string> = {
-  clear: '☀️',
-  cloudy: '☁️',
-  fog: '🌫️',
-  rain: '🌧️',
-  snow: '❄️',
-  storm: '⛈️',
+/** Drawn, not emoji: one per row of the forecast, in the app's own ink. */
+export const SKY_ICON: Record<Sky, IconName> = {
+  clear: 'clear',
+  cloudy: 'cloud',
+  fog: 'fog',
+  rain: 'rain',
+  snow: 'snow',
+  storm: 'storm',
 }

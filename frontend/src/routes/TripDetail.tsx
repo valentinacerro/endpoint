@@ -10,6 +10,7 @@ import { OptimizeDay } from '../components/OptimizeDay'
 import { SchedulePlace } from '../components/SchedulePlace'
 import { TimelineEntry } from '../components/TimelineEntry'
 import { AppBar } from '../components/AppBar'
+import { Icon } from '../components/Icon'
 import { Fab } from '../components/Fab'
 import { t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
@@ -99,7 +100,7 @@ export function TripDetail() {
         <section className="card next">
           <span className="next__label">{t('timeline.next')}</span>
           <span className="next__title">
-            <span aria-hidden="true">{BOOKING_KIND_ICON[next.kind]}</span> {next.title}
+            <Icon name={BOOKING_KIND_ICON[next.kind]} size={17} /> {next.title}
           </span>
           <span className="muted">
             {formatDayKey(next.start_at.slice(0, 10))} ·{' '}
@@ -175,7 +176,7 @@ export function TripDetail() {
               <li key={item.id} className="doc">
                 <Link className="doc__open" to={`/trips/${tripId}/bookings/${item.id}`}>
                   <span className="doc__name">
-                    <span aria-hidden="true">{BOOKING_KIND_ICON[item.kind]}</span> {item.title}
+                    <Icon name={BOOKING_KIND_ICON[item.kind]} size={16} /> {item.title}
                   </span>
                   <span className="doc__meta">{bookingKindLabel(item.kind)}</span>
                 </Link>

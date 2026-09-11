@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 
 import { useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
+import { Icon } from '../components/Icon'
 import { t } from '../i18n'
 import { bookingKindLabel, BOOKING_KIND_ICON } from '../i18n/labels'
 import {
@@ -86,7 +87,7 @@ export function Print() {
                     <p className="sheet__name">
                       {entry.type === 'booking' ? (
                         <>
-                          <span aria-hidden="true">{BOOKING_KIND_ICON[entry.booking.kind]}</span>{' '}
+                          <Icon name={BOOKING_KIND_ICON[entry.booking.kind]} size={13} />{' '}
                           {entry.booking.title}
                           <span className="sheet__kind"> {bookingKindLabel(entry.booking.kind)}</span>
                         </>

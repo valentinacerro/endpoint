@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
+import { t } from '../i18n'
+import { Icon } from './Icon'
+
 interface Props {
   title: string
   subtitle?: string
@@ -20,17 +23,8 @@ export function AppBar({ title, subtitle, back, action }: Props) {
   return (
     <header className="appbar">
       {back && (
-        <Link className="appbar__back" to={back} aria-label="Indietro">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <path
-              d="M15 5l-7 7 7 7"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        <Link className="appbar__back" to={back} aria-label={t('common.back')}>
+          <Icon name="back" size={22} />
         </Link>
       )}
       <div className="appbar__titles">

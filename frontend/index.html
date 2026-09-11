@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#1e2952" />
+    <!--
+      Two, because Android paints the status bar this colour and the app
+      has two grounds. One fixed value left the bar the wrong colour for
+      whichever scheme was not chosen.
+    -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8f7f3" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161611" />
     <meta name="color-scheme" content="light dark" />
     <!-- Private content: must never reach a search engine. -->
     <meta name="robots" content="noindex, nofollow" />

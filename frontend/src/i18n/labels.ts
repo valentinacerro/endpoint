@@ -17,6 +17,7 @@ import type {
   TripStatus,
   WeatherExposure,
 } from '../api/types'
+import type { IconName } from '../components/Icon'
 import type { ResultKind } from '../lib/search'
 import type { Sky } from '../lib/weather'
 import { t, type TranslationKey } from './index'
@@ -152,15 +153,36 @@ export function tripStatusLabel(status: TripStatus): string {
   return t(TRIP_STATUS_KEYS[status])
 }
 
-/** A glyph per booking kind, so a timeline row is scannable at a glance. */
-export const BOOKING_KIND_ICON: Record<BookingKind, string> = {
-  hotel: '🛏',
-  flight: '✈',
-  train: '🚄',
-  bus: '🚌',
-  ferry: '⛴',
-  car_rental: '🚗',
-  activity: '🎫',
-  restaurant: '🍜',
-  other: '📌',
+/**
+ * A drawn icon per booking kind, so a timeline row is scannable.
+ *
+ * A name rather than a glyph: emoji are a different drawing on every
+ * system, carry colours that fight the palette, cannot take the weight
+ * of the text beside them, and print as boxes.
+ */
+export const BOOKING_KIND_ICON: Record<BookingKind, IconName> = {
+  hotel: 'hotel',
+  flight: 'flight',
+  train: 'train',
+  bus: 'bus',
+  ferry: 'ferry',
+  car_rental: 'car',
+  activity: 'ticket',
+  restaurant: 'food',
+  other: 'pin',
+}
+
+/** The same, for the categories a place can have. */
+export const PLACE_CATEGORY_ICON: Record<PlaceCategory, IconName> = {
+  sight: 'pin',
+  museum: 'museum',
+  temple: 'temple',
+  shrine: 'temple',
+  park: 'park',
+  garden: 'park',
+  shopping: 'shop',
+  food: 'food',
+  viewpoint: 'view',
+  experience: 'ticket',
+  other: 'pin',
 }

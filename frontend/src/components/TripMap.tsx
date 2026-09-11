@@ -13,12 +13,23 @@ export interface MapPin {
   kind: 'travel' | 'stay' | 'food' | 'see' | 'other'
 }
 
+/**
+ * The same five hues as `--kind-*` in the stylesheet, written out again
+ * on purpose.
+ *
+ * Everything else in the app follows the dark scheme; a pin does not.
+ * It sits on OpenStreetMap's tiles, which are light in both schemes, so
+ * a pin that lightened with the rest of the interface would vanish into
+ * the map. These are the light values, always — kept in step with the
+ * stylesheet by hand, which is the price of the map having its own
+ * ground.
+ */
 const KIND_COLOUR: Record<MapPin['kind'], string> = {
-  travel: '#3f6fb5',
-  stay: '#2f8f6f',
-  food: '#c9812f',
-  see: '#7a5bb5',
-  other: '#7c8090',
+  travel: '#3a5f7d',
+  stay: '#1c4f3f',
+  food: '#a8553a',
+  see: '#6b5b7b',
+  other: '#7d786c',
 }
 
 /**
@@ -73,7 +84,7 @@ export function TripMap({ pins }: { pins: MapPin[] }) {
       })
 
       if (points.length > 1) {
-        L.polyline(points, { color: '#1e2952', weight: 2, opacity: 0.5, dashArray: '5 6' }).addTo(
+        L.polyline(points, { color: '#1c4f3f', weight: 2, opacity: 0.5, dashArray: '5 6' }).addTo(
           instance,
         )
         instance.fitBounds(L.latLngBounds(points), { padding: [40, 40] })

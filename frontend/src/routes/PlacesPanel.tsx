@@ -9,6 +9,7 @@ import { inferStops } from '../lib/stops'
 import { ImportPlaces } from '../components/ImportPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
+import { Icon } from '../components/Icon'
 import { t } from '../i18n'
 import { exposureLabel, placeCategoryLabel, priorityLabel } from '../i18n/labels'
 import { dayKeyInZone, formatDayKey, formatDuration, formatTimeInZone } from '../lib/datetime'
@@ -209,7 +210,9 @@ export function PlacesPanel() {
             <span className="doc__open" style={{ cursor: 'default' }}>
               <span className="doc__name">
                 {place.name}
-                {place.priority === 'must_see' && <span className="pill pill--must">★</span>}
+                {place.priority === 'must_see' && <span className="pill pill--must">
+                    <Icon name="star" size={12} title={priorityLabel('must_see')} />
+                  </span>}
               </span>
               <span className="doc__meta">
                 {placeCategoryLabel(place.category)} ·{' '}

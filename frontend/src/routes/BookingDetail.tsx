@@ -8,7 +8,7 @@ import { BookingForm } from '../components/BookingForm'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
 import { t } from '../i18n'
-import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
+import { bookingKindLabel } from '../i18n/labels'
 import { formatDayKey, formatTimeInZone, shortZoneName } from '../lib/datetime'
 import { attachmentsOf } from '../lib/itinerary'
 
@@ -108,7 +108,7 @@ export function BookingDetail() {
     <>
       <AppBar
         title={booking.title}
-        subtitle={`${BOOKING_KIND_ICON[booking.kind]} ${bookingKindLabel(booking.kind)}`}
+        subtitle={bookingKindLabel(booking.kind)}
         back={`/trips/${tripId}`}
       />
       <main className="page stack">

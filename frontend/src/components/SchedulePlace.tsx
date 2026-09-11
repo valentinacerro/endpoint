@@ -5,6 +5,7 @@ import type { Place } from '../api/types'
 import { t } from '../i18n'
 import { placeCategoryLabel, priorityLabel } from '../i18n/labels'
 import { formatDuration, shortZoneName, zonedInputToInstant } from '../lib/datetime'
+import { Icon } from './Icon'
 
 interface Props {
   tripId: string
@@ -44,7 +45,7 @@ export function SchedulePlace({ tripId, place, defaultZone, defaultDay }: Props)
       <div className="doc__row">
         <span className="doc__open" style={{ cursor: 'default' }}>
           <span className="doc__name">
-            <span aria-hidden="true">📍</span> {place.name}
+            <Icon name="pin" size={14} /> {place.name}
           </span>
           <span className="doc__meta">
             {placeCategoryLabel(place.category)} · {formatDuration(place.visit_minutes)}

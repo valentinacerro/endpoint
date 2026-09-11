@@ -1,4 +1,5 @@
 import { t } from '../i18n'
+import { Icon } from './Icon'
 import { canOpenInMaps, mapsDirectionsUrl, mapsSearchUrl, type Locatable } from '../lib/maps'
 
 /**
@@ -18,7 +19,8 @@ export function MapsLink({ place }: { place: Locatable }) {
     <div className="row">
       {search && (
         <a className="button button--small button--quiet" href={search} target="_blank" rel="noreferrer">
-          🗺 {t('maps.open')}
+          <Icon name="map" size={15} />
+          {t('maps.open')}
         </a>
       )}
       {directions && (
@@ -28,7 +30,8 @@ export function MapsLink({ place }: { place: Locatable }) {
           target="_blank"
           rel="noreferrer"
         >
-          ➜ {t('maps.directions')}
+          <Icon name="directions" size={15} />
+          {t('maps.directions')}
         </a>
       )}
     </div>

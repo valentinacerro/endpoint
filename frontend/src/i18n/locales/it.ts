@@ -12,6 +12,7 @@
 export const it = {
   'app.name': 'endpoint',
 
+  'tabs.sections': 'Sezioni del viaggio',
   'tabs.itinerary': 'Itinerario',
   'tabs.places': 'Luoghi',
   'tabs.map': 'Mappa',
@@ -98,6 +99,7 @@ export const it = {
   'trip.status.archived': 'Archiviato',
 
   'timeline.day': 'Giorno {n}',
+  'timeline.hasDocuments': 'Ha dei documenti',
   'timeline.emptyDay': 'Niente in programma.',
   'timeline.empty': 'Nessuna prenotazione. Aggiungine una per vedere l’itinerario.',
   'timeline.next': 'Prossimo',

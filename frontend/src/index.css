@@ -2,24 +2,66 @@
    Tokens
    ========================================================================== */
 
+/* The two typefaces, served from this repository and not from a font
+   host. Everything else here works with no network, and a render-blocking
+   request to a third party on every cold start would be the one thing
+   that did not — besides telling that third party who is reading.
+
+   Copied out of the fontsource packages by hand rather than imported
+   from them: the package entry points carry every subset, Cyrillic and
+   Greek and Vietnamese included, and the service worker precaches every
+   woff2 it finds. That is a quarter of a megabyte downloaded before
+   first paint for alphabets this app will never render. Latin only:
+   48 KB for every weight of Inter, 21 KB for the serif. Japanese names
+   fall through to the system font either way, since neither face has
+   the glyphs. */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/inter-latin-variable.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/instrument-serif-latin-400.woff2') format('woff2');
+}
+
 :root {
-  --brand: #1e2952;
-  --brand-soft: #2f3d6e;
-  --accent: #e85d54;
+  /* --- Carta ---
+     Bone, ink, and one deep green. The app is a thing you read: long
+     lists of text on a warm ground, a single accent spent where it has to
+     be noticed, and nothing else competing. */
+  --brand: #1c4f3f;
+  --brand-soft: #266a55;
+  /* What sits on top of the brand. In dark the brand lightens, so white
+     on it disappears — this was the literal #10121a repeated in four
+     places, an undeclared token pretending to be a patch. */
+  --on-brand: #f8f7f3;
+  /* Kept for the few places that need a second voice: the sync sweep,
+     the "next up" rail. A warm clay, not a second green. */
+  --accent: #a8553a;
 
-  /* A warm paper tone rather than a cold grey: the app is mostly read, and
-     long lists of text sit more comfortably on it. */
-  --bg: #f6f5f2;
+  --bg: #f8f7f3;
   --surface: #ffffff;
-  --surface-sunken: #efeeea;
-  --border: #e2e0da;
-  --border-strong: #cfccc3;
-  --text: #1a1c24;
-  --text-muted: #6b6f7d;
-  --danger: #b3261e;
+  --surface-sunken: #efeee8;
+  --border: #e3e0d7;
+  --border-strong: #cbc7ba;
+  --text: #17160f;
+  --text-muted: #6a665a;
+  --danger: #93332a;
 
-  --shadow-sm: 0 1px 2px rgb(26 28 36 / 6%);
-  --shadow: 0 1px 2px rgb(26 28 36 / 6%), 0 6px 20px rgb(26 28 36 / 6%);
+  /* Warm, because the ground is. A cool grey shadow on bone reads as
+     dirt rather than as depth. */
+  --shadow-sm: 0 1px 2px rgb(23 22 15 / 5%);
+  --shadow: 0 1px 2px rgb(23 22 15 / 5%), 0 6px 20px rgb(23 22 15 / 6%);
 
   --appbar-height: 56px;
   --tabbar-height: 60px;
@@ -28,39 +70,51 @@
   --radius-sm: 9px;
   --gap: 16px;
 
-  /* Per-kind accents, muted enough to sit next to each other in a list. */
-  --kind-travel: #3f6fb5;
-  --kind-stay: #2f8f6f;
-  --kind-food: #c9812f;
-  --kind-see: #7a5bb5;
-  --kind-other: #7c8090;
+  /* Per-kind accents, all pulled towards the ground so a list of five
+     different kinds reads as one list. */
+  --kind-travel: #3a5f7d;
+  --kind-stay: #1c4f3f;
+  --kind-food: #a8553a;
+  --kind-see: #6b5b7b;
+  --kind-other: #7d786c;
+
+  /* A serif for the few things that are read once and remembered — the
+     name of a trip, a countdown, a day — and a sans for everything that
+     is scanned. The difference between the two is most of what stops an
+     app looking generic. */
+  --display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --ui: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --brand: #8ea4e8;
-    --brand-soft: #6c83c8;
-    --accent: #ff7a70;
+    /* Not an inversion: the ground keeps its warmth and the green is
+       lifted until it still reads as the same colour on it. */
+    --brand: #66b092;
+    --brand-soft: #78c2a3;
+    --on-brand: #14140f;
+    --accent: #d98b68;
 
-    --bg: #14161d;
-    --surface: #1c1f28;
-    --surface-sunken: #232733;
-    --border: #2e3341;
-    --border-strong: #414757;
-    --text: #e9ebf2;
-    --text-muted: #9aa1b5;
-    --danger: #ff8a80;
+    --bg: #161611;
+    --surface: #1e1e18;
+    --surface-sunken: #252520;
+    --border: #33332b;
+    --border-strong: #4a473c;
+    --text: #edebe2;
+    --text-muted: #98938a;
+    --danger: #e08175;
 
     --shadow-sm: none;
     --shadow: none;
 
-    --kind-travel: #7ea6e8;
-    --kind-stay: #5fc3a0;
-    --kind-food: #e8b565;
-    --kind-see: #b39ae8;
-    --kind-other: #9aa1b5;
+    --kind-travel: #7fa8c9;
+    --kind-stay: #66b092;
+    --kind-food: #d98b68;
+    --kind-see: #b0a0c4;
+    --kind-other: #98938a;
   }
 }
 
@@ -78,7 +132,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--ui);
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -111,13 +165,13 @@ body {
   font-size: 13px;
   font-weight: 500;
   text-align: center;
-  color: #fff;
+  color: var(--on-brand);
   background: var(--brand);
 }
 
 @media (prefers-color-scheme: dark) {
   .sync-banner {
-    color: #10121a;
+    color: var(--on-brand);
   }
 }
 
@@ -269,7 +323,7 @@ select.field__input {
   font: inherit;
   font-size: 15.5px;
   font-weight: 600;
-  color: #fff;
+  color: var(--on-brand);
   background: var(--brand);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -281,7 +335,7 @@ select.field__input {
 
 @media (prefers-color-scheme: dark) {
   .button {
-    color: #10121a;
+    color: var(--on-brand);
   }
 }
 
@@ -372,9 +426,10 @@ select.field__input {
 }
 
 .login__title {
+  font-family: var(--display);
+  font-weight: 400;
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 26px;
   letter-spacing: -0.01em;
 }
 
@@ -463,8 +518,9 @@ select.field__input {
 }
 
 .next__title {
-  font-size: 18px;
-  font-weight: 650;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 20px;
   letter-spacing: -0.01em;
 }
 
@@ -820,8 +876,7 @@ select.field__input {
 
 .entry__docs {
   margin-left: 6px;
-  font-size: 12px;
-  opacity: 0.75;
+  color: var(--text-muted);
 }
 
 a.entry__content {
@@ -868,7 +923,7 @@ a.entry__content:hover .entry__title {
 
 .detail__value code {
   padding: 2px 7px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono);
   font-size: 15px;
   letter-spacing: 0.04em;
   background: var(--surface-sunken);
@@ -917,14 +972,14 @@ a.entry__content:hover .entry__title {
 }
 
 .toolbar__link--on {
-  color: #fff;
+  color: var(--on-brand);
   background: var(--brand);
   border-color: var(--brand);
 }
 
 @media (prefers-color-scheme: dark) {
   .toolbar__link--on {
-    color: #10121a;
+    color: var(--on-brand);
   }
 }
 
@@ -1025,6 +1080,10 @@ a.entry__content:hover .entry__title {
 }
 
 .pill--must {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  vertical-align: -1px;
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
@@ -1117,6 +1176,9 @@ a.entry__content:hover .entry__title {
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 10px;
   font: inherit;
   font-size: 12.5px;
@@ -1261,10 +1323,13 @@ a.entry__content:hover .entry__title {
   gap: 2px;
 }
 
+/* The one number on the screen, so it is allowed to be the one thing
+   drawn rather than set. */
 .totals__big {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 30px;
+  letter-spacing: -0.005em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1386,10 +1451,11 @@ a.entry__content:hover .entry__title {
 }
 
 .appbar__title {
+  font-family: var(--display);
+  font-weight: 400;
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 20px;
+  letter-spacing: -0.005em;
   /* One line, always: a wrapping title changes the height of the bar and
      makes the whole screen jump between sections. */
   overflow: hidden;
@@ -1466,6 +1532,21 @@ a.entry__content:hover .entry__title {
   opacity: 0.6;
 }
 
+/*
+ * The drawn icons.
+ *
+ * Aligned with `vertical-align` rather than by making every parent a
+ * flex row: most of them sit inside a run of text, where an inline SVG
+ * otherwise rests on the baseline and leaves the descender's gap
+ * beneath it, riding visibly high. Where the parent *is* a flex row the
+ * property is ignored and `flex-shrink` keeps the icon its own size.
+ */
+.icon {
+  display: inline-block;
+  vertical-align: -0.14em;
+  flex-shrink: 0;
+}
+
 /* --- Floating action --- */
 
 .fab {
@@ -1480,7 +1561,7 @@ a.entry__content:hover .entry__title {
   font: inherit;
   font-size: 15px;
   font-weight: 650;
-  color: #fff;
+  color: var(--on-brand);
   background: var(--brand);
   border: none;
   border-radius: 999px;
@@ -1491,7 +1572,7 @@ a.entry__content:hover .entry__title {
 
 @media (prefers-color-scheme: dark) {
   .fab {
-    color: #10121a;
+    color: var(--on-brand);
     box-shadow: 0 4px 16px rgb(0 0 0 / 45%);
   }
 }
@@ -1660,7 +1741,7 @@ a.entry__content:hover .entry__title {
 }
 
 .pack__box--on {
-  color: #fff;
+  color: var(--on-brand);
   background: var(--brand);
   border-color: var(--brand);
 }
@@ -1721,7 +1802,8 @@ a.entry__content:hover .entry__title {
 }
 
 .forecast__icon {
-  font-size: 15px;
+  display: flex;
+  justify-content: center;
 }
 
 .forecast__sky {
@@ -1794,10 +1876,11 @@ a.entry__content:hover .entry__title {
 }
 
 .sheet__title {
+  font-family: var(--display);
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.005em;
 }
 
 .sheet__dates,

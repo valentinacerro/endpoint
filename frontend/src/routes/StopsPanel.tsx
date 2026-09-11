@@ -9,6 +9,7 @@ import {
 } from '../api/trips'
 import type { Stop } from '../api/types'
 import { AppBar } from '../components/AppBar'
+import { Icon } from '../components/Icon'
 import { LocateStops } from '../components/LocateStops'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { t } from '../i18n'
@@ -198,7 +199,7 @@ export function StopsPanel() {
                 disabled={index === 0 || reorder.isPending}
                 aria-label={t('stops.moveUp')}
               >
-                ↑
+                <Icon name="up" size={15} />
               </button>
               <button
                 className="chip"
@@ -206,7 +207,7 @@ export function StopsPanel() {
                 disabled={index === stops.length - 1 || reorder.isPending}
                 aria-label={t('stops.moveDown')}
               >
-                ↓
+                <Icon name="down" size={15} />
               </button>
               <button
                 className="chip chip--danger"

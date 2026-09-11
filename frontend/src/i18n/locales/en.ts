@@ -10,6 +10,7 @@ import type { TranslationKey } from './it'
 export const en: Record<TranslationKey, string> = {
   'app.name': 'endpoint',
 
+  'tabs.sections': 'Trip sections',
   'tabs.itinerary': 'Itinerary',
   'tabs.places': 'Places',
   'tabs.map': 'Map',
@@ -96,6 +97,7 @@ export const en: Record<TranslationKey, string> = {
   'trip.status.archived': 'Archived',
 
   'timeline.day': 'Day {n}',
+  'timeline.hasDocuments': 'Has documents',
   'timeline.emptyDay': 'Nothing planned.',
   'timeline.empty': 'No bookings yet. Add one to see the itinerary.',
   'timeline.next': 'Next',

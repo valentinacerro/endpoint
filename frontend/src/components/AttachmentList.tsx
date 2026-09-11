@@ -6,6 +6,7 @@ import { t } from '../i18n'
 import { formatBytes, prepareForUpload } from '../lib/images'
 import { isPinned, pin, unpin } from '../offline/attachmentCache'
 import { DocumentViewer } from './DocumentViewer'
+import { Icon } from './Icon'
 
 // A function rather than a module-level map: `t()` must be called at render
 // time, or switching language in Phase 3 would leave these frozen at
@@ -48,7 +49,8 @@ function OfflineToggle({ url }: { url: string }) {
       disabled={busy}
       aria-pressed={pinned}
     >
-      {pinned ? `✓ ${t('document.savedOffline')}` : t('document.saveOffline')}
+      {pinned && <Icon name="check" size={14} />}
+      {pinned ? t('document.savedOffline') : t('document.saveOffline')}
     </button>
   )
 }
