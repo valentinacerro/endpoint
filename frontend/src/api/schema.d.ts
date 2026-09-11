@@ -354,6 +354,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/diary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Entries */
+        get: operations["list_entries_api_trips__trip_id__diary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trips/{trip_id}/diary/{day}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Entry
+         * @description Write the entry for a day, creating it if it is not there yet.
+         *
+         *     Addressed by date rather than by an id the server hands out, which is
+         *     what makes a replayed write leave one entry instead of two. It matters
+         *     more here than anywhere else: this is written at the end of a day, in
+         *     a hotel room, on whatever the wifi happens to be doing.
+         */
+        put: operations["set_entry_api_trips__trip_id__diary__day__put"];
+        post?: never;
+        /** Clear Entry */
+        delete: operations["clear_entry_api_trips__trip_id__diary__day__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/expenses": {
         parameters: {
             query?: never;
@@ -862,6 +905,47 @@ export interface components {
             /** Temp Min */
             temp_min: number | null;
         };
+        /** DiaryEntryRead */
+        DiaryEntryRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Trip Id
+             * Format: uuid
+             */
+            trip_id: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Text */
+            text: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DiaryEntryWrite
+         * @description The body of a write; the day itself comes from the URL.
+         *
+         *     Generous with length where a day note is not: this is the one field in
+         *     the app someone might genuinely write five hundred words into.
+         */
+        DiaryEntryWrite: {
+            /** Text */
+            text: string;
+        };
         /**
          * ExpenseCategory
          * @enum {string}
@@ -1281,6 +1365,8 @@ export interface components {
             expenses: components["schemas"]["ExpenseRead"][];
             /** Day Notes */
             day_notes: components["schemas"]["DayNoteRead"][];
+            /** Diary */
+            diary: components["schemas"]["DiaryEntryRead"][];
             /** Attachments */
             attachments: components["schemas"]["AttachmentRead"][];
             /**
@@ -2352,6 +2438,103 @@ export interface operations {
         };
     };
     clear_note_api_trips__trip_id__days__day__note_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_entries_api_trips__trip_id__diary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiaryEntryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_entry_api_trips__trip_id__diary__day__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiaryEntryWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiaryEntryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_entry_api_trips__trip_id__diary__day__delete: {
         parameters: {
             query?: never;
             header?: never;

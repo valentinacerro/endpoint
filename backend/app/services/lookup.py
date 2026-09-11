@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db import Base
 from app.errors import AppError
-from app.models import Booking, ChecklistItem, Expense, Place, Stop, Trip
+from app.models import Booking, ChecklistItem, DiaryEntry, Expense, Place, Stop, Trip
 
 _NOT_FOUND_CODES = {
     Trip: "trip_not_found",
@@ -16,6 +16,7 @@ _NOT_FOUND_CODES = {
     Place: "place_not_found",
     Expense: "expense_not_found",
     ChecklistItem: "checklist_item_not_found",
+    DiaryEntry: "diary_entry_not_found",
 }
 
 

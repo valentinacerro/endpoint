@@ -6,6 +6,7 @@ from app.schemas.attachment import AttachmentRead
 from app.schemas.booking import BookingRead
 from app.schemas.checklist import ChecklistItemRead
 from app.schemas.day_note import DayNoteRead
+from app.schemas.diary import DiaryEntryRead
 from app.schemas.expense import ExpenseRead
 from app.schemas.place import PlaceRead
 from app.schemas.stop import StopRead
@@ -29,5 +30,6 @@ class TripBundle(BaseModel):
     checklist: list[ChecklistItemRead]
     expenses: list[ExpenseRead]
     day_notes: list[DayNoteRead]
+    diary: list[DiaryEntryRead]
     attachments: list[AttachmentRead]
     generated_at: dt.datetime

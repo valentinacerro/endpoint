@@ -116,6 +116,7 @@ const SEARCH_KIND_KEYS = {
   expense: 'search.kind.expense',
   checklist: 'search.kind.checklist',
   note: 'search.kind.note',
+  diary: 'search.kind.diary',
   document: 'search.kind.document',
 } as const satisfies Record<ResultKind, TranslationKey>
 

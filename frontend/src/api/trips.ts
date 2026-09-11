@@ -21,6 +21,7 @@ import type {
   ChecklistItem,
   ChecklistItemWrite,
   DayNote,
+  DiaryEntry,
   Expense,
   ExpenseWrite,
   Place,
@@ -435,6 +436,76 @@ export function useDeleteChecklistItem(tripId: string) {
       return { previous }
     },
     onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
+}
+
+// --- Travel diary ---
+
+function patchDiary(
+  queryClient: QueryClient,
+  tripId: string,
+  change: (entries: DiaryEntry[]) => DiaryEntry[],
+) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle ? { ...bundle, diary: change(bundle.diary) } : bundle,
+  )
+}
+
+/**
+ * Write the entry for a day.
+ *
+ * Queued when there is no signal, like an expense and for a stronger
+ * reason: this is written at the end of a day in a hotel room, and the
+ * text is the one thing in the app you would be sorry to lose. Addressed
+ * by date, so replaying the write leaves one entry rather than two.
+ */
+export function usePutDiaryEntry(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<DiaryEntry, ApiError, { day: string; text: string }>({
+    mutationFn: async ({ day, text }) => {
+      const url = `/api/trips/${tripId}/diary/${day}`
+      try {
+        return await apiFetch<DiaryEntry>(url, { method: 'PUT', body: { text } })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `diary:${day}`, method: 'PUT', url, body: { text } })
+        const now = new Date().toISOString()
+        // A stand-in so the page shows what you just wrote. The id is
+        // provisional and is replaced by the server's on the next sync.
+        return {
+          id: `pending:${day}`,
+          trip_id: tripId,
+          day,
+          text,
+          created_at: now,
+          updated_at: now,
+        } as DiaryEntry
+      }
+    },
+    onSuccess: (entry) =>
+      patchDiary(queryClient, tripId, (entries) => [
+        ...entries.filter((existing) => existing.day !== entry.day),
+        entry,
+      ]),
+  })
+}
+
+export function useDeleteDiaryEntry(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string>({
+    mutationFn: async (day) => {
+      const url = `/api/trips/${tripId}/diary/${day}`
+      try {
+        await apiFetch<void>(url, { method: 'DELETE' })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `diary:${day}`, method: 'DELETE', url })
+      }
+    },
+    onSuccess: (_result, day) =>
+      patchDiary(queryClient, tripId, (entries) =>
+        entries.filter((entry) => entry.day !== day),
+      ),
   })
 }
 

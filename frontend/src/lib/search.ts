@@ -17,6 +17,7 @@ import { alnum, fold, words } from './text'
 
 export type ResultKind =
   | 'booking'
+  | 'diary'
   | 'place'
   | 'stop'
   | 'expense'
@@ -221,6 +222,21 @@ export function search(bundle: TripBundle, query: string): Result[] {
         to: `/trips/${tripId}`,
       },
       field(note.note, WEIGHT.body),
+    )
+  }
+
+  for (const entry of bundle.diary) {
+    add(
+      {
+        kind: 'diary',
+        id: entry.day,
+        title: entry.day,
+        detail: excerpt(entry.text, asked),
+        to: `/trips/${tripId}/diary`,
+      },
+      // Weighted as body text: it is prose, and a word appearing in a
+      // paragraph you wrote is weaker evidence than one in a name.
+      field(entry.text, WEIGHT.body),
     )
   }
 

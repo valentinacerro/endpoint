@@ -29,6 +29,8 @@ export type PlaceUpdate = S['PlaceUpdate']
 
 export type DayNote = S['DayNoteRead']
 
+export type DiaryEntry = S['DiaryEntryRead']
+
 export type Expense = S['ExpenseRead']
 export type ExpenseWrite = S['ExpenseWrite']
 export type ExpenseCategory = Expense['category']

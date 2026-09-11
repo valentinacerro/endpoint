@@ -13,7 +13,17 @@ import uuid
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Attachment, Booking, ChecklistItem, DayNote, Expense, Place, Stop, Trip
+from app.models import (
+    Attachment,
+    Booking,
+    ChecklistItem,
+    DayNote,
+    DiaryEntry,
+    Expense,
+    Place,
+    Stop,
+    Trip,
+)
 from app.schemas.bundle import TripBundle
 
 
@@ -44,6 +54,7 @@ TRIP_CHILDREN: tuple[tuple[str, type], ...] = (
     ("day_notes", DayNote),
     ("expenses", Expense),
     ("checklist", ChecklistItem),
+    ("diary", DiaryEntry),
 )
 
 
@@ -100,6 +111,9 @@ def build(db: Session, trip: Trip) -> TripBundle:
     day_notes = list(
         db.scalars(select(DayNote).where(DayNote.trip_id == trip.id).order_by(DayNote.day))
     )
+    diary = list(
+        db.scalars(select(DiaryEntry).where(DiaryEntry.trip_id == trip.id).order_by(DiaryEntry.day))
+    )
     attachments = list(
         db.scalars(
             select(Attachment).where(attachments_of_trip(trip.id)).order_by(Attachment.created_at)
@@ -115,6 +129,7 @@ def build(db: Session, trip: Trip) -> TripBundle:
             "checklist": checklist,
             "expenses": expenses,
             "day_notes": day_notes,
+            "diary": diary,
             "attachments": attachments,
             "generated_at": dt.datetime.now(dt.UTC),
         }

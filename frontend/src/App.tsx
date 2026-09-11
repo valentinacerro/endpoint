@@ -8,6 +8,7 @@ import { requestPersistentStorage } from './offline/persister'
 import { BookingDetail } from './routes/BookingDetail'
 import { Expenses } from './routes/Expenses'
 import { Packing } from './routes/Packing'
+import { Diary } from './routes/Diary'
 import { Nearby } from './routes/Nearby'
 import { Print } from './routes/Print'
 import { Search } from './routes/Search'
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="search" element={<Search />} />
           <Route path="nearby" element={<Nearby />} />
           <Route path="print" element={<Print />} />
+          <Route path="diary" element={<Diary />} />
           <Route path="more" element={<TripMore />} />
           <Route path="stops" element={<StopsPanel />} />
           <Route path="offline" element={<OfflineStatus />} />

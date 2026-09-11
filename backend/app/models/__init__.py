@@ -10,6 +10,7 @@ from app.models.attachment import Attachment, AttachmentBlob
 from app.models.booking import Booking
 from app.models.checklist import ChecklistItem
 from app.models.day_note import DayNote
+from app.models.diary import DiaryEntry
 from app.models.expense import Expense
 from app.models.place import Place
 from app.models.stop import Stop
@@ -21,6 +22,7 @@ __all__ = [
     "Booking",
     "ChecklistItem",
     "DayNote",
+    "DiaryEntry",
     "Expense",
     "Place",
     "Stop",

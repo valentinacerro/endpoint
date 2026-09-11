@@ -26,6 +26,7 @@ export const it = {
   'more.searchHint': 'Trova una prenotazione, un codice, un documento',
   'more.nearbyHint': 'Cosa hai salvato qui intorno',
   'more.printHint': 'Una copia su carta, per quando il telefono è morto',
+  'more.diaryHint': 'Cosa vuoi ricordarti di questo viaggio',
 
   'common.save': 'Salva',
   'common.saving': 'Salvataggio…',
@@ -381,6 +382,7 @@ export const it = {
   'search.kind.expense': 'Spesa',
   'search.kind.checklist': 'Valigia',
   'search.kind.note': 'Nota',
+  'search.kind.diary': 'Diario',
   'search.kind.document': 'Documento',
 
   'nearby.title': 'Qui intorno',
@@ -420,6 +422,22 @@ export const it = {
   'print.phone': 'Telefono',
   'print.notes': 'Note',
   'print.generated': 'Stampato il {when} · endpoint',
+
+  'diary.title': 'Diario',
+  'diary.intro': 'Si scrive anche senza rete: quello che metti qui parte da solo appena torna il segnale.',
+  'diary.progress': 'Scritti {written} giorni su {writable}',
+  'diary.allWritten': 'Hai scritto di ogni giorno passato.',
+  'diary.empty': 'Non hai ancora scritto niente.',
+  'diary.write': 'Scrivi',
+  'diary.edit': 'Modifica',
+  'diary.placeholder': 'Com’è andata?',
+  'diary.notYet': 'Non è ancora successo.',
+  'diary.nothingWritten': '—',
+  'diary.happened': 'Quel giorno: {what}',
+  'diary.happenedMore': '{what} e altri {count}',
+  'diary.nothingPlanned': 'Niente in programma quel giorno.',
+  'diary.jump': 'Vai al primo giorno da scrivere',
+  'diary.confirmDelete': 'Vuoi cancellare quello che hai scritto il {day}?',
 
   'update.available': 'È disponibile una versione aggiornata.',
   'update.reload': 'Ricarica',

@@ -25,6 +25,7 @@ from app.routers import (
     bundle,
     checklist,
     day_notes,
+    diary,
     expenses,
     health,
     maps,
@@ -112,6 +113,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(rates.router)
     api.include_router(weather.router)
     api.include_router(day_notes.router)
+    api.include_router(diary.router)
     api.include_router(expenses.router)
     api.include_router(checklist.router)
     api.include_router(attachments.router)

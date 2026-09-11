@@ -1960,3 +1960,62 @@ a.entry__content:hover .entry__title {
     color: #444;
   }
 }
+
+/* --- Diary --- */
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.entry__head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  margin: 0;
+  font-size: 14px;
+}
+
+.entry__day {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.entry__stop {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.entry__happened,
+.entry__blank {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Prose, unlike everything else in this app. It gets a reading measure
+   and room to breathe: a wall of 14px UI text is not something anyone
+   re-reads a year later. */
+.entry__text {
+  margin: 2px 0;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.entry__input {
+  width: 100%;
+  font-size: 15px;
+  line-height: 1.55;
+  resize: vertical;
+}

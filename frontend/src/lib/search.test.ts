@@ -79,6 +79,7 @@ function bundle(partial: Partial<TripBundle> = {}): TripBundle {
     checklist: [],
     expenses: [],
     day_notes: [],
+    diary: [],
     attachments: [],
     generated_at: '2026-04-01T00:00:00Z',
     ...partial,
@@ -232,6 +233,16 @@ describe('search', () => {
           updated_at: '2026-04-01T00:00:00Z',
         },
       ],
+      diary: [
+        {
+          id: 'd',
+          trip_id: 'trip',
+          day: '2026-04-11',
+          text: 'the sakura were out after all',
+          created_at: '2026-04-01T00:00:00Z',
+          updated_at: '2026-04-01T00:00:00Z',
+        },
+      ],
       attachments: [
         {
           id: 'a',
@@ -251,7 +262,16 @@ describe('search', () => {
 
     const kinds = search(everything, 'sakura').map((result) => result.kind)
     expect(new Set(kinds)).toEqual(
-      new Set(['booking', 'place', 'stop', 'expense', 'checklist', 'note', 'document']),
+      new Set([
+        'booking',
+        'place',
+        'stop',
+        'expense',
+        'checklist',
+        'note',
+        'diary',
+        'document',
+      ]),
     )
   })
 
