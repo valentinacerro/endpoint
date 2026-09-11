@@ -224,6 +224,19 @@ export function formatSyncTime(
   }).format(when)
 }
 
+/**
+ * Whole days from one calendar date to another, negative going back.
+ *
+ * Through UTC midnights, so a summer-time boundary between the two
+ * cannot shave off or add a day — the classic off-by-one when counting
+ * days by subtracting timestamps.
+ */
+export function daysBetween(from: CalendarDate, to: CalendarDate): number {
+  const [fy, fm, fd] = from.split('-').map(Number)
+  const [ty, tm, td] = to.split('-').map(Number)
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000)
+}
+
 /** Whole days from today to a calendar date; negative once it has passed. */
 export function daysUntil(date: CalendarDate, now: Date = new Date()): number {
   const [year, month, day] = date.split('-').map(Number)

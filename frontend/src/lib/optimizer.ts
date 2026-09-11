@@ -13,10 +13,14 @@
  * themselves estimates, which is precision spent in the wrong place.
  */
 
-import { zonedInputToInstant, type CalendarDate } from './datetime'
+import {
+  dayKeyInZone,
+  daysBetween,
+  minutesOfDayInZone,
+  zonedInputToInstant,
+  type CalendarDate,
+} from './datetime'
 import { travelMinutes, type Point } from './geo'
-
-const MINUTE_MS = 60_000
 
 export type Priority = 'must_see' | 'high' | 'normal' | 'low'
 
@@ -39,6 +43,20 @@ export interface Anchor {
   endAt: string | null
   point: Point | null
   label: string
+  /**
+   * Time an anchor needs around itself, beyond its own span.
+   *
+   * A flight is not a thing that starts when it departs: you have to be
+   * at the airport. Without this nothing protects check-in, and a
+   * booking with no `endAt` occupies zero minutes, so a 19:00 dinner
+   * reservation gets a 19:00 temple written straight over it.
+   *
+   * It is also the only protection that works on transport, because a
+   * flight or a train never has coordinates stored — so the exit-leg
+   * check is inert on exactly the anchors that matter most.
+   */
+  bufferBeforeMinutes?: number
+  bufferAfterMinutes?: number
 }
 
 export interface Candidate {
@@ -56,6 +74,14 @@ export interface PlanOptions {
   /** When you are willing to start and to stop, on the local clock. */
   dayStart?: string
   dayEnd?: string
+  /**
+   * Where the day begins, when it is known better than by guessing.
+   *
+   * Defaults to the first anchor that has coordinates. A trip planner
+   * passes the city centre, so a day with no booked anchor still routes
+   * outwards from somewhere real rather than from its first candidate.
+   */
+  startPoint?: Point | null
 }
 
 export interface PlannedVisit {
@@ -151,8 +177,15 @@ function nearestNeighbour(items: Candidate[], from: Point | null): Candidate[] {
   return ordered
 }
 
-function legCost(from: Point | null, to: Point): number {
-  return from ? travelMinutes(from, to) : 0
+/**
+ * Minutes between two points, when both are known.
+ *
+ * An unknown point on either side costs nothing, which is the honest
+ * answer: we have no idea, and inventing a number would be worse than
+ * admitting the leg is unmeasured.
+ */
+function legCost(from: Point | null, to: Point | null): number {
+  return from && to ? travelMinutes(from, to) : 0
 }
 
 function tourCost(items: Candidate[], from: Point | null): number {
@@ -210,9 +243,26 @@ function instantAt(day: CalendarDate, minutes: number, zone: string): string {
   return zonedInputToInstant(`${day}T${hh}:${mm}`, zone)
 }
 
+/**
+ * An instant as minutes on the day's local clock, the exact inverse of
+ * `instantAt`.
+ *
+ * Elapsed minutes since local midnight are NOT the same thing, and the
+ * difference is a whole hour twice a year. In Rome on 25 October 2026
+ * the clocks go back, so 14:30 local is 930 minutes after local midnight
+ * but only 870 minutes on the clock — and `dayStart`, `dayEnd` and every
+ * opening hour speak the clock. The old arithmetic therefore handed
+ * `planDay` a free hour that does not exist, and it scheduled a visit
+ * starting the same minute a booked tour did.
+ *
+ * Values outside 0..1439 are meaningful and kept: an anchor belonging to
+ * the day before reads negative, one belonging to the next reads past
+ * midnight, and both are correct relative to this day.
+ */
 function localMinutes(instant: string, day: CalendarDate, zone: string): number {
-  const base = new Date(instantAt(day, 0, zone)).getTime()
-  return Math.round((new Date(instant).getTime() - base) / MINUTE_MS)
+  return (
+    minutesOfDayInZone(instant, zone) + 1440 * daysBetween(day, dayKeyInZone(instant, zone))
+  )
 }
 
 /**
@@ -247,29 +297,60 @@ export function planDay(
     (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority],
   )
 
-  const startPoint = fixed.find((anchor) => anchor.point)?.point ?? null
+  const startPoint = options.startPoint ?? fixed.find((anchor) => anchor.point)?.point ?? null
   const ordered = twoOpt(nearestNeighbour(wanted, startPoint), startPoint)
 
-  // Free windows: before the first anchor, between anchors, after the last.
-  const windows: [number, number][] = []
+  /**
+   * The gaps between the things that cannot move.
+   *
+   * Built in one pass, because the origins and the windows have to agree
+   * and they did not: a window was only pushed when an anchor started
+   * after the cursor, but its origin was read as `fixed[index - 1].point`
+   * — so one anchor beginning at or before `dayStart` desynchronised the
+   * origin of every window after it, and an anchor with no coordinates
+   * reset the origin to null and made the next leg look free.
+   *
+   * Each window also knows where you must be when it closes, so a visit
+   * cannot be squeezed in right up to the minute a booked tour starts on
+   * the other side of the city.
+   */
+  const state: {
+    at: number
+    until: number
+    where: Point | null
+    /** Where the anchor that closes this window is; null for the last. */
+    exitTo: Point | null
+    used: boolean
+  }[] = []
+
   let cursor = openAt
+  let where = startPoint
+
   for (const anchor of fixed) {
-    if (anchor.from > cursor) windows.push([cursor, anchor.from])
-    cursor = Math.max(cursor, anchor.to)
+    // An anchor occupies more than its own span: a flight needs the
+    // airport reached beforehand, a dinner needs you at the table.
+    const busyFrom = anchor.from - (anchor.bufferBeforeMinutes ?? 0)
+    const busyTo = anchor.to + (anchor.bufferAfterMinutes ?? 0)
+
+    // Clamped: a 23:00 flight used to produce the window [09:00, 23:00]
+    // and a visit got scheduled at 21:30 on a day declared to end at 21:00.
+    const until = Math.min(busyFrom, closeAt)
+    if (until > cursor) {
+      state.push({ at: cursor, until, where, exitTo: anchor.point, used: false })
+    }
+
+    // The last *located* point, carried forward past anchors that have none.
+    if (anchor.point) where = anchor.point
+    cursor = Math.max(cursor, busyTo)
   }
-  if (cursor < closeAt) windows.push([cursor, closeAt])
+
+  if (cursor < closeAt) {
+    state.push({ at: cursor, until: closeAt, where, exitTo: null, used: false })
+  }
 
   const visits: PlannedVisit[] = []
   const dropped: DroppedVisit[] = []
   let travel = 0
-
-  // Where we are, and when, as the day is filled in.
-  const state = windows.map(([from, to], index) => ({
-    index,
-    at: from,
-    until: to,
-    where: index === 0 ? startPoint : (fixed[index - 1]?.point ?? null),
-  }))
 
   const byPriority = ordered
     .slice()
@@ -287,7 +368,11 @@ export function planDay(
       const move = legCost(window.where, candidate.point)
       const arrival = window.at + move
       const start = earliestStart(openness, arrival, candidate.visitMinutes)
-      if (start === null || start + candidate.visitMinutes > window.until) continue
+      if (start === null) continue
+      // Room to get to whatever closes the window, not merely room to
+      // finish the visit.
+      const exit = legCost(candidate.point, window.exitTo)
+      if (start + candidate.visitMinutes + exit > window.until) continue
 
       visits.push({
         id: candidate.id,
@@ -298,11 +383,19 @@ export function planDay(
       travel += move
       window.at = start + candidate.visitMinutes
       window.where = candidate.point
+      window.used = true
       placed = true
       break
     }
 
     if (!placed) dropped.push({ id: candidate.id, reason: 'no_room' })
+  }
+
+  // The leg out of each window, counted once at the end rather than per
+  // candidate: it is the journey from whatever ended up last, and adding
+  // it as each visit lands would count every abandoned intermediate.
+  for (const window of state) {
+    if (window.used) travel += legCost(window.where, window.exitTo)
   }
 
   visits.sort((a, b) => a.startAt.localeCompare(b.startAt))
