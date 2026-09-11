@@ -9,6 +9,8 @@ import {
 } from '../api/trips'
 import type { Stop } from '../api/types'
 import { AppBar } from '../components/AppBar'
+import { LocateStops } from '../components/LocateStops'
+import { PlaceSearch } from '../components/PlaceSearch'
 import { t } from '../i18n'
 import { formatCalendarDate } from '../lib/datetime'
 import { timeZoneOptions } from '../lib/zones'
@@ -20,6 +22,10 @@ function AddStop({ tripId, defaultZone, onDone }: {
 }) {
   const create = useCreateStop(tripId)
   const [name, setName] = useState('')
+  // A stop has had lat/lon in the table since the first migration and
+  // nothing ever wrote them. Everything that reasons about which city a
+  // place belongs to needs a city to measure from.
+  const [point, setPoint] = useState<{ lat: number; lon: number } | null>(null)
   const [tz, setTz] = useState(defaultZone)
   const [country, setCountry] = useState('')
   const [arrive, setArrive] = useState('')
@@ -35,6 +41,8 @@ function AddStop({ tripId, defaultZone, onDone }: {
         country_code: country.trim() || null,
         arrive_date: arrive || null,
         depart_date: depart || null,
+        lat: point?.lat ?? null,
+        lon: point?.lon ?? null,
       },
       { onSuccess: onDone },
     )
@@ -43,16 +51,21 @@ function AddStop({ tripId, defaultZone, onDone }: {
   return (
     <form className="card stack" onSubmit={onSubmit}>
       <div className="row">
-        <label className="field field--grow">
-          <span className="field__label">{t('stops.name')}</span>
-          <input
-            className="field__input"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
+        <div className="field--grow">
+          <PlaceSearch
+            label={t('stops.name')}
+            near={null}
             autoFocus
-            required
+            onText={(typed) => {
+              setName(typed)
+              setPoint(null)
+            }}
+            onPick={(hit) => {
+              setName(hit.name)
+              setPoint({ lat: hit.lat, lon: hit.lon })
+            }}
           />
-        </label>
+        </div>
         <label className="field">
           <span className="field__label">{t('stops.country')}</span>
           <input
@@ -159,6 +172,8 @@ export function StopsPanel() {
       <main className="page stack">
 
       {stops.length === 0 && !adding && <p className="empty">{t('stops.none')}</p>}
+
+      <LocateStops tripId={tripId} stops={stops} />
 
       <ol className="stops">
         {stops.map((stop, index) => (

@@ -183,6 +183,15 @@ export const it = {
   'stops.depart': 'Partenza',
   'stops.moveUp': 'Sposta su',
   'stops.moveDown': 'Sposta giù',
+  'stops.missingPositions_one': 'Una tappa non ha una posizione, quindi non compare sulla mappa e nessun luogo può essere attribuito a lei.',
+  'stops.missingPositions_other': '{count} tappe non hanno una posizione, quindi non compaiono sulla mappa e nessun luogo può essere attribuito a loro.',
+  'stops.findPositions': 'Trova le posizioni',
+  'stops.locating': 'Cerco… {done} di {total}',
+  'stops.noneFound': 'Non ho trovato niente. Puoi aggiungere le posizioni aprendo le tappe una a una.',
+  'stops.noContext': 'senza contesto',
+  'stops.acceptPositions_one': 'Salva una posizione',
+  'stops.acceptPositions_other': 'Salva {count} posizioni',
+  'stops.saveFailed': 'Non sono riuscito a salvare: serve la rete.',
   'stops.tzHint':
     'Il fuso della tappa decide in quale giornata finiscono le sue prenotazioni.',
 

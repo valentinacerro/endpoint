@@ -341,6 +341,19 @@ export function usePlaceSearch(query: string, near: { lat: number; lon: number }
   })
 }
 
+/**
+ * One lookup, on demand.
+ *
+ * The query above is for a box being typed into. Filling in a list of
+ * stops is a loop, and a loop wants to ask rather than to subscribe.
+ */
+export function useLookupPlace() {
+  return useMutation<PlaceHit[], ApiError, { query: string }>({
+    mutationFn: ({ query }) =>
+      apiFetch<PlaceHit[]>(`/api/geo/search?${new URLSearchParams({ q: query })}`),
+  })
+}
+
 // --- Weather ---
 
 /** Roughly how often a forecast is worth re-fetching. */
