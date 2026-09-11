@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router'
 
 import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '../api/trips'
-import { PLACE_CATEGORIES, type PlaceCategory, type Priority } from '../api/types'
+import { PLACE_CATEGORIES, type Place, type PlaceCategory, type Priority } from '../api/types'
 import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
 import { PlaceSearch } from '../components/PlaceSearch'
+import { inferStops } from '../lib/stops'
 import { ImportPlaces } from '../components/ImportPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
@@ -164,6 +165,30 @@ export function PlacesPanel() {
    * offers Hong Kong before Tokyo; biased, it offers the one round the
    * corner. A trip with no located stop yet simply searches the world.
    */
+  /**
+   * The city we would put each place in, when you have not said.
+   *
+   * Shown, never saved. There is no column recording whether a stop was
+   * chosen or guessed, so writing a guess would make it permanent and
+   * indistinguishable from your own — this way the guess is visible in
+   * the very control that overrules it.
+   */
+  const inferred = inferStops(bundle.data)
+  const stopName = new Map(bundle.data.stops.map((stop) => [stop.id, stop.name]))
+
+  function inferredLabel(place: Place): string | null {
+    const match = inferred.get(place.id)
+    if (!match) return null
+    const name = stopName.get(match.stopId)
+    if (!name) return null
+    const km = Math.round(match.km)
+    return match.band === 'city'
+      ? t('places.inferredCity', { stop: name, km })
+      : match.band === 'day_trip'
+        ? t('places.inferredDayTrip', { stop: name, km })
+        : t('places.inferredFar', { stop: name, km })
+  }
+
   const located = bundle.data.stops.find((stop) => stop.lat !== null && stop.lon !== null)
   const near = located ? { lat: located.lat as number, lon: located.lon as number } : null
 
@@ -207,7 +232,7 @@ export function PlacesPanel() {
                   update.mutate({ id: place.id, stop_id: event.target.value || null })
                 }
               >
-                <option value="">{t('places.noStop')}</option>
+                <option value="">{inferredLabel(place) ?? t('places.noStop')}</option>
                 {bundle.data!.stops.map((stop) => (
                   <option key={stop.id} value={stop.id}>
                     {stop.name}

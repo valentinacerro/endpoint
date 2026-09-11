@@ -236,6 +236,9 @@ export const en: Record<TranslationKey, string> = {
 
   'places.title': 'To see',
   'places.open': 'To see',
+  'places.inferredCity': '{stop} ({km} km) — inferred',
+  'places.inferredDayTrip': '{stop} ({km} km) — a day of its own',
+  'places.inferredFar': 'far from {stop} ({km} km)',
   'places.noStop': 'No stop',
   'places.none': 'No places saved.',
   'places.add': 'Add place',

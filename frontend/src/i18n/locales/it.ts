@@ -239,6 +239,9 @@ export const it = {
 
   'places.title': 'Da vedere',
   'places.open': 'Da vedere',
+  'places.inferredCity': '{stop} ({km} km) — dedotta',
+  'places.inferredDayTrip': '{stop} ({km} km) — gita a sé',
+  'places.inferredFar': 'lontano da {stop} ({km} km)',
   'places.noStop': 'Nessuna tappa',
   'places.none': 'Nessun luogo salvato.',
   'places.add': 'Aggiungi luogo',
