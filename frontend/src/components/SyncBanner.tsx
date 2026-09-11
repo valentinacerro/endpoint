@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
 import { getConnection, subscribeConnection } from '../api/client'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { useOutbox } from '../offline/useOutbox'
 
 /**
@@ -32,7 +32,7 @@ export function SyncBanner() {
         {pending > 0 && (
           <>
             {connection !== 'online' && connection !== 'unknown' && ' · '}
-            {t('sync.pending', { count: pending })}
+            {count('sync.pending', pending)}
           </>
         )}
         {pending > 0 && connection !== 'offline' && !flushing && (

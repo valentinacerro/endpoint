@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 
 import { useDeleteMemory, usePutMemory, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { formatDayKey, formatTimeInZone } from '../lib/datetime'
 import { readPhoto } from '../lib/exif'
 import { byDay, place, sample, spanKm } from '../lib/memories'
@@ -122,16 +122,16 @@ export function Memories() {
           </label>
         )}
 
-        {added !== null && <p className="muted small">{t('memories.added', { count: added })}</p>}
+        {added !== null && <p className="muted small">{count('memories.added', added)}</p>}
 
         {skipped && skipped.no_position > 0 && (
-          <p className="muted small">{t('memories.noPosition', { count: skipped.no_position })}</p>
+          <p className="muted small">{count('memories.noPosition', skipped.no_position)}</p>
         )}
         {skipped && skipped.no_time > 0 && (
-          <p className="muted small">{t('memories.noTime', { count: skipped.no_time })}</p>
+          <p className="muted small">{count('memories.noTime', skipped.no_time)}</p>
         )}
         {skipped && skipped.unreadable > 0 && (
-          <p className="muted small">{t('memories.unreadable', { count: skipped.unreadable })}</p>
+          <p className="muted small">{count('memories.unreadable', skipped.unreadable)}</p>
         )}
 
         {memories.length === 0 ? (
@@ -161,7 +161,7 @@ export function Memories() {
                 <h2 className="day__header">
                   <span className="day__number">{formatDayKey(day.key)}</span>
                   <span className="day__count">
-                    {t('memories.thatDay', { count: day.memories.length })}
+                    {count('memories.thatDay', day.memories.length)}
                   </span>
                 </h2>
                 <ul className="docs">

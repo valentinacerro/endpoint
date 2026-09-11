@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 
 import { useSession } from './api/auth'
+import { useLocale } from './i18n'
 import { SyncBanner } from './components/SyncBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { requestPersistentStorage } from './offline/persister'
@@ -10,6 +11,7 @@ import { Expenses } from './routes/Expenses'
 import { Packing } from './routes/Packing'
 import { Diary } from './routes/Diary'
 import { Memories } from './routes/Memories'
+import { Settings } from './routes/Settings'
 import { Nearby } from './routes/Nearby'
 import { Print } from './routes/Print'
 import { Search } from './routes/Search'
@@ -32,6 +34,12 @@ const MapView = lazy(() =>
 
 export default function App() {
   const session = useSession()
+  // Subscribing here is the whole language-switching mechanism. Nothing
+  // in this app is memoised, so a render at the root reaches every
+  // screen — which is why `t()` stays an ordinary function that any
+  // module can import, rather than a hook that would have to be threaded
+  // through `lib/` and `i18n/labels.ts` as well.
+  useLocale()
   const authenticated = session.data?.authenticated === true
 
   useEffect(() => {
@@ -56,6 +64,7 @@ export default function App() {
       <UpdatePrompt />
       <Routes>
         <Route path="/" element={<TripList />} />
+        <Route path="/settings" element={<Settings />} />
         {/* Everything inside a trip shares the bottom bar, so it never
             unmounts and never flickers between sections. */}
         <Route path="/trips/:tripId" element={<TripLayout />}>

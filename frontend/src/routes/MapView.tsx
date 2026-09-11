@@ -5,7 +5,7 @@ import { useTripBundle } from '../api/trips'
 import type { BookingKind } from '../api/types'
 import { TripMap, type MapPin } from '../components/TripMap'
 import { AppBar } from '../components/AppBar'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { formatDayKey } from '../lib/datetime'
 import { buildTimeline, type Day, type PlacedEntry } from '../lib/itinerary'
 
@@ -118,7 +118,7 @@ export function MapView() {
           this app works offline, and this one screen does not. */}
       <p className="muted small">{t('map.needsNetwork')}</p>
 
-      {missing > 0 && <p className="hint">{t('map.missingCoords', { count: missing })}</p>}
+      {missing > 0 && <p className="hint">{count('map.missingCoords', missing)}</p>}
       </main>
     </>
   )

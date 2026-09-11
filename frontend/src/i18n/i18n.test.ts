@@ -1,0 +1,137 @@
+import { describe, expect, it } from 'vitest'
+
+import { count, setLocale, t, LOCALES, type PluralKey } from './index'
+import { en } from './locales/en'
+import { it as italian } from './locales/it'
+
+const dictionaries = { it: italian, en }
+
+/** The base names of the keys that come in singular and plural. */
+function pluralBases(): string[] {
+  return Object.keys(italian)
+    .filter((key) => key.endsWith('_other'))
+    .map((key) => key.slice(0, -'_other'.length))
+}
+
+// The suite setup pins Italian before every test, so a test that wants
+// another language just sets it and does not have to put it back.
+
+describe('the dictionaries', () => {
+  it('all carry exactly the same keys', () => {
+    // The compiler enforces this too, but only for a dictionary declared
+    // as `Record<TranslationKey, string>`. This catches the day someone
+    // loosens that type.
+    const italianKeys = Object.keys(italian).sort()
+    for (const locale of LOCALES) {
+      expect(Object.keys(dictionaries[locale]).sort(), locale).toEqual(italianKeys)
+    }
+  })
+
+  it('never leaves a string empty', () => {
+    for (const locale of LOCALES) {
+      for (const [key, value] of Object.entries(dictionaries[locale])) {
+        expect(value.trim(), `${locale}:${key}`).not.toBe('')
+      }
+    }
+  })
+
+  it('uses the same placeholders in every language', () => {
+    // A translation that drops {count} silently loses the number; one
+    // that invents {total} renders the braces to the reader.
+    const placeholders = (text: string) => new Set(text.match(/\{\w+\}/g) ?? [])
+
+    for (const locale of LOCALES) {
+      for (const [key, value] of Object.entries(dictionaries[locale])) {
+        const expected = placeholders(italian[key as keyof typeof italian])
+        // A plural form may legitimately drop {count} — "One change to
+        // send" reads better than "1 change to send" — so the check is
+        // that nothing is invented, not that nothing is dropped.
+        for (const name of placeholders(value)) {
+          expect(expected, `${locale}:${key} has an extra ${name}`).toContain(name)
+        }
+      }
+    }
+  })
+
+  it('gives every plural key the fallback every language relies on', () => {
+    for (const locale of LOCALES) {
+      for (const base of pluralBases()) {
+        expect(dictionaries[locale], `${locale}:${base}_other`).toHaveProperty(`${base}_other`)
+      }
+    }
+  })
+
+  it('says something sensible for every plural key at every count', () => {
+    // Categories are not the same everywhere and not all are spelled
+    // out: Italian has a `many` in current CLDR, for 11 and 80 and 800,
+    // which none of these strings care about and none of them define.
+    // What matters is that every count produces real text rather than a
+    // template or an "undefined".
+    for (const locale of LOCALES) {
+      setLocale(locale)
+      for (const base of pluralBases()) {
+        for (const n of [0, 1, 2, 5, 11, 21, 80, 100]) {
+          const rendered = count(base as PluralKey, n, { found: n, total: 9, writable: 9, what: 'x' })
+          expect(rendered, `${locale}:${base}@${n}`).toBeTruthy()
+          expect(rendered, `${locale}:${base}@${n}`).not.toContain('undefined')
+          expect(rendered, `${locale}:${base}@${n}`).not.toMatch(/\{\w+\}/)
+        }
+      }
+    }
+  })
+
+  it('has no plural key without both halves', () => {
+    const ones = Object.keys(italian).filter((key) => key.endsWith('_one'))
+    for (const one of ones) {
+      expect(italian).toHaveProperty(`${one.slice(0, -'_one'.length)}_other`)
+    }
+  })
+})
+
+describe('t', () => {
+  it('substitutes placeholders', () => {
+    expect(t('timeline.day', { n: 3 })).toBe('Giorno 3')
+  })
+
+  it('leaves an unknown placeholder alone rather than blanking it', () => {
+    // Better a visible {n} than a sentence with a hole in it.
+    expect(t('timeline.day')).toBe('Giorno {n}')
+  })
+
+  it('follows the chosen language', () => {
+    expect(t('tabs.itinerary')).toBe('Itinerario')
+    setLocale('en')
+    expect(t('tabs.itinerary')).toBe('Itinerary')
+  })
+})
+
+describe('count', () => {
+  it('agrees with one', () => {
+    // The reason this exists. Before it, the app said "1 modifiche".
+    expect(count('sync.pending', 1)).toBe('Una modifica da inviare')
+  })
+
+  it('agrees with more than one', () => {
+    expect(count('sync.pending', 5)).toBe('5 modifiche da inviare')
+  })
+
+  it('treats zero as plural in Italian', () => {
+    expect(count('sync.pending', 0)).toBe('0 modifiche da inviare')
+  })
+
+  it('passes the count through without being asked', () => {
+    expect(count('memories.thatDay', 7)).toBe('7 scatti')
+  })
+
+  it('takes other placeholders alongside the count', () => {
+    setLocale('en')
+    expect(count('diary.progress', 1, { writable: 5 })).toBe('Written 1 day of 5')
+    expect(count('diary.progress', 3, { writable: 5 })).toBe('Written 3 days of 5')
+  })
+
+  it('follows the chosen language too', () => {
+    expect(count('memories.thatDay', 1)).toBe('Uno scatto')
+    setLocale('en')
+    expect(count('memories.thatDay', 1)).toBe('One shot')
+  })
+})

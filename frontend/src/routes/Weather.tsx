@@ -4,7 +4,7 @@ import { useParams } from 'react-router'
 import { useTripBundle, useUpdatePlace, useWeather } from '../api/trips'
 import type { DayWeather } from '../api/types'
 import { AppBar } from '../components/AppBar'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { skyLabel } from '../i18n/labels'
 import { formatCalendarDate, formatDayKey, formatSyncTime } from '../lib/datetime'
 import { buildTimeline } from '../lib/itinerary'
@@ -114,17 +114,17 @@ export function Weather() {
 
         {weather && !nothingReaches && weather.beyond_forecast.length > 0 && (
           <p className="muted small">
-            {t('weather.someDaysMissing', { count: weather.beyond_forecast.length })}
+            {count('weather.someDaysMissing', weather.beyond_forecast.length)}
           </p>
         )}
 
         {weather && weather.unlocated_stops.length > 0 && (
-          <p className="hint">{t('weather.unlocated', { count: weather.unlocated_stops.length })}</p>
+          <p className="hint">{count('weather.unlocated', weather.unlocated_stops.length)}</p>
         )}
 
         {weather && weather.unavailable_stops.length > 0 && (
           <p className="hint">
-            {t('weather.unavailable', { count: weather.unavailable_stops.length })}
+            {count('weather.unavailable', weather.unavailable_stops.length)}
           </p>
         )}
 

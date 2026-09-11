@@ -14,12 +14,21 @@
 
 import { TZDate } from '@date-fns/tz'
 
+import { activeLocale } from '../i18n/locale'
+
 /** Values the backend sends as `DATE`: a calendar day, with no time and no zone. */
 export type CalendarDate = string // "2026-04-11"
 /** Values the backend sends as `TIMESTAMPTZ`: an instant, always UTC. */
 export type Instant = string // "2026-04-12T06:00:00Z"
 
-const DEFAULT_LOCALE = 'it'
+/**
+ * Dates follow the chosen language, not the device's.
+ *
+ * A function rather than a constant because the choice can change while
+ * the app is open — and default parameter values are evaluated per call,
+ * so every signature below picks up the new one with no other change.
+ */
+const DEFAULT_LOCALE = () => activeLocale() as string
 
 // Constructing an Intl.DateTimeFormat is expensive and a timeline builds
 // hundreds, so they are reused.
@@ -80,7 +89,7 @@ export function minutesOfDayInZone(instant: Instant, timeZone: string): number {
 export function formatTimeInZone(
   instant: Instant,
   timeZone: string,
-  locale: string = DEFAULT_LOCALE,
+  locale: string = DEFAULT_LOCALE(),
 ): string {
   return formatter(locale, { timeZone, hour: '2-digit', minute: '2-digit' }).format(
     new Date(instant),
@@ -90,7 +99,7 @@ export function formatTimeInZone(
 export function formatDayInZone(
   instant: Instant,
   timeZone: string,
-  locale: string = DEFAULT_LOCALE,
+  locale: string = DEFAULT_LOCALE(),
 ): string {
   return formatter(locale, {
     timeZone,
@@ -110,7 +119,7 @@ export function formatDayInZone(
  */
 export function formatCalendarDate(
   date: CalendarDate,
-  locale: string = DEFAULT_LOCALE,
+  locale: string = DEFAULT_LOCALE(),
   options: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' },
 ): string {
   const [year, month, day] = date.split('-').map(Number)
@@ -120,7 +129,7 @@ export function formatCalendarDate(
 
 export function formatCalendarDateLong(
   date: CalendarDate,
-  locale: string = DEFAULT_LOCALE,
+  locale: string = DEFAULT_LOCALE(),
 ): string {
   return formatCalendarDate(date, locale, {
     weekday: 'long',
@@ -131,7 +140,7 @@ export function formatCalendarDateLong(
 }
 
 /** The day, formatted from a `dayKeyInZone` result. */
-export function formatDayKey(key: CalendarDate, locale: string = DEFAULT_LOCALE): string {
+export function formatDayKey(key: CalendarDate, locale: string = DEFAULT_LOCALE()): string {
   return formatCalendarDate(key, locale, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
@@ -179,7 +188,7 @@ export function homeTimeHint(
     now = new Date(),
     deviceZone = deviceTimeZone(),
     withinHours = 48,
-    locale = DEFAULT_LOCALE,
+    locale = DEFAULT_LOCALE(),
   } = options
 
   if (deviceZone === eventZone) return null
@@ -203,7 +212,7 @@ export function homeTimeHint(
  */
 export function formatSyncTime(
   timestamp: number,
-  locale: string = DEFAULT_LOCALE,
+  locale: string = DEFAULT_LOCALE(),
   now: Date = new Date(),
 ): string {
   const when = new Date(timestamp)

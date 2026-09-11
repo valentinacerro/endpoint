@@ -25,6 +25,7 @@ export function TripMore() {
     { to: `/trips/${tripId}/stops`, label: t('stops.title'), hint: t('more.stopsHint') },
     { to: `/trips/${tripId}/print`, label: t('print.title'), hint: t('more.printHint') },
     { to: `/trips/${tripId}/offline`, label: t('offline.title'), hint: t('more.offlineHint') },
+    { to: '/settings', label: t('settings.title'), hint: t('more.settingsHint') },
     { to: `/trips/${tripId}/edit`, label: t('trip.edit'), hint: t('more.editHint') },
   ]
 

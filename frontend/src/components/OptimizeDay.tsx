@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 
 import { useUpdatePlace } from '../api/trips'
 import type { Place, TripBundle } from '../api/types'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { formatDuration, formatTimeInZone } from '../lib/datetime'
 import { planDay, type Anchor, type Candidate, type DayPlan } from '../lib/optimizer'
 import type { Day } from '../lib/itinerary'
@@ -146,7 +146,7 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
         </button>
         {reason && <p className="muted small">{reason}</p>}
         {unassigned > 0 && places.length === 0 && (
-          <p className="muted small">{t('plan.unassigned', { count: unassigned })}</p>
+          <p className="muted small">{count('plan.unassigned', unassigned)}</p>
         )}
       </div>
     )

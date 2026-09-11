@@ -4,7 +4,7 @@ import { useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
 import { MapsLink } from '../components/MapsLink'
 import { useGeolocation } from '../hooks/useGeolocation'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { formatDayKey, formatDuration, formatSyncTime } from '../lib/datetime'
 import { formatDistance, nearby, withoutCoordinates, type NearbyItem } from '../lib/nearby'
 
@@ -83,7 +83,7 @@ export function Nearby() {
               <NearbyCard key={`${item.kind}:${item.id}`} item={item} />
             ))}
 
-            {blind > 0 && <p className="muted small">{t('nearby.noCoordinates', { count: blind })}</p>}
+            {blind > 0 && <p className="muted small">{count('nearby.noCoordinates', blind)}</p>}
           </>
         )}
       </main>

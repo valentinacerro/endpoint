@@ -5,7 +5,7 @@ import { useDeleteExpense, useFetchRate, usePutExpense, useTripBundle } from '..
 import { EXPENSE_CATEGORIES, type ExpenseCategory, type PaymentMethod } from '../api/types'
 import { AppBar } from '../components/AppBar'
 import { Fab } from '../components/Fab'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { expenseCategoryLabel, paymentLabel } from '../i18n/labels'
 import { byDay, formatMoney, summarise } from '../lib/budget'
 import { formatCalendarDate } from '../lib/datetime'
@@ -258,7 +258,7 @@ export function Expenses() {
 
       {summary.unconverted > 0 && (
         <div className="stack stack--tight">
-          <p className="hint">{t('money.unconverted', { count: summary.unconverted })}</p>
+          <p className="hint">{count('money.unconverted', summary.unconverted)}</p>
           {progress ? (
             <p className="muted small">
               {t('money.findingRates', { done: progress.done, total: progress.total })}
@@ -273,7 +273,7 @@ export function Expenses() {
 
       {found !== null && !progress && (
         <p className="muted small">
-          {t('money.ratesFound', { found, total: found + summary.unconverted })}
+          {count('money.ratesFound', found, { found, total: found + summary.unconverted })}
         </p>
       )}
 

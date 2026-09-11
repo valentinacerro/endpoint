@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react'
 
 import { useImportPlaces, useResolveMapsLink, useUpdatePlace, type ImportSummary } from '../api/trips'
 import type { Place } from '../api/types'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 
 /** Gentle spacing between resolutions, so a long list does not hammer Google. */
 const PAUSE_MS = 250
@@ -102,13 +102,13 @@ export function ImportPlaces({ tripId, places, onDone }: Props) {
 
       {found !== null && (
         <p className="detail__value">
-          {t('maps.resolved', { found, total: missing.length + found })}
+          {count('maps.resolved', found, { found, total: missing.length + found })}
         </p>
       )}
 
       {missing.length > 0 && progress === null && (
         <button className="button button--quiet" onClick={() => void fillPositions()}>
-          {t('maps.resolveMissing', { count: missing.length })}
+          {count('maps.resolveMissing', missing.length)}
         </button>
       )}
 

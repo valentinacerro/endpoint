@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 
 import { useDeleteDiaryEntry, usePutDiaryEntry, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { formatDayKey } from '../lib/datetime'
 import { diaryDays, firstUnwritten, written, type DiaryDay } from '../lib/diary'
 
@@ -41,8 +41,7 @@ export function Diary() {
               <div>
                 <span className="detail__label">{t('diary.title')}</span>
                 <span className="totals__big">
-                  {t('diary.progress', {
-                    written: progress.written,
+                  {count('diary.progress', progress.written, {
                     writable: progress.writable,
                   })}
                 </span>
@@ -126,9 +125,8 @@ function DayBlock({
           : t('diary.happened', {
               what:
                 day.more > 0
-                  ? t('diary.happenedMore', {
+                  ? count('diary.happenedMore', day.more, {
                       what: day.happened.join(', '),
-                      count: day.more,
                     })
                   : day.happened.join(', '),
             })}

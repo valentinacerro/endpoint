@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 import { attachmentUrl } from '../api/trips'
 import type { TripBundle } from '../api/types'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { daysUntil } from '../lib/datetime'
 import { pinnedUrls } from '../offline/attachmentCache'
 
@@ -47,8 +47,8 @@ export function OfflineReminder({ bundle, tripId }: { bundle: TripBundle; tripId
   return (
     <section className="card remind">
       <div className="stack stack--tight">
-        <strong>{t('offline.remindTitle', { days: days ?? 0 })}</strong>
-        <span className="muted">{t('offline.remindBody', { count: missing })}</span>
+        <strong>{count('offline.remindTitle', days ?? 0)}</strong>
+        <span className="muted">{count('offline.remindBody', missing)}</span>
       </div>
       <Link className="button button--small" to={`/trips/${tripId}/offline`}>
         {t('offline.remindAction')}

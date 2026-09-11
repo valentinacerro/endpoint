@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router'
 
 import { useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { searchKindLabel } from '../i18n/labels'
 import { search } from '../lib/search'
 
@@ -75,7 +75,7 @@ export function Search() {
         )}
 
         {results.length > SHOWN && (
-          <p className="muted small">{t('search.more', { count: results.length - SHOWN })}</p>
+          <p className="muted small">{count('search.more', results.length - SHOWN)}</p>
         )}
       </main>
     </>

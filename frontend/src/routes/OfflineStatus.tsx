@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 
 import { attachmentUrl, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { formatSyncTime } from '../lib/datetime'
 import { formatBytes } from '../lib/images'
 import {
@@ -115,7 +115,7 @@ export function OfflineStatus() {
             )}
             {progress && progress.failed > 0 && progress.done === progress.total && (
               <p className="field__error">
-                {t('offline.someFailed', { failed: progress.failed })}
+                {count('offline.someFailed', progress.failed)}
               </p>
             )}
 
