@@ -153,7 +153,7 @@ function earliestStart(openness: Openness, from: number, visitMinutes: number): 
 // --- Ordering ----------------------------------------------------------
 
 /** Nearest neighbour from a starting point: a decent first guess. */
-function nearestNeighbour(items: Candidate[], from: Point | null): Candidate[] {
+export function nearestNeighbour(items: Candidate[], from: Point | null): Candidate[] {
   const remaining = [...items]
   const ordered: Candidate[] = []
   let current = from
@@ -259,7 +259,7 @@ function instantAt(day: CalendarDate, minutes: number, zone: string): string {
  * the day before reads negative, one belonging to the next reads past
  * midnight, and both are correct relative to this day.
  */
-function localMinutes(instant: string, day: CalendarDate, zone: string): number {
+export function localMinutes(instant: string, day: CalendarDate, zone: string): number {
   return (
     minutesOfDayInZone(instant, zone) + 1440 * daysBetween(day, dayKeyInZone(instant, zone))
   )
