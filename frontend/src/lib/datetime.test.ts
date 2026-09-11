@@ -139,6 +139,13 @@ describe('reading a form field as wall-clock time in a chosen zone', () => {
     expect(new Date(instant).toISOString()).toBe('2026-04-12T06:00:00.000Z')
   })
 
+  it('returns UTC, not the zone offset', () => {
+    // Instants are compared as plain strings in places, so one spelling
+    // of a moment is not optional: "…T15:00:00.000+09:00" and
+    // "…T06:00:00.000Z" are the same instant and sort differently.
+    expect(zonedInputToInstant('2026-04-12T15:00', TOKYO)).toBe('2026-04-12T06:00:00.000Z')
+  })
+
   it('applies summer time for the zone, not for the device', () => {
     // 12 April is summer time in Italy: 15:00 Rome is 13:00 UTC, not 14:00.
     const instant = zonedInputToInstant('2026-04-12T15:00', ROME)

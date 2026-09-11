@@ -265,7 +265,14 @@ export function zonedInputToInstant(local: string, timeZone: string): string {
   const [datePart, timePart] = local.split('T')
   const [year, month, day] = datePart.split('-').map(Number)
   const [hour, minute] = timePart.split(':').map(Number)
-  return new TZDate(year, month - 1, day, hour, minute, 0, 0, timeZone).toISOString()
+  const zoned = new TZDate(year, month - 1, day, hour, minute, 0, 0, timeZone)
+  // Through a plain Date, because TZDate.toISOString() keeps the zone's
+  // offset — "…T15:00:00.000+09:00" rather than "…T06:00:00.000Z". It is
+  // the same instant either way, but an Instant is defined at the top of
+  // this file as UTC, and elsewhere instants are compared as plain
+  // strings to sort them. Two spellings of one moment would sort wrongly
+  // against each other.
+  return new Date(zoned.getTime()).toISOString()
 }
 
 /** The inverse: an instant, as the `datetime-local` value for that zone. */

@@ -31,6 +31,9 @@ export type DayNote = S['DayNoteRead']
 
 export type DiaryEntry = S['DiaryEntryRead']
 
+export type Memory = S['MemoryRead']
+export type MemoryWrite = S['MemoryWrite']
+
 export type Expense = S['ExpenseRead']
 export type ExpenseWrite = S['ExpenseWrite']
 export type ExpenseCategory = Expense['category']

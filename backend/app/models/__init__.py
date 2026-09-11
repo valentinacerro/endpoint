@@ -12,6 +12,7 @@ from app.models.checklist import ChecklistItem
 from app.models.day_note import DayNote
 from app.models.diary import DiaryEntry
 from app.models.expense import Expense
+from app.models.memory import Memory
 from app.models.place import Place
 from app.models.stop import Stop
 from app.models.trip import Trip
@@ -24,6 +25,7 @@ __all__ = [
     "DayNote",
     "DiaryEntry",
     "Expense",
+    "Memory",
     "Place",
     "Stop",
     "Trip",

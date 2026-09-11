@@ -22,6 +22,8 @@ import type {
   ChecklistItemWrite,
   DayNote,
   DiaryEntry,
+  Memory,
+  MemoryWrite,
   Expense,
   ExpenseWrite,
   Place,
@@ -436,6 +438,71 @@ export function useDeleteChecklistItem(tripId: string) {
       return { previous }
     },
     onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
+}
+
+// --- Memory points ---
+
+/**
+ * Write one point, at an id derived from the photograph.
+ *
+ * Queued when there is no signal, like everything else addressed by a
+ * client-chosen id. Importing a folder writes one of these per photo, so
+ * the queue may take a few hundred at once — which is fine, they are a
+ * hundred bytes each and replaying them is a no-op.
+ */
+export function usePutMemory(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<Memory, ApiError, MemoryWrite & { id: string }>({
+    mutationFn: async ({ id, ...body }) => {
+      const url = `/api/trips/${tripId}/memories/${id}`
+      try {
+        return await apiFetch<Memory>(url, { method: 'PUT', body })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `memory:${id}`, method: 'PUT', url, body })
+        const now = new Date().toISOString()
+        return {
+          ...body,
+          id,
+          trip_id: tripId,
+          filename: body.filename ?? null,
+          caption: body.caption ?? null,
+          created_at: now,
+          updated_at: now,
+        } as Memory
+      }
+    },
+    onSuccess: (memory) =>
+      queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+        bundle
+          ? {
+              ...bundle,
+              memories: [...bundle.memories.filter((item) => item.id !== memory.id), memory],
+            }
+          : bundle,
+      ),
+  })
+}
+
+export function useDeleteMemory(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string>({
+    mutationFn: async (memoryId) => {
+      const url = `/api/trips/${tripId}/memories/${memoryId}`
+      try {
+        await apiFetch<void>(url, { method: 'DELETE' })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `memory:${memoryId}`, method: 'DELETE', url })
+      }
+    },
+    onSuccess: (_result, memoryId) =>
+      queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+        bundle
+          ? { ...bundle, memories: bundle.memories.filter((item) => item.id !== memoryId) }
+          : bundle,
+      ),
   })
 }
 

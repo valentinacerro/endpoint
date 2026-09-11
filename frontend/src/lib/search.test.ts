@@ -80,6 +80,7 @@ function bundle(partial: Partial<TripBundle> = {}): TripBundle {
     expenses: [],
     day_notes: [],
     diary: [],
+    memories: [],
     attachments: [],
     generated_at: '2026-04-01T00:00:00Z',
     ...partial,

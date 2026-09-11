@@ -397,6 +397,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Memories */
+        get: operations["list_memories_api_trips__trip_id__memories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trips/{trip_id}/memories/{memory_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Memory
+         * @description Create or replace one point, at an id the client chose.
+         *
+         *     The id is derived from the photograph, so re-importing is a no-op
+         *     rather than a second copy of your holiday.
+         */
+        put: operations["put_memory_api_trips__trip_id__memories__memory_id__put"];
+        post?: never;
+        /** Delete Memory */
+        delete: operations["delete_memory_api_trips__trip_id__memories__memory_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/expenses": {
         parameters: {
             query?: never;
@@ -1055,6 +1096,72 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** MemoryRead */
+        MemoryRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Trip Id
+             * Format: uuid
+             */
+            trip_id: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /** Taken Tz */
+            taken_tz: string;
+            time_source: components["schemas"]["TimeSource"];
+            /** Filename */
+            filename: string | null;
+            /** Caption */
+            caption: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * MemoryWrite
+         * @description The body of a write; the id comes from the URL.
+         *
+         *     The client derives that id from the photograph itself, so importing
+         *     the same folder twice — or the same folder on two devices — writes
+         *     the same row twice rather than making two.
+         */
+        MemoryWrite: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /** Taken Tz */
+            taken_tz: string;
+            /** @default assumed */
+            time_source: components["schemas"]["TimeSource"];
+            /** Filename */
+            filename?: string | null;
+            /** Caption */
+            caption?: string | null;
+        };
         /**
          * PaymentMethod
          * @description Worth tracking in Japan, where cash is still very much alive and the
@@ -1344,6 +1451,18 @@ export interface components {
          */
         TimePrecision: "datetime" | "date";
         /**
+         * TimeSource
+         * @description How confidently we know when a photo was taken.
+         *
+         *     EXIF records the local wall clock and, only since 2016 and only on
+         *     some cameras, the offset it belonged to. Without that offset the
+         *     instant has to be inferred from where the photo was taken, which is a
+         *     good guess and not a fact — so the difference is recorded rather than
+         *     smoothed over.
+         * @enum {string}
+         */
+        TimeSource: "exif" | "assumed";
+        /**
          * TripBundle
          * @description Everything the app needs about one trip, in a single response.
          *
@@ -1367,6 +1486,8 @@ export interface components {
             day_notes: components["schemas"]["DayNoteRead"][];
             /** Diary */
             diary: components["schemas"]["DiaryEntryRead"][];
+            /** Memories */
+            memories: components["schemas"]["MemoryRead"][];
             /** Attachments */
             attachments: components["schemas"]["AttachmentRead"][];
             /**
@@ -2541,6 +2662,103 @@ export interface operations {
             path: {
                 trip_id: string;
                 day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_memories_api_trips__trip_id__memories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_memory_api_trips__trip_id__memories__memory_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                memory_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_memory_api_trips__trip_id__memories__memory_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                memory_id: string;
             };
             cookie?: never;
         };

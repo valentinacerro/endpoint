@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.models.day_note import DayNote
     from app.models.diary import DiaryEntry
     from app.models.expense import Expense
+    from app.models.memory import Memory
     from app.models.place import Place
     from app.models.stop import Stop
 
@@ -83,6 +84,12 @@ class Trip(Base, UuidPk, Timestamps):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="DayNote.day",
+    )
+    memories: Mapped[list[Memory]] = relationship(
+        back_populates="trip",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="Memory.taken_at",
     )
     diary: Mapped[list[DiaryEntry]] = relationship(
         back_populates="trip",

@@ -20,6 +20,7 @@ from app.models import (
     DayNote,
     DiaryEntry,
     Expense,
+    Memory,
     Place,
     Stop,
     Trip,
@@ -55,6 +56,7 @@ TRIP_CHILDREN: tuple[tuple[str, type], ...] = (
     ("expenses", Expense),
     ("checklist", ChecklistItem),
     ("diary", DiaryEntry),
+    ("memories", Memory),
 )
 
 
@@ -111,6 +113,9 @@ def build(db: Session, trip: Trip) -> TripBundle:
     day_notes = list(
         db.scalars(select(DayNote).where(DayNote.trip_id == trip.id).order_by(DayNote.day))
     )
+    memories = list(
+        db.scalars(select(Memory).where(Memory.trip_id == trip.id).order_by(Memory.taken_at))
+    )
     diary = list(
         db.scalars(select(DiaryEntry).where(DiaryEntry.trip_id == trip.id).order_by(DiaryEntry.day))
     )
@@ -130,6 +135,7 @@ def build(db: Session, trip: Trip) -> TripBundle:
             "expenses": expenses,
             "day_notes": day_notes,
             "diary": diary,
+            "memories": memories,
             "attachments": attachments,
             "generated_at": dt.datetime.now(dt.UTC),
         }

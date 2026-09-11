@@ -17,6 +17,7 @@ export function TripMore() {
 
   const rows = [
     { to: `/trips/${tripId}/diary`, label: t('diary.title'), hint: t('more.diaryHint') },
+    { to: `/trips/${tripId}/memories`, label: t('memories.title'), hint: t('more.memoriesHint') },
     { to: `/trips/${tripId}/nearby`, label: t('nearby.title'), hint: t('more.nearbyHint') },
     { to: `/trips/${tripId}/search`, label: t('search.title'), hint: t('more.searchHint') },
     { to: `/trips/${tripId}/weather`, label: t('weather.title'), hint: t('more.weatherHint') },

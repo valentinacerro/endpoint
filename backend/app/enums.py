@@ -126,6 +126,20 @@ class RateSource(StrEnum):
     MANUAL = "manual"
 
 
+class TimeSource(StrEnum):
+    """How confidently we know when a photo was taken.
+
+    EXIF records the local wall clock and, only since 2016 and only on
+    some cameras, the offset it belonged to. Without that offset the
+    instant has to be inferred from where the photo was taken, which is a
+    good guess and not a fact — so the difference is recorded rather than
+    smoothed over.
+    """
+
+    EXIF = "exif"
+    ASSUMED = "assumed"
+
+
 class AttachmentKind(StrEnum):
     VOUCHER = "voucher"
     TICKET = "ticket"

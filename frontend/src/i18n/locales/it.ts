@@ -27,6 +27,7 @@ export const it = {
   'more.nearbyHint': 'Cosa hai salvato qui intorno',
   'more.printHint': 'Una copia su carta, per quando il telefono è morto',
   'more.diaryHint': 'Cosa vuoi ricordarti di questo viaggio',
+  'more.memoriesHint': 'Dove sei stata davvero, dalle tue foto',
 
   'common.save': 'Salva',
   'common.saving': 'Salvataggio…',
@@ -438,6 +439,24 @@ export const it = {
   'diary.nothingPlanned': 'Niente in programma quel giorno.',
   'diary.jump': 'Vai al primo giorno da scrivere',
   'diary.confirmDelete': 'Vuoi cancellare quello che hai scritto il {day}?',
+
+  'memories.title': 'Mappa dei ricordi',
+  'memories.privacy':
+    'Le foto restano sul telefono: non vengono caricate da nessuna parte. Il browser legge solo le coordinate e l’orario scritti dentro il file e manda quelli — circa cento byte a foto invece di qualche megabyte.',
+  'memories.import': 'Scegli le foto',
+  'memories.reading': 'Leggo le foto… {done} di {total}',
+  'memories.added': 'Aggiunti {count} punti.',
+  'memories.noPosition':
+    '{count} foto non hanno la posizione dentro. Succede quasi sempre: la geolocalizzazione delle foto è spenta di default, e le app di messaggistica la cancellano.',
+  'memories.noTime': '{count} foto non hanno la data di scatto.',
+  'memories.unreadable': '{count} file non sono stati letti.',
+  'memories.none': 'Nessun punto ancora. Scegli qualche foto del viaggio.',
+  'memories.summary': '{count} punti in {days} giorni, {km} km percorsi fra uno scatto e l’altro.',
+  'memories.thatDay': '{count} scatti',
+  'memories.sampled':
+    'Sulla mappa {shown} punti su {total}, presi a intervalli regolari: disegnano il percorso senza coprirlo di spilli.',
+  'memories.unnamed': 'Senza nome',
+  'memories.timeAssumed': 'ora dedotta dal fuso',
 
   'update.available': 'È disponibile una versione aggiornata.',
   'update.reload': 'Ricarica',
