@@ -1,92 +1,108 @@
 import { useState, type FormEvent } from 'react'
 
 import { useCreatePlace, useResolveMapsLink } from '../api/trips'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
+import { linksIn, shortenLink } from '../lib/share'
 
 /**
- * Paste a link shared from Google Maps and get a place out of it.
+ * Paste links shared from Google Maps and get places out of them.
  *
- * The way you actually collect places while planning: you find somewhere in
- * Maps, tap Share, paste. Typing a name and then hunting for its
+ * The way you actually collect places while planning: you find somewhere
+ * in Maps, tap Share, paste. Typing a name and then hunting for its
  * coordinates is the part nobody ever does, which is why so many saved
  * places end up with no position at all.
+ *
+ * A textarea rather than a single-line field, because planning happens
+ * in batches: you end an evening with eleven links in a note and want
+ * them all in at once. On the phone there is a better way still — share
+ * straight into the app from Maps — but that only exists on a device
+ * where the app is installed.
  */
 export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: () => void }) {
   const resolve = useResolveMapsLink()
   const create = useCreatePlace(tripId)
-  const [url, setUrl] = useState('')
-  const [warning, setWarning] = useState<string | null>(null)
+  const [text, setText] = useState('')
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [failed, setFailed] = useState<string[]>([])
+  const [noPosition, setNoPosition] = useState(0)
 
-  function onSubmit(event: FormEvent) {
+  const links = linksIn(text)
+
+  async function onSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!url.trim()) return
-    setWarning(null)
+    if (links.length === 0) return
 
-    resolve.mutate(url.trim(), {
-      onSuccess: (found) => {
-        if (found.lat === null) setWarning(t('maps.noCoords'))
-        create.mutate(
-          {
-            // A link without a readable name still deserves to be saved;
-            // an empty title is easier to fix than a lost place.
-            name: found.name ?? t('places.title'),
-            category: 'sight',
-            priority: 'normal',
-            visit_minutes: 60,
-            lat: found.lat,
-            lon: found.lon,
-            url: found.url,
-          },
-          {
-            onSuccess: () => {
-              setUrl('')
-              if (found.lat !== null) onDone()
-            },
-          },
-        )
-      },
-    })
+    setFailed([])
+    setNoPosition(0)
+    setProgress({ done: 0, total: links.length })
+    let blind = 0
+    const missed: string[] = []
+
+    // One at a time: each link is a redirect the server has to follow,
+    // and a dozen at once against an instance that may still be waking
+    // is a dozen timeouts rather than a dozen places.
+    for (const [index, link] of links.entries()) {
+      try {
+        const found = await resolve.mutateAsync(link)
+        await create.mutateAsync({
+          name: found.name ?? shortenLink(link),
+          category: 'sight',
+          priority: 'normal',
+          visit_minutes: 60,
+          lat: found.lat,
+          lon: found.lon,
+          url: found.url,
+        })
+        if (found.lat === null) blind += 1
+      } catch {
+        // One bad link must not throw away the ten good ones after it.
+        missed.push(shortenLink(link))
+      }
+      setProgress({ done: index + 1, total: links.length })
+    }
+
+    setProgress(null)
+    setFailed(missed)
+    setNoPosition(blind)
+    if (missed.length === 0) {
+      setText('')
+      if (blind === 0) onDone()
+    }
   }
 
-  const busy = resolve.isPending || create.isPending
-  const errorText = resolve.error
-    ? (
-        {
-          not_a_maps_link: t('maps.error.not_a_maps_link'),
-          nothing_in_link: t('maps.error.nothing_in_link'),
-          link_unreachable: t('maps.error.link_unreachable'),
-        } as Record<string, string>
-      )[resolve.error.code] ?? t('maps.error.generic')
-    : null
+  const busy = progress !== null
 
   return (
-    <form className="card stack" onSubmit={onSubmit}>
+    <form className="card stack" onSubmit={(event) => void onSubmit(event)}>
       <label className="field">
         <span className="field__label">{t('maps.fromLink')}</span>
-        <input
+        <textarea
           className="field__input"
-          type="url"
-          inputMode="url"
+          rows={3}
           placeholder={t('maps.paste')}
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
           autoFocus
         />
       </label>
 
-      {errorText && (
+      {links.length > 1 && <p className="muted small">{count('maps.linksFound', links.length)}</p>}
+
+      {failed.length > 0 && (
         <p className="field__error" role="alert">
-          {errorText}
+          {t('maps.someFailed', { names: failed.join(', ') })}
         </p>
       )}
-      {warning && <p className="hint">{warning}</p>}
+      {noPosition > 0 && <p className="hint">{count('maps.someWithoutPosition', noPosition)}</p>}
 
       <div className="row row--end">
         <button type="button" className="button button--quiet" onClick={onDone}>
           {t('common.cancel')}
         </button>
-        <button className="button" type="submit" disabled={busy || !url.trim()}>
-          {busy ? t('maps.reading') : t('maps.add')}
+        <button className="button" type="submit" disabled={busy || links.length === 0}>
+          {busy
+            ? t('maps.resolving', { done: progress.done, total: progress.total })
+            : t('maps.add')}
         </button>
       </div>
     </form>

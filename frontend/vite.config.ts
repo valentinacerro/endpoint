@@ -19,6 +19,24 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
+        // Puts the app in Android's share sheet. Open a place in Google
+        // Maps, tap Share, choose endpoint, and the link arrives here —
+        // no copying, no pasting, no Takeout export.
+        //
+        // GET rather than POST: the share is a plain navigation, so it
+        // survives the login screen appearing in front of it. The link
+        // stays in the address bar and the route picks it up again once
+        // the session is there.
+        //
+        // All three fields are declared because Android decides for
+        // itself which to use, and Maps puts the link inside `text`
+        // alongside the place name rather than in `url`.
+        share_target: {
+          action: '/share',
+          method: 'GET',
+          enctype: 'application/x-www-form-urlencoded',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
         background_color: '#1e2952',
         theme_color: '#1e2952',
         icons: [

@@ -209,6 +209,11 @@ export const it = {
   'maps.resolving': 'Cerco le posizioni… {done} di {total}',
   'maps.resolved_one': 'Trovata {found} posizione su {total}.',
   'maps.resolved_other': 'Trovate {found} posizioni su {total}.',
+  'maps.linksFound_one': 'Un link trovato',
+  'maps.linksFound_other': '{count} link trovati',
+  'maps.someFailed': 'Non sono riuscito a leggere: {names}. Gli altri sono stati aggiunti.',
+  'maps.someWithoutPosition_one': 'Un luogo è stato aggiunto senza posizione.',
+  'maps.someWithoutPosition_other': '{count} luoghi sono stati aggiunti senza posizione.',
   'maps.noCoords': 'Nome trovato, ma senza posizione. Puoi aggiungerla dopo.',
 
   'places.title': 'Da vedere',
@@ -477,6 +482,20 @@ export const it = {
     'Sulla mappa {shown} punti su {total}, presi a intervalli regolari: disegnano il percorso senza coprirlo di spilli.',
   'memories.unnamed': 'Senza nome',
   'memories.timeAssumed': 'ora dedotta dal fuso',
+
+  'share.title': 'Aggiungi da Maps',
+  'share.nothing': 'In quello che hai condiviso non c’è nessun link.',
+  'share.whichTrip': 'A quale viaggio',
+  'share.noTrip': 'Crea prima un viaggio a cui aggiungerlo.',
+  'share.isAList':
+    'Sembra una lista intera. Per ora riesco ad aggiungere un luogo alla volta: dalla lista in Maps condividi i singoli posti.',
+  'share.adding': 'Aggiungo… {done} di {total}',
+  'share.added_one': 'Aggiunto un luogo.',
+  'share.added_other': 'Aggiunti {count} luoghi.',
+  'share.ok': 'aggiunto',
+  'share.seePlaces': 'Vedi i luoghi',
+  'share.hint':
+    'Dal telefono non serve incollare: in Google Maps tocca Condividi e scegli endpoint. Il luogo arriva qui da solo.',
 
   'settings.title': 'Impostazioni',
   'settings.language': 'Lingua',

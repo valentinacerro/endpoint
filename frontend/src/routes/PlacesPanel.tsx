@@ -203,7 +203,12 @@ export function PlacesPanel() {
         ))}
       </ul>
 
-      {pasting && <AddPlaceFromLink tripId={tripId} onDone={() => setPasting(false)} />}
+      {pasting && (
+        <>
+          <AddPlaceFromLink tripId={tripId} onDone={() => setPasting(false)} />
+          <p className="muted small">{t('share.hint')}</p>
+        </>
+      )}
       {importing && (
         <ImportPlaces tripId={tripId} places={places} onDone={() => setImporting(false)} />
       )}

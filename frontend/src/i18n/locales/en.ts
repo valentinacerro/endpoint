@@ -206,6 +206,11 @@ export const en: Record<TranslationKey, string> = {
   'maps.resolving': 'Looking up positions… {done} of {total}',
   'maps.resolved_one': 'Found {found} position out of {total}.',
   'maps.resolved_other': 'Found {found} positions out of {total}.',
+  'maps.linksFound_one': 'One link found',
+  'maps.linksFound_other': '{count} links found',
+  'maps.someFailed': 'Could not read: {names}. The others were added.',
+  'maps.someWithoutPosition_one': 'One place was added without a position.',
+  'maps.someWithoutPosition_other': '{count} places were added without a position.',
   'maps.noCoords': 'Name found, but no position. You can add it later.',
 
   'places.title': 'To see',
@@ -487,6 +492,20 @@ export const en: Record<TranslationKey, string> = {
   'memories.timeAssumed': 'time inferred from the zone',
   'memories.sampled':
     '{shown} of {total} points on the map, taken at even intervals: they trace the route without burying it in pins.',
+
+  'share.title': 'Add from Maps',
+  'share.nothing': 'There is no link in what you shared.',
+  'share.whichTrip': 'Which trip',
+  'share.noTrip': 'Create a trip to add it to first.',
+  'share.isAList':
+    'That looks like a whole list. For now I can add one place at a time: from the list in Maps, share the places individually.',
+  'share.adding': 'Adding… {done} of {total}',
+  'share.added_one': 'Added one place.',
+  'share.added_other': 'Added {count} places.',
+  'share.ok': 'added',
+  'share.seePlaces': 'See the places',
+  'share.hint':
+    'On the phone there is no need to paste: in Google Maps tap Share and choose endpoint. The place arrives here on its own.',
 
   'settings.title': 'Settings',
   'settings.language': 'Language',

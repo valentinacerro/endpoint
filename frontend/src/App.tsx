@@ -12,6 +12,7 @@ import { Packing } from './routes/Packing'
 import { Diary } from './routes/Diary'
 import { Memories } from './routes/Memories'
 import { Settings } from './routes/Settings'
+import { Share } from './routes/Share'
 import { Nearby } from './routes/Nearby'
 import { Print } from './routes/Print'
 import { Search } from './routes/Search'
@@ -65,6 +66,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<TripList />} />
         <Route path="/settings" element={<Settings />} />
+        {/* Where Android's share sheet delivers a link. */}
+        <Route path="/share" element={<Share />} />
         {/* Everything inside a trip shares the bottom bar, so it never
             unmounts and never flickers between sections. */}
         <Route path="/trips/:tripId" element={<TripLayout />}>
