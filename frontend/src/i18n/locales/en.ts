@@ -72,7 +72,8 @@ export const en: Record<TranslationKey, string> = {
   'login.error.offline': 'No connection: signing in needs the network.',
   'login.error.generic': 'Could not sign in.',
 
-  'sync.offline': 'Offline',
+  'sync.offline': 'You are offline',
+  'sync.unreachable': 'The server is not answering · trying again shortly',
   'sync.waking': 'Waking the server… this can take up to a minute',
   'sync.pending_one': 'One change to send',
   'sync.pending_other': '{count} changes to send',

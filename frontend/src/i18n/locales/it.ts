@@ -74,7 +74,8 @@ export const it = {
   'login.error.offline': 'Nessuna connessione: per accedere serve la rete.',
   'login.error.generic': 'Non è stato possibile accedere.',
 
-  'sync.offline': 'Offline',
+  'sync.offline': 'Sei offline',
+  'sync.unreachable': 'Il server non risponde · riprovo tra poco',
   'sync.waking': 'Riattivazione del server… può richiedere fino a un minuto',
   'sync.pending_one': 'Una modifica da inviare',
   'sync.pending_other': '{count} modifiche da inviare',

@@ -28,6 +28,7 @@ export function SyncBanner() {
       )}
       <span className="sync-banner__text">
         {connection === 'offline' && t('sync.offline')}
+        {connection === 'unreachable' && t('sync.unreachable')}
         {connection === 'waking' && t('sync.waking')}
         {pending > 0 && (
           <>
@@ -35,7 +36,7 @@ export function SyncBanner() {
             {count('sync.pending', pending)}
           </>
         )}
-        {pending > 0 && connection !== 'offline' && !flushing && (
+        {pending > 0 && connection !== 'offline' && connection !== 'unreachable' && !flushing && (
           <button className="sync-banner__action" onClick={() => void drain()}>
             {t('sync.now')}
           </button>

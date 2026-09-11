@@ -7,12 +7,14 @@
  *  - The network can be missing entirely (plane, metro, a flaky eSIM).
  */
 
+import { createConnection } from './connection'
+
 /** The service is asleep: Render answers with these while waking it up. */
 const GATEWAY_STATUSES = new Set([502, 503, 504])
 const WAKE_TIMEOUT_MS = 90_000
 const BACKOFF_MS = [1_000, 3_000, 8_000, 20_000, 30_000]
 
-export type ConnectionState = 'unknown' | 'online' | 'waking' | 'offline'
+export { type ConnectionState } from './connection'
 
 export class ApiError extends Error {
   readonly status: number
@@ -30,27 +32,30 @@ export class ApiError extends Error {
 
 // --- Connection state, observable through useSyncExternalStore ---
 
-let connection: ConnectionState = 'unknown'
-const listeners = new Set<() => void>()
-
-export function subscribeConnection(listener: () => void): () => void {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
+/** One attempt to reach the server, used both at start-up and to heal. */
+function probe(): Promise<boolean> {
+  return fetch('/health', { signal: AbortSignal.timeout(WAKE_TIMEOUT_MS) })
+    .then((response) => response.ok)
+    .catch(() => false)
 }
 
-export function getConnection(): ConnectionState {
-  return connection
-}
+const connection = createConnection({
+  isOnline: () => (typeof navigator === 'undefined' ? true : navigator.onLine),
+  isVisible: () => (typeof document === 'undefined' ? true : document.visibilityState === 'visible'),
+  probe,
+  setTimeout: (fn, ms) => setTimeout(fn, ms),
+  clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+})
 
-function setConnection(next: ConnectionState): void {
-  if (next === connection) return
-  connection = next
-  listeners.forEach((listener) => listener())
-}
+export const subscribeConnection = connection.subscribe
+export const getConnection = connection.get
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('offline', () => setConnection('offline'))
-  window.addEventListener('online', () => setConnection('unknown'))
+  window.addEventListener('offline', () => connection.networkLost())
+  window.addEventListener('online', () => connection.networkReturned())
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') connection.becameVisible()
+  })
 }
 
 // --- Requests ---
@@ -109,12 +114,12 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
       // The gateway answered before the application was up, which means the
       // request never reached our code — so retrying is always safe here.
       if (GATEWAY_STATUSES.has(response.status) && canRetry) {
-        setConnection('waking')
+        connection.waking()
         await sleep(BACKOFF_MS[attempt])
         continue
       }
 
-      setConnection('online')
+      connection.online()
       if (!response.ok) throw await toApiError(response)
       if (response.status === 204) return undefined as T
       return (await response.json()) as T
@@ -122,17 +127,19 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
       if (error instanceof ApiError) throw error
 
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        setConnection('offline')
+        connection.failed()
         throw new ApiError(0, 'offline', 'No connection')
       }
 
       if (isReplayable && canRetry) {
-        setConnection('waking')
+        connection.waking()
         await sleep(BACKOFF_MS[attempt])
         continue
       }
 
-      setConnection('offline')
+      // The network is there and the server did not answer. Named for what
+      // it is — and the machine will keep asking on its own from here.
+      connection.failed()
       throw new ApiError(0, 'network_error', 'The server is not responding')
     }
   }
@@ -146,8 +153,6 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
  * most cold starts into a wait nobody notices.
  */
 export function warmUp(): void {
-  setConnection('waking')
-  fetch('/health', { signal: AbortSignal.timeout(WAKE_TIMEOUT_MS) })
-    .then((response) => setConnection(response.ok ? 'online' : 'waking'))
-    .catch(() => setConnection(navigator.onLine ? 'waking' : 'offline'))
+  connection.waking()
+  void probe().then((answered) => (answered ? connection.online() : connection.failed()))
 }

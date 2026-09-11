@@ -193,7 +193,8 @@ body {
 }
 
 
-.sync-banner--offline {
+.sync-banner--offline,
+.sync-banner--unreachable {
   background: var(--text-muted);
 }
 
