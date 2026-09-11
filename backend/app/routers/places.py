@@ -40,6 +40,9 @@ class ImportSummary(BaseModel):
     with_position: int
     without_position: int
     skipped: int
+    #: How many saved lists the upload turned out to contain. One for a
+    #: single CSV; however many the archive held for a whole export.
+    lists: int
 
 
 # Declared before "/{place_id}" so "import" is never read as an id.
@@ -49,7 +52,12 @@ def import_from_takeout(
     db: DbSession,
     file: Annotated[UploadFile, File()],
 ) -> ImportSummary:
-    """Bulk-create places from a Google Takeout saved list.
+    """Bulk-create places from a Google Takeout export.
+
+    Takes the whole archive as downloaded, or a single CSV out of one.
+    The archive is the point: making someone unpack a zip and upload a
+    file per list is most of why that export is such a miserable way to
+    move places, and it is ceremony this can simply absorb.
 
     Coordinates are read from each row's link **offline**. Many Takeout URLs
     carry only a place id and no position, and resolving those means one
@@ -59,7 +67,7 @@ def import_from_takeout(
     """
     get_or_404(db, Trip, trip_id)
 
-    rows = takeout.parse(file.file.read())
+    sheets = takeout.parse_export(file.file.read(), file.filename or "")
 
     # Re-importing the same list should not double every entry.
     existing = {
@@ -68,7 +76,7 @@ def import_from_takeout(
     }
 
     created = with_position = skipped = 0
-    for row in rows:
+    for row in (row for sheet in sheets for row in sheet.rows):
         if row.name.strip().casefold() in existing:
             skipped += 1
             continue
@@ -97,6 +105,7 @@ def import_from_takeout(
         with_position=with_position,
         without_position=created - with_position,
         skipped=skipped,
+        lists=len(sheets),
     )
 
 

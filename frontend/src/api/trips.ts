@@ -203,6 +203,8 @@ export interface ImportSummary {
   with_position: number
   without_position: number
   skipped: number
+  /** Saved lists in the upload: one for a CSV, however many for a zip. */
+  lists: number
 }
 
 export function useImportPlaces(tripId: string) {

@@ -198,7 +198,7 @@ export const en: Record<TranslationKey, string> = {
   'maps.error.generic': 'That link could not be read.',
   'maps.import': 'Import from Google Takeout',
   'maps.importHelp':
-    'At takeout.google.com, export Maps (your places): you get one CSV file per saved list.',
+    'At takeout.google.com, export Maps (your places). Drop the whole zip in here without opening it: it takes every list at once. A single CSV works too.',
   'maps.importing': 'Importing…',
   'maps.imported': 'Added {created} places, {withPos} with a position. {skipped} already there.',
   'maps.resolveMissing_one': 'Find the missing position',
@@ -206,6 +206,8 @@ export const en: Record<TranslationKey, string> = {
   'maps.resolving': 'Looking up positions… {done} of {total}',
   'maps.resolved_one': 'Found {found} position out of {total}.',
   'maps.resolved_other': 'Found {found} positions out of {total}.',
+  'maps.fromLists_one': 'From one list',
+  'maps.fromLists_other': 'From {count} lists',
   'maps.linksFound_one': 'One link found',
   'maps.linksFound_other': '{count} links found',
   'maps.someFailed': 'Could not read: {names}. The others were added.',

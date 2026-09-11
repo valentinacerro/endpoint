@@ -16,10 +16,12 @@ def _trip(client: TestClient) -> str:
     return client.post("/api/trips", json={"title": "Japan"}).json()["id"]
 
 
-def _upload(client: TestClient, trip_id: str, csv: str):
+def _upload(client: TestClient, trip_id: str, body: str | bytes, name: str = "Saved Places.csv"):
+    content = body.encode("utf-8") if isinstance(body, str) else body
+    kind = "application/zip" if name.endswith(".zip") else "text/csv"
     return client.post(
         f"/api/trips/{trip_id}/places/import",
-        files={"file": ("Saved Places.csv", csv.encode("utf-8"), "text/csv")},
+        files={"file": (name, content, kind)},
     )
 
 
@@ -107,3 +109,123 @@ def test_a_file_that_is_not_a_csv_is_refused(client: TestClient) -> None:
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "not_utf8"
+
+
+class TestWholeArchive:
+    """Dropping in the zip exactly as Takeout hands it over.
+
+    Making someone unpack it and upload one file per saved list is most
+    of why that export is such a miserable way to move places.
+    """
+
+    @staticmethod
+    def _zip(files: dict[str, bytes]) -> bytes:
+        import io
+        import zipfile
+
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            for name, content in files.items():
+                archive.writestr(name, content)
+        return buffer.getvalue()
+
+    @staticmethod
+    def _csv(*names: str) -> bytes:
+        rows = ["Title,Note,URL"]
+        for name in names:
+            rows.append(f'{name},,"https://www.google.com/maps/place/{name}/@35.7,139.8,17z"')
+        return ("\n".join(rows) + "\n").encode()
+
+    def test_it_reads_every_list_in_the_archive(self, client: TestClient) -> None:
+        trip_id = _trip(client)
+        archive = self._zip(
+            {
+                "Takeout/Saved/Preferiti.csv": self._csv("Senso-ji", "Meiji Jingu"),
+                "Takeout/Saved/Ramen.csv": self._csv("Ichiran"),
+            }
+        )
+
+        body = _upload(client, trip_id, archive, "takeout.zip").json()
+
+        assert body["lists"] == 2
+        assert body["created"] == 3
+
+    def test_it_ignores_the_folder_macos_adds(self, client: TestClient) -> None:
+        """Every archive touched by a Mac grows a __MACOSX twin of each
+        file, which parses as an empty list and inflates the count."""
+        trip_id = _trip(client)
+        archive = self._zip(
+            {
+                "Takeout/Saved/Preferiti.csv": self._csv("Senso-ji"),
+                "__MACOSX/Takeout/Saved/._Preferiti.csv": b"\x00\x05\x16\x07",
+            }
+        )
+
+        body = _upload(client, trip_id, archive, "takeout.zip").json()
+
+        assert body["lists"] == 1
+        assert body["created"] == 1
+
+    def test_a_single_csv_still_works(self, client: TestClient) -> None:
+        trip_id = _trip(client)
+        body = _upload(client, trip_id, self._csv("Senso-ji"), "Preferiti.csv").json()
+        assert body["lists"] == 1
+        assert body["created"] == 1
+
+    def test_it_is_the_bytes_that_decide_not_the_name(self, client: TestClient) -> None:
+        """A browser will happily send a zip called .csv."""
+        trip_id = _trip(client)
+        archive = self._zip({"Saved/Preferiti.csv": self._csv("Senso-ji")})
+        assert _upload(client, trip_id, archive, "mislabelled.csv").json()["created"] == 1
+
+    def test_one_unreadable_list_does_not_lose_the_others(self, client: TestClient) -> None:
+        trip_id = _trip(client)
+        archive = self._zip(
+            {
+                "Saved/Broken.csv": b"\xff\xfe not a csv at all \x00",
+                "Saved/Good.csv": self._csv("Senso-ji"),
+            }
+        )
+
+        body = _upload(client, trip_id, archive, "takeout.zip").json()
+
+        assert body["created"] == 1
+
+    def test_an_archive_with_no_lists_says_so(self, client: TestClient) -> None:
+        trip_id = _trip(client)
+        archive = self._zip({"Takeout/archive_browser.html": b"<html></html>"})
+
+        response = _upload(client, trip_id, archive, "takeout.zip")
+
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "no_lists_in_archive"
+
+    def test_a_zip_bomb_is_refused_before_it_is_unpacked(self, client: TestClient) -> None:
+        """The attack this guard exists for: a few kilobytes that claim to
+        hold gigabytes. Unpacking first to find out would end the process
+        on a 512 MB instance."""
+        trip_id = _trip(client)
+        # 60 MB of zeroes compresses to a handful of kilobytes.
+        archive = self._zip({"Saved/Huge.csv": b"0" * 60_000_000})
+
+        response = _upload(client, trip_id, archive, "takeout.zip")
+
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "archive_too_large"
+
+    def test_too_many_lists_is_refused(self, client: TestClient) -> None:
+        trip_id = _trip(client)
+        archive = self._zip({f"Saved/List{n}.csv": self._csv("Somewhere") for n in range(60)})
+
+        response = _upload(client, trip_id, archive, "takeout.zip")
+
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "too_many_lists"
+
+    def test_a_broken_zip_is_refused_politely(self, client: TestClient) -> None:
+        trip_id = _trip(client)
+        truncated = self._zip({"Saved/A.csv": self._csv("Senso-ji")})[:40]
+
+        response = _upload(client, trip_id, truncated, "takeout.zip")
+
+        assert response.status_code == 400

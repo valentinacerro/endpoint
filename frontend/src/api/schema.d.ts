@@ -234,7 +234,12 @@ export interface paths {
         put?: never;
         /**
          * Import From Takeout
-         * @description Bulk-create places from a Google Takeout saved list.
+         * @description Bulk-create places from a Google Takeout export.
+         *
+         *     Takes the whole archive as downloaded, or a single CSV out of one.
+         *     The archive is the point: making someone unpack a zip and upload a
+         *     file per list is most of why that export is such a miserable way to
+         *     move places, and it is ceremony this can simply absorb.
          *
          *     Coordinates are read from each row's link **offline**. Many Takeout URLs
          *     carry only a place id and no position, and resolving those means one
@@ -1090,6 +1095,8 @@ export interface components {
             without_position: number;
             /** Skipped */
             skipped: number;
+            /** Lists */
+            lists: number;
         };
         /** LoginIn */
         LoginIn: {

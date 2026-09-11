@@ -201,7 +201,7 @@ export const it = {
   'maps.error.generic': 'Non sono riuscito a leggere quel link.',
   'maps.import': 'Importa da Google Takeout',
   'maps.importHelp':
-    'Da takeout.google.com esporta Maps (i tuoi luoghi): otterrai un file CSV per ogni lista salvata.',
+    'Da takeout.google.com esporta Maps (i tuoi luoghi). Trascina qui lo zip intero, senza aprirlo: prende tutte le liste in una volta. Va bene anche un singolo CSV.',
   'maps.importing': 'Importazione…',
   'maps.imported': 'Aggiunti {created} luoghi, {withPos} con posizione. {skipped} già presenti.',
   'maps.resolveMissing_one': 'Trova la posizione mancante',
@@ -209,6 +209,8 @@ export const it = {
   'maps.resolving': 'Cerco le posizioni… {done} di {total}',
   'maps.resolved_one': 'Trovata {found} posizione su {total}.',
   'maps.resolved_other': 'Trovate {found} posizioni su {total}.',
+  'maps.fromLists_one': 'Da una lista',
+  'maps.fromLists_other': 'Da {count} liste',
   'maps.linksFound_one': 'Un link trovato',
   'maps.linksFound_other': '{count} link trovati',
   'maps.someFailed': 'Non sono riuscito a leggere: {names}. Gli altri sono stati aggiunti.',

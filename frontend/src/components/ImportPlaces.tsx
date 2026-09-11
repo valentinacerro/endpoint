@@ -68,7 +68,7 @@ export function ImportPlaces({ tripId, places, onDone }: Props) {
     <div className="card stack">
       <p className="hint">{t('maps.importHelp')}</p>
 
-      <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={onPick} />
+      <input ref={inputRef} type="file" accept=".zip,.csv,application/zip,text/csv" hidden onChange={onPick} />
 
       <button
         className="button"
@@ -86,6 +86,7 @@ export function ImportPlaces({ tripId, places, onDone }: Props) {
 
       {summary && (
         <p className="detail__value">
+          {summary.lists > 1 && `${count('maps.fromLists', summary.lists)} · `}
           {t('maps.imported', {
             created: summary.created,
             withPos: summary.with_position,

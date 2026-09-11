@@ -13,6 +13,7 @@ that.
 
 import csv
 import io
+import zipfile
 from dataclasses import dataclass
 
 from app.errors import AppError
@@ -21,6 +22,17 @@ from app.errors import AppError
 #: can ask the server to do.
 MAX_ROWS = 1000
 MAX_BYTES = 2_000_000
+
+#: Bounds on a whole export. Takeout gives one CSV per saved list, and
+#: nobody has fifty lists; the byte cap is measured *uncompressed*,
+#: before anything is read, because a few kilobytes of zip can claim to
+#: hold several gigabytes and a 512 MB instance would simply die.
+MAX_LISTS = 50
+MAX_UNCOMPRESSED_BYTES = 20_000_000
+
+#: The first four bytes of every zip archive. Sniffed rather than trusting
+#: the file name, which a browser will happily get wrong.
+_ZIP_MAGIC = b"PK\x03\x04"
 
 #: Header names worth preferring when they happen to be recognisable. Purely
 #: an optimisation over the content sniffing below.
@@ -116,3 +128,74 @@ def parse(content: bytes) -> list[TakeoutRow]:
             )
         )
     return rows
+
+
+@dataclass(frozen=True)
+class Sheet:
+    """One saved list out of an export."""
+
+    #: Taken from the file name inside the archive, which is what Takeout
+    #: calls the list — "Want to go", "Preferiti", "Ramen".
+    name: str
+    rows: list[TakeoutRow]
+
+
+def looks_like_zip(content: bytes) -> bool:
+    return content[:4] == _ZIP_MAGIC
+
+
+def parse_export(content: bytes, fallback_name: str = "") -> list[Sheet]:
+    """A whole Takeout archive, or a single CSV out of one.
+
+    The archive is the point. Takeout gives you one zip containing a CSV
+    per saved list, and making someone unpack it and upload the files one
+    at a time is most of why that export is such a miserable way to move
+    places. Dropping the zip in whole is the same information with none
+    of the ceremony.
+    """
+    if not looks_like_zip(content):
+        return [Sheet(name=fallback_name, rows=parse(content))]
+
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(content))
+    except zipfile.BadZipFile as exc:
+        raise AppError("bad_archive", "That file is not a readable zip", status_code=400) from exc
+
+    members = [
+        entry
+        for entry in archive.infolist()
+        if not entry.is_dir()
+        and entry.filename.lower().endswith(".csv")
+        # The folder macOS adds to every archive it touches, full of
+        # resource-fork twins that parse as empty lists.
+        and not entry.filename.startswith("__MACOSX/")
+    ]
+
+    if not members:
+        raise AppError(
+            "no_lists_in_archive",
+            "No saved lists (.csv) were found in that archive",
+            status_code=400,
+        )
+    if len(members) > MAX_LISTS:
+        raise AppError(
+            "too_many_lists", f"More than {MAX_LISTS} lists in one file", status_code=400
+        )
+
+    # Checked before a single byte is decompressed: the declared size is
+    # what a zip bomb lies about being small.
+    if sum(entry.file_size for entry in members) > MAX_UNCOMPRESSED_BYTES:
+        raise AppError("archive_too_large", "That archive unpacks to too much", status_code=400)
+
+    sheets = []
+    for entry in sorted(members, key=lambda item: item.filename):
+        name = entry.filename.rsplit("/", 1)[-1].removesuffix(".csv").removesuffix(".CSV")
+        try:
+            rows = parse(archive.read(entry))
+        except AppError:
+            # One unreadable list must not lose the other eleven. An empty
+            # sheet is reported rather than dropped, so the count adds up.
+            rows = []
+        sheets.append(Sheet(name=name, rows=rows))
+
+    return sheets
