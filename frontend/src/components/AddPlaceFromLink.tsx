@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 
+import { ApiError } from '../api/client'
 import { useCreatePlace, useResolveMapsLink } from '../api/trips'
 import { count, t } from '../i18n'
 import { linksIn, shortenLink } from '../lib/share'
@@ -18,12 +19,23 @@ import { linksIn, shortenLink } from '../lib/share'
  * straight into the app from Maps — but that only exists on a device
  * where the app is installed.
  */
+/** What the server said was wrong, in words meant for a person. */
+function reasonFor(error: unknown): string {
+  const code = error instanceof ApiError ? error.code : ''
+  const known: Record<string, string> = {
+    not_a_maps_link: t('maps.error.not_a_maps_link'),
+    nothing_in_link: t('maps.error.nothing_in_link'),
+    link_unreachable: t('maps.error.link_unreachable'),
+  }
+  return known[code] ?? t('maps.error.generic')
+}
+
 export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: () => void }) {
   const resolve = useResolveMapsLink()
   const create = useCreatePlace(tripId)
   const [text, setText] = useState('')
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
-  const [failed, setFailed] = useState<string[]>([])
+  const [failed, setFailed] = useState<{ name: string; why: string }[]>([])
   const [noPosition, setNoPosition] = useState(0)
 
   const links = linksIn(text)
@@ -36,7 +48,7 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
     setNoPosition(0)
     setProgress({ done: 0, total: links.length })
     let blind = 0
-    const missed: string[] = []
+    const missed: { name: string; why: string }[] = []
 
     // One at a time: each link is a redirect the server has to follow,
     // and a dozen at once against an instance that may still be waking
@@ -54,9 +66,13 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
           url: found.url,
         })
         if (found.lat === null) blind += 1
-      } catch {
-        // One bad link must not throw away the ten good ones after it.
-        missed.push(shortenLink(link))
+      } catch (error) {
+        // One bad link must not throw away the ten good ones after it —
+        // and it should say what was wrong with it, not merely that
+        // something was. The server distinguishes "that is not a Maps
+        // link" from "that link could not be opened", and those call for
+        // different things from the reader.
+        missed.push({ name: shortenLink(link), why: reasonFor(error) })
       }
       setProgress({ done: index + 1, total: links.length })
     }
@@ -93,9 +109,13 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
       {text.trim() !== '' && links.length === 0 && <p className="hint">{t('maps.noLinkFound')}</p>}
 
       {failed.length > 0 && (
-        <p className="field__error" role="alert">
-          {t('maps.someFailed', { names: failed.join(', ') })}
-        </p>
+        <div className="stack stack--tight" role="alert">
+          {failed.map((miss) => (
+            <p key={miss.name} className="field__error">
+              {t('maps.oneFailed', { name: miss.name, why: miss.why })}
+            </p>
+          ))}
+        </div>
       )}
       {noPosition > 0 && <p className="hint">{count('maps.someWithoutPosition', noPosition)}</p>}
 

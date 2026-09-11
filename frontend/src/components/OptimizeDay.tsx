@@ -1,41 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
-import { useUpdatePlace } from '../api/trips'
-import type { Place, TripBundle } from '../api/types'
+import { useSchedulePlaces } from '../api/trips'
+import type { TripBundle } from '../api/types'
 import { count, t } from '../i18n'
 import { formatDuration, formatTimeInZone } from '../lib/datetime'
-import { planDay, type Anchor, type Candidate, type DayPlan } from '../lib/optimizer'
 import type { Day } from '../lib/itinerary'
-
-/** Bookings that occupy a slot; a hotel spans days and is not a stop on a route. */
-const SPANS_DAYS = new Set(['hotel', 'car_rental'])
-
-function candidatesFor(bundle: TripBundle, day: Day): Place[] {
-  const dayKey = day.key
-  const stopId = day.stop?.id ?? null
-
-  return bundle.places.filter((place) => {
-    if (place.lat === null || place.lon === null) return false
-    if (place.planned_start_at && place.planned_tz) {
-      // Already on this day: it gets reordered rather than left alone.
-      return place.planned_start_at.slice(0, 10) === dayKey || sameLocalDay(place, dayKey)
-    }
-    // On the wish list, and belonging to the city this day is spent in.
-    return stopId !== null && place.stop_id === stopId
-  })
-}
-
-function sameLocalDay(place: Place, dayKey: string): boolean {
-  if (!place.planned_start_at || !place.planned_tz) return false
-  return (
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone: place.planned_tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(place.planned_start_at)) === dayKey
-  )
-}
+import { planTrip, type TripPlan } from '../lib/planTrip'
 
 interface Props {
   bundle: TripBundle
@@ -46,87 +16,64 @@ interface Props {
 /**
  * Rearrange one day.
  *
- * Always a preview first. An optimiser that silently rewrites a plan you
- * spent an evening on is not a feature, and the estimates underneath it are
+ * It used to have an algorithm of its own, and a rule that counted a
+ * place as a candidate only if you had assigned it to this day's city by
+ * hand. Nothing in the app has ever done that automatically, so the pile
+ * of places you actually collect was invisible to it.
+ *
+ * It now asks the trip planner for one day. That is not merely tidier:
+ * teaching the old rule about inferred cities would have handed the
+ * whole of Tokyo to whichever day you happened to tap first. Going
+ * through the planner means this day gets its neighbourhood's share,
+ * worked out exactly as in a whole-trip run.
+ *
+ * Always a preview. An optimiser that silently rewrites an evening's
+ * work is not a feature, and the estimates underneath it are
  * approximate enough that the last word has to stay with you.
  */
 export function OptimizeDay({ bundle, day, tripId }: Props) {
-  const update = useUpdatePlace(tripId)
-  const [plan, setPlan] = useState<DayPlan | null>(null)
+  const apply = useSchedulePlaces(tripId)
+  const [plan, setPlan] = useState<TripPlan | null>(null)
   const [applying, setApplying] = useState(false)
   const [failed, setFailed] = useState(false)
 
   const zone = day.stop?.tz ?? bundle.trip.primary_tz
-  const places = useMemo(() => candidatesFor(bundle, day), [bundle, day])
-  const withCoordinates = useMemo(
-    () => bundle.places.filter((place) => place.lat !== null && place.lon !== null),
-    [bundle.places],
-  )
-  /** Have coordinates but no city yet, so no day can claim them. */
-  const unassigned = useMemo(
-    () => withCoordinates.filter((place) => !place.stop_id && !place.planned_start_at).length,
-    [withCoordinates],
-  )
-  const byId = useMemo(() => new Map(places.map((place) => [place.id, place])), [places])
+  const names = new Map(bundle.places.map((place) => [place.id, place.name]))
 
   function compute() {
-    const anchors: Anchor[] = day.entries
-      .filter(
-        (placed) =>
-          placed.entry.type === 'booking' && !SPANS_DAYS.has(placed.entry.booking.kind),
-      )
-      .map((placed) => {
-        const booking = placed.entry.type === 'booking' ? placed.entry.booking : null
-        return {
-          id: booking!.id,
-          startAt: booking!.start_at!,
-          endAt: booking!.end_at,
-          point:
-            typeof booking!.lat === 'number' && typeof booking!.lon === 'number'
-              ? { lat: booking!.lat, lon: booking!.lon }
-              : null,
-          label: booking!.title,
-        }
-      })
-
-    const candidates: Candidate[] = places.map((place) => ({
-      id: place.id,
-      point: { lat: place.lat!, lon: place.lon! },
-      visitMinutes: place.visit_minutes,
-      priority: place.priority,
-      openingHours: place.opening_hours as Candidate['openingHours'],
-      label: place.name,
-    }))
-
-    setPlan(planDay(anchors, candidates, { day: day.key, zone }))
+    setFailed(false)
+    // `replan: 'day'` returns this day's own visits to the pool, which is
+    // what this button has always done. Elsewhere they stay put.
+    setPlan(planTrip(bundle, { onlyDays: [day.key], replan: 'day' }))
   }
 
-  async function apply() {
+  const today = plan?.days[0] ?? null
+  const visits = today?.plan?.visits ?? []
+
+  async function applyPlan() {
     if (!plan) return
     setApplying(true)
     setFailed(false)
     try {
-      for (const visit of plan.visits) {
-        await update.mutateAsync({
-          id: visit.id,
-          planned_start_at: visit.startAt,
-          planned_tz: zone,
-        })
-      }
-      // Anything that no longer fits goes back to the wish list rather
-      // than staying on a day it cannot happen on.
-      for (const item of plan.dropped) {
-        if (byId.get(item.id)?.planned_start_at) {
-          await update.mutateAsync({ id: item.id, planned_start_at: null, planned_tz: null })
-        }
-      }
+      await apply.mutateAsync({
+        scheduled: plan.writes.map((write) => ({
+          id: write.placeId,
+          planned_start_at: write.startAt,
+          planned_tz: write.zone,
+        })),
+        // Anything that no longer fits goes back to the wish list rather
+        // than staying on a day it cannot happen on.
+        cleared: plan.unplaced
+          .filter(
+            (item) =>
+              bundle.places.find((place) => place.id === item.placeId)?.planned_start_at,
+          )
+          .map((item) => item.placeId),
+      })
       setPlan(null)
     } catch {
       // Writes to places are not queueable, so this is a real failure and
-      // not something that will sort itself out. Without the catch the
-      // rejection left `applying` true and the button dead for good — and
-      // the preview was thrown away either way, so there was nothing left
-      // to retry.
+      // the preview stays put to be retried.
       setFailed(true)
     } finally {
       setApplying(false)
@@ -135,80 +82,71 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
 
   if (!plan) {
     // Never hidden. A feature that disappears when it cannot run is
-    // indistinguishable from one that was never built, and this one needs
-    // coordinates and a stop before it can do anything — so it says which
-    // of those is missing rather than vanishing.
-    const reason =
-      places.length > 0
-        ? null
-        : day.stop === null
-          ? t('plan.needStop')
-          : withCoordinates.length === 0
-            ? t('plan.needPlaces')
-            : t('plan.needAssigned', { stop: day.stop.name })
-
+    // indistinguishable from one that was never built — and this one now
+    // always has something to say, even if that is why it cannot.
     return (
       <div className="stack stack--tight">
-        <button
-          className="button button--quiet button--small"
-          onClick={compute}
-          disabled={places.length === 0}
-        >
-          ✨ {t('plan.optimise')}
+        <button className="button button--quiet button--small" onClick={compute}>
+          {t('plan.optimise')}
         </button>
-        {reason && <p className="muted small">{reason}</p>}
-        {unassigned > 0 && places.length === 0 && (
-          <p className="muted small">{count('plan.unassigned', unassigned)}</p>
-        )}
       </div>
     )
   }
+
+  const refusedDay = today?.refused ?? null
+  /** Refused for a reason that belongs to this day, not to the place. */
+  const blocked = plan.unplaced.filter((item) => item.reason !== 'no_room')
 
   return (
     <div className="card stack stack--tight">
       <p className="detail__label">{t('plan.preview')}</p>
 
-      <ol className="plan">
-        {plan.visits.map((visit) => (
-          <li key={visit.id} className="plan__row">
-            <span className="plan__time">{formatTimeInZone(visit.startAt, zone)}</span>
-            <span className="plan__name">
-              {byId.get(visit.id)?.name}
-              {visit.hoursUnknown && (
-                <span className="plan__flag" title={t('plan.hoursUnknown')}>
-                  ?
-                </span>
-              )}
-            </span>
-            {visit.travelMinutesBefore > 0 && (
-              <span className="plan__travel">
-                +{formatDuration(visit.travelMinutesBefore)}
+      {refusedDay && <p className="hint">{t(`trip_plan.day.${refusedDay}`)}</p>}
+
+      {!refusedDay && visits.length === 0 && (
+        <p className="muted small">{t('trip_plan.day.empty')}</p>
+      )}
+
+      {visits.length > 0 && (
+        <ol className="plan">
+          {visits.map((visit) => (
+            <li key={visit.id} className="plan__row">
+              <span className="plan__time">{formatTimeInZone(visit.startAt, zone)}</span>
+              <span className="plan__name">
+                {names.get(visit.id)}
+                {visit.hoursUnknown && (
+                  <span className="plan__flag" title={t('plan.hoursUnknown')}>
+                    ?
+                  </span>
+                )}
               </span>
-            )}
-          </li>
-        ))}
-      </ol>
+              {visit.travelMinutesBefore > 0 && (
+                <span className="plan__travel">+{formatDuration(visit.travelMinutesBefore)}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
 
-      <p className="muted small">
-        {t('plan.travelTotal', { duration: formatDuration(plan.travelMinutes) })}
-      </p>
-
-      {plan.dropped.length > 0 && (
-        <p className="hint">
-          {t('plan.dropped', {
-            names: plan.dropped
-              .map(
-                (item) =>
-                  `${byId.get(item.id)?.name}${item.reason === 'closed' ? ` (${t('plan.closed')})` : ''}`,
-              )
-              .join(', '),
-          })}
+      {visits.length > 0 && (
+        <p className="muted small">
+          {t('plan.travelTotal', { duration: formatDuration(plan.travelMinutes) })}
         </p>
       )}
 
-      {plan.visits.some((visit) => visit.hoursUnknown) && (
-        <p className="muted small">{t('plan.hoursUnknown')}</p>
+      {plan.unplaced.length > 0 && (
+        <p className="hint">
+          {count('plan.notToday', plan.unplaced.length, {
+            names: plan.unplaced
+              .slice(0, 3)
+              .map((item) => names.get(item.placeId))
+              .join(', '),
+          })}{' '}
+          {blocked.length > 0 && t('plan.seeWhy')}
+        </p>
       )}
+
+      {plan.hoursUnknown > 0 && <p className="muted small">{t('plan.hoursUnknown')}</p>}
 
       <p className="muted small">{t('plan.estimates')}</p>
 
@@ -222,7 +160,11 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
         <button className="button button--quiet button--small" onClick={() => setPlan(null)}>
           {t('common.cancel')}
         </button>
-        <button className="button button--small" onClick={() => void apply()} disabled={applying}>
+        <button
+          className="button button--small"
+          onClick={() => void applyPlan()}
+          disabled={applying || plan.writes.length === 0}
+        >
           {applying ? t('common.saving') : t('plan.apply')}
         </button>
       </div>

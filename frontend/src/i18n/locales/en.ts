@@ -32,11 +32,9 @@ export const en: Record<TranslationKey, string> = {
   'common.saving': 'Saving…',
   'common.cancel': 'Cancel',
   'common.delete': 'Delete',
-  'common.add': 'Add',
   'common.back': 'Back',
   'common.loading': 'Loading…',
   'common.error': 'Something went wrong.',
-  'common.optional': 'optional',
   'common.close': 'Close',
   'common.edit': 'Edit',
   'common.confirmDelete': 'Really delete "{name}"?',
@@ -46,7 +44,6 @@ export const en: Record<TranslationKey, string> = {
   'document.add': 'Attach document',
   'document.uploading': 'Uploading…',
   'document.shrunk': 'Reduced from {from} to {to}',
-  'document.open': 'Open',
   'document.page': 'Page {page} of {total}',
   'document.cannotOpen': 'The document could not be opened.',
   'document.saveOffline': 'Save offline',
@@ -74,11 +71,9 @@ export const en: Record<TranslationKey, string> = {
 
   'sync.offline': 'Offline',
   'sync.waking': 'Waking the server… this can take up to a minute',
-  'sync.online': 'Up to date',
   'sync.pending_one': 'One change to send',
   'sync.pending_other': '{count} changes to send',
   'sync.now': 'Send now',
-  'sync.updated': 'Updated: {when}',
 
   'trips.title': 'Your trips',
   'trips.empty': 'No trips yet.',
@@ -103,7 +98,6 @@ export const en: Record<TranslationKey, string> = {
   'timeline.day': 'Day {n}',
   'timeline.emptyDay': 'Nothing planned.',
   'timeline.empty': 'No bookings yet. Add one to see the itinerary.',
-  'timeline.undated': 'No date',
   'timeline.next': 'Next',
   'timeline.inYourZone': '{time} where you are',
   'timeline.addBooking': 'Add booking',
@@ -118,17 +112,12 @@ export const en: Record<TranslationKey, string> = {
   'timeline.moveNextDay': 'Move to the day after',
 
   'plan.optimise': 'Plan the day',
-  'plan.needStop':
-    'This day does not belong to any stop: give your stops arrival and departure dates.',
-  'plan.needPlaces': 'No place has a position. Add some by pasting a Google Maps link.',
-  'plan.needAssigned': 'No place is assigned to {stop}.',
-  'plan.unassigned_one': 'One place has a position but no stop.',
-  'plan.unassigned_other': '{count} places have a position but no stop.',
+  'plan.notToday_one': '{names} does not fit into this day.',
+  'plan.notToday_other': '{count} places do not fit into this day: {names}…',
+  'plan.seeWhy': 'The reason for each is under “Organise the trip”.',
   'plan.preview': 'How it would look',
   'plan.apply': 'Apply',
   'plan.travelTotal': 'About {duration} of travelling in all.',
-  'plan.dropped': 'These do not fit: {names}.',
-  'plan.closed': 'closed',
   'plan.hoursUnknown': 'Opening hours marked ? are unknown to us: check them.',
   'plan.needsNetwork':
     'The plan could not be applied: moving visits needs the network. The preview is still here — try again.',
@@ -170,7 +159,6 @@ export const en: Record<TranslationKey, string> = {
     'Departure and arrival are in different zones: a Rome–Tokyo flight leaves and lands on two different clocks.',
 
   'stops.title': 'Stops',
-  'stops.open': 'Stops',
   'stops.none': 'No stops yet. Add them to give the trip a shape.',
   'stops.add': 'Add stop',
   'stops.name': 'City',
@@ -192,7 +180,6 @@ export const en: Record<TranslationKey, string> = {
   'stops.tzHint': 'A stop’s zone decides which day its bookings land on.',
 
   'map.title': 'Map',
-  'map.open': 'Map',
   'map.allDays': 'The whole trip',
   'map.nothingToShow':
     'No stop has a position. Add places from a Maps link and they will appear here.',
@@ -229,13 +216,12 @@ export const en: Record<TranslationKey, string> = {
   'maps.noLinkFound': 'I cannot see a link in there. It has to be a whole address, starting with https://',
   'maps.linksFound_one': 'One link found',
   'maps.linksFound_other': '{count} links found',
-  'maps.someFailed': 'Could not read: {names}. The others were added.',
+  'maps.oneFailed': '{name}: {why}',
   'maps.someWithoutPosition_one': 'One place was added without a position.',
   'maps.someWithoutPosition_other': '{count} places were added without a position.',
   'maps.noCoords': 'Name found, but no position. You can add it later.',
 
   'places.title': 'To see',
-  'places.open': 'To see',
   'places.inferredCity': '{stop} ({km} km) — inferred',
   'places.inferredDayTrip': '{stop} ({km} km) — a day of its own',
   'places.inferredFar': 'far from {stop} ({km} km)',
@@ -268,11 +254,9 @@ export const en: Record<TranslationKey, string> = {
   'trip.edit': 'Edit trip',
 
   'money.title': 'Spending',
-  'money.open': 'Spending',
   'money.none': 'Nothing recorded yet.',
   'money.add': 'Add expense',
   'money.spent': 'Spent',
-  'money.budget': 'Budget',
   'money.remaining': 'Left',
   'money.over': 'Over by {amount}',
   'money.unconverted_one': 'One expense is not in the total: the rate is missing.',
@@ -300,7 +284,6 @@ export const en: Record<TranslationKey, string> = {
   'money.category.other': 'Other',
 
   'offline.title': 'Offline status',
-  'offline.open': 'Prepare for offline',
   'offline.intro':
     'Do this on wifi, before you leave. On the road you may have no signal exactly when you need a document.',
   'offline.data': 'Trip data',
@@ -336,8 +319,6 @@ export const en: Record<TranslationKey, string> = {
   'packing.allDone': 'All packed.',
   'packing.offlineNote':
     'Ticks are saved without a network too: they go out on their own as soon as the signal is back.',
-  'packing.clearDone_one': 'Remove the one already done',
-  'packing.clearDone_other': 'Remove the {count} already done',
   'packing.suggestOpen': 'Start from a ready-made list',
   'packing.suggestTitle': 'Suggestions',
   'packing.suggestHint': 'Tap what you need. Everything stays editable afterwards.',
@@ -480,7 +461,6 @@ export const en: Record<TranslationKey, string> = {
   'diary.progress_one': 'Written {count} day of {writable}',
   'diary.progress_other': 'Written {count} days of {writable}',
   'diary.allWritten': 'You have written about every day so far.',
-  'diary.empty': 'Nothing written yet.',
   'diary.write': 'Write',
   'diary.edit': 'Edit',
   'diary.placeholder': 'How was it?',

@@ -6,6 +6,23 @@ import { it as italian } from './locales/it'
 
 const dictionaries = { it: italian, en }
 
+/**
+ * Strings kept although nothing asks for them, each with its reason.
+ * Not a dumping ground: a new entry here should feel like a decision.
+ */
+const ALLOWED_UNUSED = [
+  // Rendered from the manifest and index.html, not from a component.
+  'app.name',
+]
+
+/** Every source file that could name a translation key. */
+function readSources(): string[] {
+  const modules = import.meta.glob('../**/*.{ts,tsx}', { as: 'raw', eager: true })
+  return Object.entries(modules)
+    .filter(([path]) => !path.includes('/locales/'))
+    .map(([, text]) => text as string)
+}
+
 /** The base names of the keys that come in singular and plural. */
 function pluralBases(): string[] {
   return Object.keys(italian)
@@ -117,6 +134,31 @@ describe('the dictionaries', () => {
         }
       }
     }
+  })
+
+  it('has no string nobody asks for', () => {
+    // The same check the stylesheet has had for months, and the reason
+    // it exists there: a string left behind by a rewrite is invisible.
+    // Ten of these were found the first time this ran, including the
+    // three specific messages for a bad Google Maps link — the server
+    // still sent the codes and nothing read them any more, so every bad
+    // link said only "could not read that".
+    //
+    // Keys reached by a template literal are matched by their prefix,
+    // because `t(\`trip_plan.day.${refusal}\`)` never names them in full.
+    const source = [
+      ...new globalThis.Array<string>(),
+      ...readSources(),
+    ].join('\n')
+
+    const orphans = Object.keys(italian).filter((key) => {
+      const base = key.replace(/_(one|other|many|few|two|zero)$/, '')
+      if (source.includes(`'${base}'`)) return false
+      const prefix = base.slice(0, base.lastIndexOf('.') + 1)
+      return !(prefix && source.includes(`\`${prefix}`))
+    })
+
+    expect(orphans, `unused: ${orphans.join(', ')}`).toEqual(ALLOWED_UNUSED)
   })
 
   it('has no plural key without both halves', () => {
