@@ -9,6 +9,7 @@ import { BookingDetail } from './routes/BookingDetail'
 import { Expenses } from './routes/Expenses'
 import { Packing } from './routes/Packing'
 import { Nearby } from './routes/Nearby'
+import { Print } from './routes/Print'
 import { Search } from './routes/Search'
 import { Weather } from './routes/Weather'
 import { Login } from './routes/Login'
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="weather" element={<Weather />} />
           <Route path="search" element={<Search />} />
           <Route path="nearby" element={<Nearby />} />
+          <Route path="print" element={<Print />} />
           <Route path="more" element={<TripMore />} />
           <Route path="stops" element={<StopsPanel />} />
           <Route path="offline" element={<OfflineStatus />} />

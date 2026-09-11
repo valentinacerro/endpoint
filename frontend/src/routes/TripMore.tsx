@@ -21,6 +21,7 @@ export function TripMore() {
     { to: `/trips/${tripId}/weather`, label: t('weather.title'), hint: t('more.weatherHint') },
     { to: `/trips/${tripId}/packing`, label: t('packing.title'), hint: t('more.packingHint') },
     { to: `/trips/${tripId}/stops`, label: t('stops.title'), hint: t('more.stopsHint') },
+    { to: `/trips/${tripId}/print`, label: t('print.title'), hint: t('more.printHint') },
     { to: `/trips/${tripId}/offline`, label: t('offline.title'), hint: t('more.offlineHint') },
     { to: `/trips/${tripId}/edit`, label: t('trip.edit'), hint: t('more.editHint') },
   ]

@@ -25,6 +25,7 @@ export const it = {
   'more.weatherHint': 'Previsioni e spostamenti al coperto',
   'more.searchHint': 'Trova una prenotazione, un codice, un documento',
   'more.nearbyHint': 'Cosa hai salvato qui intorno',
+  'more.printHint': 'Una copia su carta, per quando il telefono è morto',
 
   'common.save': 'Salva',
   'common.saving': 'Salvataggio…',
@@ -404,6 +405,21 @@ export const it = {
   'nearby.planned': 'in programma il {day}',
   'nearby.noCoordinates':
     '{count} fra luoghi e prenotazioni non hanno coordinate, quindi non compaiono qui.',
+
+  'print.title': 'Stampa',
+  'print.intro':
+    'Tutto il resto dell’app regge la mancanza di rete. Nessuna app regge un telefono spento: per quello serve la carta. Dal telefono scegli «Salva come PDF» se preferisci tenerlo nei file.',
+  'print.action': 'Stampa o salva in PDF',
+  'print.day': 'Giorno {number}',
+  'print.nothing': 'Niente in programma.',
+  'print.undated': 'Senza data',
+  'print.code': 'Codice',
+  'print.provider': 'Fornitore',
+  'print.route': 'Tratta',
+  'print.address': 'Indirizzo',
+  'print.phone': 'Telefono',
+  'print.notes': 'Note',
+  'print.generated': 'Stampato il {when} · endpoint',
 
   'update.available': 'È disponibile una versione aggiornata.',
   'update.reload': 'Ricarica',

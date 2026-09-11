@@ -1789,3 +1789,174 @@ a.entry__content:hover .entry__title {
   font-weight: 600;
   color: var(--danger);
 }
+
+/* --- The printable sheet --- */
+
+.sheet__head {
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--text);
+}
+
+.sheet__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sheet__dates,
+.sheet__stops {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.sheet__day {
+  break-inside: avoid;
+}
+
+.sheet__dayhead {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin: 0 0 6px;
+  padding-bottom: 3px;
+  font-size: 14px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet__stop {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.sheet__entry {
+  display: grid;
+  grid-template-columns: 5.5em 1fr;
+  gap: 10px;
+  padding: 5px 0;
+  break-inside: avoid;
+}
+
+/* Grid children default to a minimum width of their content, so a long
+   address would widen the column and push the page sideways. */
+.sheet__what {
+  min-width: 0;
+}
+
+.sheet__when {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__zone {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.sheet__name {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.sheet__kind,
+.sheet__empty,
+.sheet__note,
+.sheet__foot {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.sheet__empty,
+.sheet__note,
+.sheet__foot {
+  margin: 2px 0 0;
+}
+
+.sheet__note {
+  font-style: italic;
+}
+
+.sheet__detail {
+  margin: 1px 0 0;
+  font-size: 13px;
+}
+
+.sheet__label {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sheet__foot {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* --- Paper ---
+   The browser is a better typesetter than any PDF library worth adding to
+   the bundle, so the export is simply this. */
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  /* Chrome prints only the first page when an ancestor is a scroll
+     container, which the app shell is on screen. */
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+  }
+
+  .appbar,
+  .tabs,
+  .fab,
+  .sync-banner,
+  .update-prompt,
+  .no-print {
+    display: none !important;
+  }
+
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sheet {
+    gap: 12px;
+    font-size: 10.5pt;
+  }
+
+  .sheet__head {
+    border-bottom-color: #000;
+  }
+
+  .sheet__dayhead {
+    border-bottom-color: #999;
+  }
+
+  /* Grey on white is hard to read on paper, and ink is expensive. */
+  .sheet__dates,
+  .sheet__stops,
+  .sheet__stop,
+  .sheet__kind,
+  .sheet__label,
+  .sheet__zone,
+  .sheet__empty,
+  .sheet__note,
+  .sheet__foot {
+    color: #444;
+  }
+}

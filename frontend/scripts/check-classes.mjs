@@ -136,7 +136,11 @@ function scan() {
 
 function definedClasses() {
   const css = readFileSync(CSS, 'utf8')
-  return new Set([...css.matchAll(/^\.([a-z][a-z0-9_-]*)/gm)].map((match) => match[1]))
+  // Leading whitespace allowed: rules inside `@media` are indented, and
+  // anchoring at column zero made this checker blind to every one of
+  // them — so a class defined only for print or only for dark mode was
+  // reported as missing from the stylesheet it was sitting in.
+  return new Set([...css.matchAll(/^[ \t]*\.([a-z][a-z0-9_-]*)/gm)].map((match) => match[1]))
 }
 
 const { literal, families } = scan()
