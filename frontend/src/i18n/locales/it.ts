@@ -133,6 +133,8 @@ export const it = {
   'plan.dropped': 'Non ci stanno: {names}.',
   'plan.closed': 'chiuso',
   'plan.hoursUnknown': 'Gli orari di apertura segnati con ? non li conosciamo: verificali.',
+  'plan.needsNetwork':
+    'Non sono riuscito ad applicare il piano: per spostare le visite serve la rete. L’anteprima è ancora qui, riprova.',
   'plan.estimates':
     'I tempi di spostamento sono stime, non orari reali dei treni. Servono a evitare lo zig-zag, non a farti prendere una coincidenza.',
 
@@ -153,6 +155,8 @@ export const it = {
   'booking.status.cancelled': 'Annullata',
 
   'booking.more': 'Altri dettagli (codice, indirizzo, note)',
+  'booking.located': 'Posizione trovata: comparirà sulla mappa e in «Qui intorno».',
+  'booking.notLocated': 'Senza posizione: non comparirà sulla mappa. Scegli un suggerimento per aggiungerla.',
   'booking.field.kind': 'Tipo',
   'booking.field.title': 'Nome',
   'booking.field.provider': 'Fornitore',

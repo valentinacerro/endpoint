@@ -4,6 +4,7 @@ import { useCreateBooking, useUpdateBooking } from '../api/trips'
 import { BOOKING_KINDS, type Booking, type BookingKind, type Stop } from '../api/types'
 import { t } from '../i18n'
 import { bookingKindLabel } from '../i18n/labels'
+import { PlaceSearch } from './PlaceSearch'
 import { instantToZonedInput, shortZoneName, zonedInputToInstant } from '../lib/datetime'
 
 /** Kinds that move you from one place to another, and so have two ends. */
@@ -57,10 +58,27 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
   const [origin, setOrigin] = useState(booking?.origin_label ?? '')
   const [destination, setDestination] = useState(booking?.destination_label ?? '')
   const [address, setAddress] = useState(booking?.address ?? '')
+  // Filled in by picking a suggestion. A booking has had lat/lon in the
+  // table since day one and nothing ever wrote them, so every hotel has
+  // been missing from the map and from "around here".
+  const [point, setPoint] = useState<{ lat: number; lon: number } | null>(
+    typeof booking?.lat === 'number' && typeof booking?.lon === 'number'
+      ? { lat: booking.lat, lon: booking.lon }
+      : null,
+  )
   const [notes, setNotes] = useState(booking?.notes ?? '')
 
   // The zones actually relevant to this trip, rather than a list of 400.
   const zones = [...new Set([defaultZone, startZoneInitial, endZoneInitial, ...stops.map((s) => s.tz)])]
+
+  /**
+   * Where to look first when searching for the address.
+   *
+   * Unbiased, "gracery" finds hotels on three continents. The first
+   * located stop is a good enough anchor for one trip.
+   */
+  const located = stops.find((stop) => stop.lat !== null && stop.lon !== null)
+  const near = located ? { lat: located.lat as number, lon: located.lon as number } : null
 
   const isTravel = TRAVEL_KINDS.has(kind)
   const isPlace = PLACE_KINDS.has(kind)
@@ -101,6 +119,8 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
       origin_label: isTravel && origin.trim() ? origin.trim() : null,
       destination_label: isTravel && destination.trim() ? destination.trim() : null,
       address: isPlace && address.trim() ? address.trim() : null,
+      lat: isPlace ? (point?.lat ?? null) : null,
+      lon: isPlace ? (point?.lon ?? null) : null,
       notes: notes.trim() || null,
     }
 
@@ -214,14 +234,26 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
       )}
 
       {showMore && isPlace && (
-        <label className="field">
-          <span className="field__label">{t('booking.field.address')}</span>
-          <input
-            className="field__input"
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
+        <>
+          <PlaceSearch
+            label={t('booking.field.address')}
+            near={near}
+            initial={address}
+            onText={(typed) => {
+              setAddress(typed)
+              // Typing after picking means the suggestion no longer
+              // describes what is in the box, so its position goes too.
+              setPoint(null)
+            }}
+            onPick={(hit) => {
+              setAddress(hit.address ?? hit.name)
+              setPoint({ lat: hit.lat, lon: hit.lon })
+            }}
           />
-        </label>
+          <p className="muted small">
+            {point ? t('booking.located') : t('booking.notLocated')}
+          </p>
+        </>
       )}
 
       {!showMore && (

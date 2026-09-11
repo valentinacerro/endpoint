@@ -134,6 +134,63 @@ function scan() {
   return { literal, families }
 }
 
+/**
+ * Selectors defined more than once at the top level.
+ *
+ * The check this file did not have, and the bug it therefore missed: the
+ * diary was given a `.entry` block that the timeline already owned. Same
+ * specificity, so the later rule won, and the timeline's grid silently
+ * became a flex column — no error, no warning, a main screen laid out
+ * wrongly for four commits.
+ *
+ * Only top-level rules count. Patching a class inside `@media` is how
+ * dark mode and print are meant to work, and a grouped selector list
+ * (`.a,\n.b,\n.c {`) is one rule, not three definitions of its last
+ * member.
+ */
+function duplicateDefinitions() {
+  const lines = readFileSync(CSS, 'utf8').split('\n')
+  const seen = new Map()
+  let depth = 0
+  let atRuleDepth = 0
+  let continuesAGroup = false
+
+  for (const [index, line] of lines.entries()) {
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('@') && trimmed.includes('{') && atRuleDepth === 0) {
+      atRuleDepth = depth + 1
+    }
+
+    if (depth === 0 && atRuleDepth === 0 && !continuesAGroup) {
+      const alone = /^(\.[a-z][a-z0-9_-]*)\s*\{/.exec(line)
+      if (alone) {
+        const name = alone[1].slice(1)
+        seen.set(name, [...(seen.get(name) ?? []), index + 1])
+      }
+    }
+
+    // A selector line ending in a comma opens a group; the lines that
+    // follow are part of the same rule, not new definitions.
+    if (depth === 0 && atRuleDepth === 0) continuesAGroup = trimmed.endsWith(',')
+
+    depth += (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length
+    if (atRuleDepth && depth < atRuleDepth) atRuleDepth = 0
+  }
+
+  return [...seen].filter(([name, at]) => at.length > 1 && !SPLIT_ON_PURPOSE.has(name))
+}
+
+/**
+ * Selectors deliberately written twice, with the reason. Not a dumping
+ * ground: a second entry here should feel like a decision.
+ */
+const SPLIT_ON_PURPOSE = new Map([
+  ['entry__time', 'grid-area declared beside the grid it belongs to, styled with its siblings'],
+  ['entry__marker', 'as above'],
+  ['entry__content', 'as above'],
+])
+
 function definedClasses() {
   const css = readFileSync(CSS, 'utf8')
   // Leading whitespace allowed: rules inside `@media` are indented, and
@@ -147,12 +204,18 @@ const { literal, families } = scan()
 const defined = definedClasses()
 const inFamily = (name) => [...families].some((prefix) => name.startsWith(prefix))
 
+const duplicated = duplicateDefinitions()
 const missing = [...literal].filter((name) => !defined.has(name)).sort()
 const orphaned = [...defined]
   .filter((name) => !literal.has(name) && !inFamily(name) && !NOT_IN_JSX.has(name))
   .sort()
 
 let failed = false
+if (duplicated.length) {
+  failed = true
+  console.error('Defined more than once, so the later rule silently wins:')
+  for (const [name, at] of duplicated) console.error(`  .${name} — lines ${at.join(', ')}`)
+}
 if (missing.length) {
   failed = true
   console.error('Used in a component but absent from the stylesheet:')
@@ -167,5 +230,5 @@ if (orphaned.length) {
 if (failed) process.exit(1)
 console.log(
   `Classes agree: ${literal.size} used, ${defined.size} defined, ` +
-    `${families.size} built dynamically.`,
+    `${families.size} built dynamically, none defined twice.`,
 )

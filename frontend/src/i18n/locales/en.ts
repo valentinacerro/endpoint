@@ -130,6 +130,8 @@ export const en: Record<TranslationKey, string> = {
   'plan.dropped': 'These do not fit: {names}.',
   'plan.closed': 'closed',
   'plan.hoursUnknown': 'Opening hours marked ? are unknown to us: check them.',
+  'plan.needsNetwork':
+    'The plan could not be applied: moving visits needs the network. The preview is still here — try again.',
   'plan.estimates':
     'Travel times are estimates, not real train times. They are here to stop the day zig-zagging, not to catch you a connection.',
 
@@ -150,6 +152,8 @@ export const en: Record<TranslationKey, string> = {
   'booking.status.cancelled': 'Cancelled',
 
   'booking.more': 'More details (code, address, notes)',
+  'booking.located': 'Position found: it will show on the map and under Around here.',
+  'booking.notLocated': 'No position: it will not show on the map. Pick a suggestion to add one.',
   'booking.field.kind': 'Kind',
   'booking.field.title': 'Name',
   'booking.field.provider': 'Provider',

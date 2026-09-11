@@ -113,13 +113,13 @@ function DayBlock({
   }
 
   return (
-    <section className="entry">
-      <h2 className="entry__head">
-        <span className="entry__day">{formatDayKey(day.key)}</span>
-        {day.stopName && <span className="entry__stop">{day.stopName}</span>}
+    <section className="jotting">
+      <h2 className="jotting__head">
+        <span className="jotting__day">{formatDayKey(day.key)}</span>
+        {day.stopName && <span className="jotting__stop">{day.stopName}</span>}
       </h2>
 
-      <p className="entry__happened">
+      <p className="jotting__happened">
         {day.happened.length === 0
           ? t('diary.nothingPlanned')
           : t('diary.happened', {
@@ -135,7 +135,7 @@ function DayBlock({
       {editing ? (
         <form className="stack stack--tight" onSubmit={onSubmit}>
           <textarea
-            className="field__input entry__input"
+            className="field__input jotting__input"
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder={t('diary.placeholder')}
@@ -172,9 +172,9 @@ function DayBlock({
       ) : (
         <>
           {day.entry ? (
-            <p className="entry__text">{day.entry.text}</p>
+            <p className="jotting__text">{day.entry.text}</p>
           ) : (
-            <p className="entry__blank">
+            <p className="jotting__blank">
               {day.isPast ? t('diary.nothingWritten') : t('diary.notYet')}
             </p>
           )}

@@ -54,6 +54,7 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
   const update = useUpdatePlace(tripId)
   const [plan, setPlan] = useState<DayPlan | null>(null)
   const [applying, setApplying] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   const zone = day.stop?.tz ?? bundle.trip.primary_tz
   const places = useMemo(() => candidatesFor(bundle, day), [bundle, day])
@@ -103,22 +104,33 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
   async function apply() {
     if (!plan) return
     setApplying(true)
-    for (const visit of plan.visits) {
-      await update.mutateAsync({
-        id: visit.id,
-        planned_start_at: visit.startAt,
-        planned_tz: zone,
-      })
-    }
-    // Anything that no longer fits goes back to the wish list rather than
-    // staying on a day it cannot happen on.
-    for (const item of plan.dropped) {
-      if (byId.get(item.id)?.planned_start_at) {
-        await update.mutateAsync({ id: item.id, planned_start_at: null, planned_tz: null })
+    setFailed(false)
+    try {
+      for (const visit of plan.visits) {
+        await update.mutateAsync({
+          id: visit.id,
+          planned_start_at: visit.startAt,
+          planned_tz: zone,
+        })
       }
+      // Anything that no longer fits goes back to the wish list rather
+      // than staying on a day it cannot happen on.
+      for (const item of plan.dropped) {
+        if (byId.get(item.id)?.planned_start_at) {
+          await update.mutateAsync({ id: item.id, planned_start_at: null, planned_tz: null })
+        }
+      }
+      setPlan(null)
+    } catch {
+      // Writes to places are not queueable, so this is a real failure and
+      // not something that will sort itself out. Without the catch the
+      // rejection left `applying` true and the button dead for good — and
+      // the preview was thrown away either way, so there was nothing left
+      // to retry.
+      setFailed(true)
+    } finally {
+      setApplying(false)
     }
-    setApplying(false)
-    setPlan(null)
   }
 
   if (!plan) {
@@ -199,6 +211,12 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
       )}
 
       <p className="muted small">{t('plan.estimates')}</p>
+
+      {failed && (
+        <p className="field__error" role="alert">
+          {t('plan.needsNetwork')}
+        </p>
+      )}
 
       <div className="row row--end">
         <button className="button button--quiet button--small" onClick={() => setPlan(null)}>

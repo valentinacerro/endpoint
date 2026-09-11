@@ -839,15 +839,6 @@ a.entry__content:hover .entry__title {
    Booking detail
    ========================================================================== */
 
-.section__title {
-  margin: 12px 0 0;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .details {
   display: flex;
   flex-direction: column;
@@ -1745,11 +1736,16 @@ a.entry__content:hover .entry__title {
   white-space: nowrap;
 }
 
+/* One definition, deliberately. There were two: a tiny uppercase muted
+   eyebrow and this heading, and the cascade merged them into a heading
+   that was also uppercase and also muted — which is what every one of
+   the five call sites has been rendering, and what none of them wanted. */
 .section__title {
   margin: 8px 0 0;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 .swap__line {
@@ -1963,7 +1959,7 @@ a.entry__content:hover .entry__title {
 
 /* --- Diary --- */
 
-.entry {
+.jotting {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1974,7 +1970,7 @@ a.entry__content:hover .entry__title {
   border-radius: var(--radius-sm);
 }
 
-.entry__head {
+.jotting__head {
   display: flex;
   gap: 10px;
   align-items: baseline;
@@ -1983,20 +1979,20 @@ a.entry__content:hover .entry__title {
   font-size: 14px;
 }
 
-.entry__day {
+.jotting__day {
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-.entry__stop {
+.jotting__stop {
   margin-left: auto;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--brand);
 }
 
-.entry__happened,
-.entry__blank {
+.jotting__happened,
+.jotting__blank {
   margin: 0;
   font-size: 12.5px;
   color: var(--text-muted);
@@ -2005,7 +2001,7 @@ a.entry__content:hover .entry__title {
 /* Prose, unlike everything else in this app. It gets a reading measure
    and room to breathe: a wall of 14px UI text is not something anyone
    re-reads a year later. */
-.entry__text {
+.jotting__text {
   margin: 2px 0;
   max-width: 62ch;
   font-size: 15px;
@@ -2013,7 +2009,7 @@ a.entry__content:hover .entry__title {
   white-space: pre-wrap;
 }
 
-.entry__input {
+.jotting__input {
   width: 100%;
   font-size: 15px;
   line-height: 1.55;
