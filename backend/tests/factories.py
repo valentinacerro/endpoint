@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.enums import BookingKind
-from app.models import Attachment, AttachmentBlob, Booking, Stop, Trip
+from app.models import Attachment, AttachmentBlob, Booking, Place, Stop, Trip
 
 
 def make_trip(db: Session, **kwargs) -> Trip:
@@ -22,6 +22,21 @@ def make_stop(db: Session, trip: Trip, **kwargs) -> Stop:
     db.add(stop)
     db.commit()
     return stop
+
+
+def make_place(db: Session, trip: Trip, **kwargs) -> Place:
+    place = Place(
+        **{
+            "trip_id": trip.id,
+            "name": "Senso-ji",
+            "lat": 35.7148,
+            "lon": 139.7967,
+            **kwargs,
+        }
+    )
+    db.add(place)
+    db.commit()
+    return place
 
 
 def make_booking(db: Session, trip: Trip, **kwargs) -> Booking:

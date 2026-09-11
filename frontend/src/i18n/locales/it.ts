@@ -526,6 +526,51 @@ export const it = {
   'settings.languageHint':
     'Cambia solo quello che vedi. Quello che hai scritto tu — nomi, note, diario — resta come l’hai scritto.',
 
+  'more.planHint': 'Distribuisci i luoghi su tutti i giorni',
+  'trip_plan.title': 'Organizza il viaggio',
+  'trip_plan.intro':
+    'Prende i luoghi che hai salvato e li distribuisce sui giorni, ognuno nella città in cui dormi quel giorno. Ti mostra prima cosa verrebbe fuori: non cambia niente finché non confermi, e non tocca quello che hai già sistemato a mano.',
+  'trip_plan.compute': 'Calcola il piano',
+  'trip_plan.apply': 'Applica',
+  'trip_plan.preview': 'Come verrebbe',
+  'trip_plan.summary_one': 'Una visita su {days} giorni.',
+  'trip_plan.summary_other': '{count} visite su {days} giorni.',
+  'trip_plan.kept_one': 'Una visita che avevi già sistemato è rimasta dov’era.',
+  'trip_plan.kept_other':
+    '{count} visite che avevi già sistemato sono rimaste dov’erano.',
+  'trip_plan.notPlaced_one': 'Un luogo che non sono riuscito a collocare',
+  'trip_plan.notPlaced_other': '{count} luoghi che non sono riuscito a collocare',
+  'trip_plan.applied_one': 'Applicata una visita.',
+  'trip_plan.applied_other': 'Applicate {count} visite.',
+  'trip_plan.travel': 'Circa {duration} di spostamenti in tutto, stimati.',
+  'trip_plan.hoursUnknown_one':
+    'Una visita su {total} è programmata senza conoscere gli orari di apertura.',
+  'trip_plan.hoursUnknown_other':
+    '{count} visite su {total} sono programmate senza conoscere gli orari di apertura.',
+  'trip_plan.assumedArrival':
+    'Il {day} arrivi senza trasporto prenotato: ho ipotizzato libero dalle 14:00.',
+  'trip_plan.assumedDeparture':
+    'Il {day} riparti senza trasporto prenotato: ho ipotizzato fino alle 11:00.',
+  'trip_plan.reason.day_trip':
+    'È a {km} km da {stop}: è una giornata a sé, non un pomeriggio. Creale una tappa.',
+  'trip_plan.reason.far':
+    'È a {km} km da {stop}, la tappa più vicina. Probabilmente manca una tappa.',
+  'trip_plan.reason.closed': 'Chiuso in tutti i giorni in cui sei lì: {days}.',
+  'trip_plan.reason.no_room':
+    'Provato in tutti questi giorni, in nessuno c’era spazio: {days}.',
+  'trip_plan.reason.no_days': 'Nessun giorno del viaggio è attribuito a {stop}.',
+  'trip_plan.reason.no_located_stop':
+    'Nessuna tappa ha una posizione, quindi non si può dire a quale città appartenga. Dai una posizione alle tappe.',
+  'trip_plan.reason.no_position':
+    'Senza coordinate: incolla un link di Maps o cercalo per nome.',
+  'trip_plan.day.empty': 'Niente in programma.',
+  'trip_plan.day.no_stop': 'Nessuna tappa copre questo giorno.',
+  'trip_plan.day.overlapping_stops':
+    'Due tappe si sovrappongono su questo giorno: non si capisce dove sei.',
+  'trip_plan.day.stop_not_located': 'La tappa di questo giorno non ha una posizione.',
+  'trip_plan.day.in_the_past': 'Già passato.',
+  'trip_plan.day.no_usable_hours': 'Niente tempo libero fra le prenotazioni.',
+
   'update.available': 'È disponibile una versione aggiornata.',
   'update.reload': 'Ricarica',
 } as const

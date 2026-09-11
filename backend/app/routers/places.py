@@ -2,7 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, File, UploadFile, status
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import select
 
 from app.deps import DbSession
@@ -107,6 +107,80 @@ def import_from_takeout(
         skipped=skipped,
         lists=len(sheets),
     )
+
+
+class ScheduleEntry(BaseModel):
+    id: uuid.UUID
+    # AwareDatetime and a required zone, matching the PATCH route and the
+    # database CHECK: an instant with no zone cannot be displayed.
+    planned_start_at: AwareDatetime
+    planned_tz: str = Field(min_length=1, max_length=64)
+
+
+class ScheduleRequest(BaseModel):
+    """A whole trip's worth of scheduling, in one go."""
+
+    # A fortnight of sightseeing is tens of places, not thousands. The cap
+    # bounds the work one request can ask for.
+    scheduled: list[ScheduleEntry] = Field(default_factory=list, max_length=500)
+    #: Returned to the wish list: planned somewhere that no longer holds.
+    cleared: list[uuid.UUID] = Field(default_factory=list, max_length=500)
+
+
+class ScheduleSummary(BaseModel):
+    scheduled: int
+    cleared: int
+
+
+# Declared before "/{place_id}", or "schedule" is read as an id.
+@router.post("/schedule", response_model=ScheduleSummary)
+def schedule_places(trip_id: uuid.UUID, payload: ScheduleRequest, db: DbSession) -> ScheduleSummary:
+    """Move many places at once, or none of them.
+
+    The day planner writes thirty of these. As separate PATCHes that was
+    thirty round trips against a service that can take a minute to wake,
+    and — because each one invalidates the trip — sixty refetches. It was
+    also not atomic: a connection dropping halfway left the itinerary
+    half rearranged, with no way to tell which half.
+
+    Everything is checked before anything is written, so a single id
+    belonging to another trip refuses the whole request rather than
+    applying most of it.
+    """
+    get_or_404(db, Trip, trip_id)
+
+    wanted = [entry.id for entry in payload.scheduled] + list(payload.cleared)
+    if len(set(wanted)) != len(wanted):
+        raise AppError(
+            "place_listed_twice",
+            "The same place appears more than once in one request",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        )
+
+    found = {
+        place.id: place
+        for place in db.scalars(select(Place).where(Place.trip_id == trip_id, Place.id.in_(wanted)))
+    }
+    missing = [str(place_id) for place_id in wanted if place_id not in found]
+    if missing:
+        raise AppError(
+            "place_not_found",
+            f"{len(missing)} of those places are not on this trip",
+            status_code=404,
+        )
+
+    for entry in payload.scheduled:
+        place = found[entry.id]
+        place.planned_start_at = entry.planned_start_at
+        place.planned_tz = entry.planned_tz
+
+    for place_id in payload.cleared:
+        place = found[place_id]
+        place.planned_start_at = None
+        place.planned_tz = None
+
+    db.commit()
+    return ScheduleSummary(scheduled=len(payload.scheduled), cleared=len(payload.cleared))
 
 
 @router.get("/{place_id}", response_model=PlaceRead)

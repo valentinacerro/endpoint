@@ -311,6 +311,25 @@ export function useFetchRate() {
   })
 }
 
+/**
+ * Apply a whole trip's worth of scheduling at once.
+ *
+ * One request, all or nothing. As separate PATCHes, thirty visits were
+ * thirty round trips against a service that can take a minute to wake,
+ * and sixty refetches — and a connection dropping halfway left the
+ * itinerary half rearranged with no way to tell which half.
+ */
+export function useSchedulePlaces(tripId: string) {
+  return useTripMutation(
+    tripId,
+    (body: { scheduled: { id: string; planned_start_at: string; planned_tz: string }[]; cleared?: string[] }) =>
+      apiFetch<{ scheduled: number; cleared: number }>(
+        `/api/trips/${tripId}/places/schedule`,
+        { method: 'POST', body },
+      ),
+  )
+}
+
 // --- Looking a place up by name ---
 
 /**

@@ -536,6 +536,48 @@ export const en: Record<TranslationKey, string> = {
   'settings.languageHint':
     'Changes only what you see. What you wrote yourself — names, notes, diary — stays as you wrote it.',
 
+  'more.planHint': 'Spread your places across all the days',
+  'trip_plan.title': 'Organise the trip',
+  'trip_plan.intro':
+    'Takes the places you saved and spreads them across the days, each in the city you are sleeping in that day. It shows you what it would look like first: nothing changes until you confirm, and it leaves alone anything you arranged by hand.',
+  'trip_plan.compute': 'Work out a plan',
+  'trip_plan.apply': 'Apply',
+  'trip_plan.preview': 'How it would look',
+  'trip_plan.summary_one': 'One visit across {days} days.',
+  'trip_plan.summary_other': '{count} visits across {days} days.',
+  'trip_plan.kept_one': 'One visit you had already arranged stayed where it was.',
+  'trip_plan.kept_other':
+    '{count} visits you had already arranged stayed where they were.',
+  'trip_plan.notPlaced_one': 'One place it could not fit in',
+  'trip_plan.notPlaced_other': '{count} places it could not fit in',
+  'trip_plan.applied_one': 'One visit applied.',
+  'trip_plan.applied_other': '{count} visits applied.',
+  'trip_plan.travel': 'About {duration} of travelling in all, estimated.',
+  'trip_plan.hoursUnknown_one':
+    'One visit of {total} is scheduled without knowing the opening hours.',
+  'trip_plan.hoursUnknown_other':
+    '{count} visits of {total} are scheduled without knowing the opening hours.',
+  'trip_plan.assumedArrival':
+    'On {day} you arrive with no transport booked, so I assumed free from 14:00.',
+  'trip_plan.assumedDeparture':
+    'On {day} you leave with no transport booked, so I assumed until 11:00.',
+  'trip_plan.reason.day_trip':
+    'It is {km} km from {stop}: a day of its own, not an afternoon. Give it a stop.',
+  'trip_plan.reason.far':
+    'It is {km} km from {stop}, the nearest city you have. A stop is probably missing.',
+  'trip_plan.reason.closed': 'Shut on every day you are there: {days}.',
+  'trip_plan.reason.no_room': 'Offered to all of these days and refused by each: {days}.',
+  'trip_plan.reason.no_days': 'No day of the trip is attributed to {stop}.',
+  'trip_plan.reason.no_located_stop':
+    'No stop has a position, so there is no city to attribute it to. Give your stops coordinates.',
+  'trip_plan.reason.no_position': 'No coordinates: paste a Maps link or search for it by name.',
+  'trip_plan.day.empty': 'Nothing planned.',
+  'trip_plan.day.no_stop': 'No stop covers this day.',
+  'trip_plan.day.overlapping_stops': 'Two stops claim this day, so where you are is unclear.',
+  'trip_plan.day.stop_not_located': 'This day\'s stop has no position.',
+  'trip_plan.day.in_the_past': 'Already gone.',
+  'trip_plan.day.no_usable_hours': 'No free time left between the bookings.',
+
   'update.available': 'A new version is available.',
   'update.reload': 'Reload',
 }

@@ -254,6 +254,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/places/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule Places
+         * @description Move many places at once, or none of them.
+         *
+         *     The day planner writes thirty of these. As separate PATCHes that was
+         *     thirty round trips against a service that can take a minute to wake,
+         *     and — because each one invalidates the trip — sixty refetches. It was
+         *     also not atomic: a connection dropping halfway left the itinerary
+         *     half rearranged, with no way to tell which half.
+         *
+         *     Everything is checked before anything is written, so a single id
+         *     belonging to another trip refuses the whole request rather than
+         *     applying most of it.
+         */
+        post: operations["schedule_places_api_trips__trip_id__places_schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/places/{place_id}": {
         parameters: {
             query?: never;
@@ -1385,6 +1415,38 @@ export interface components {
             /** Url */
             url: string;
         };
+        /** ScheduleEntry */
+        ScheduleEntry: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Planned Start At
+             * Format: date-time
+             */
+            planned_start_at: string;
+            /** Planned Tz */
+            planned_tz: string;
+        };
+        /**
+         * ScheduleRequest
+         * @description A whole trip's worth of scheduling, in one go.
+         */
+        ScheduleRequest: {
+            /** Scheduled */
+            scheduled?: components["schemas"]["ScheduleEntry"][];
+            /** Cleared */
+            cleared?: string[];
+        };
+        /** ScheduleSummary */
+        ScheduleSummary: {
+            /** Scheduled */
+            scheduled: number;
+            /** Cleared */
+            cleared: number;
+        };
         /** SessionOut */
         SessionOut: {
             /** Authenticated */
@@ -2359,6 +2421,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_places_api_trips__trip_id__places_schedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleSummary"];
                 };
             };
             /** @description Validation Error */

@@ -61,20 +61,59 @@ describe('the dictionaries', () => {
     }
   })
 
-  it('says something sensible for every plural key at every count', () => {
+  it('says something for every plural key at every count', () => {
     // Categories are not the same everywhere and not all are spelled
     // out: Italian has a `many` in current CLDR, for 11 and 80 and 800,
     // which none of these strings care about and none of them define.
-    // What matters is that every count produces real text rather than a
-    // template or an "undefined".
+    // What matters is that every count reaches a real form rather than
+    // an `undefined`.
+    //
+    // It deliberately does NOT check for leftover {braces}. The caller
+    // supplies those, and a test cannot know what any given caller
+    // passes: guessing a fixed list makes a correct new key fail, and
+    // reading the list off the string being checked makes the assertion
+    // circular. The property that IS checkable is the next test.
     for (const locale of LOCALES) {
       setLocale(locale)
       for (const base of pluralBases()) {
         for (const n of [0, 1, 2, 5, 11, 21, 80, 100]) {
-          const rendered = count(base as PluralKey, n, { found: n, total: 9, writable: 9, what: 'x' })
+          const rendered = count(base as PluralKey, n)
           expect(rendered, `${locale}:${base}@${n}`).toBeTruthy()
           expect(rendered, `${locale}:${base}@${n}`).not.toContain('undefined')
-          expect(rendered, `${locale}:${base}@${n}`).not.toMatch(/\{\w+\}/)
+        }
+      }
+    }
+  })
+
+  it('asks each form of a plural for the same things', () => {
+    // The real risk. If `_other` mentions {days} and `_one` does not,
+    // every caller that passes {days} is correct and the singular still
+    // renders a hole — or worse, a caller written against the singular
+    // leaves braces on screen the first time a count reaches two.
+    //
+    // {count} is the exception: "One change to send" reads better than
+    // "1 change to send", so a singular may drop it.
+    const placeholders = (text: string) =>
+      new Set([...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]))
+
+    for (const locale of LOCALES) {
+      for (const base of pluralBases()) {
+        const forms = Object.entries(dictionaries[locale]).filter(([key]) =>
+          key.startsWith(`${base}_`),
+        )
+        const sets = forms.map(([key, text]) => {
+          const names = placeholders(text)
+          names.delete('count')
+          return [key, names] as const
+        })
+        for (const [key, names] of sets) {
+          for (const [otherKey, otherNames] of sets) {
+            for (const name of names) {
+              expect([...otherNames], `${key} has {${name}} but ${otherKey} does not`).toContain(
+                name,
+              )
+            }
+          }
         }
       }
     }

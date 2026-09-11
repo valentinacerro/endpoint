@@ -16,6 +16,7 @@ export function TripMore() {
   const bundle = useTripBundle(tripId)
 
   const rows = [
+    { to: `/trips/${tripId}/plan`, label: t('trip_plan.title'), hint: t('more.planHint') },
     { to: `/trips/${tripId}/diary`, label: t('diary.title'), hint: t('more.diaryHint') },
     { to: `/trips/${tripId}/memories`, label: t('memories.title'), hint: t('more.memoriesHint') },
     { to: `/trips/${tripId}/nearby`, label: t('nearby.title'), hint: t('more.nearbyHint') },
