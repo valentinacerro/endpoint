@@ -208,6 +208,7 @@ export const en: Record<TranslationKey, string> = {
   'maps.resolved_other': 'Found {found} positions out of {total}.',
   'maps.fromLists_one': 'From one list',
   'maps.fromLists_other': 'From {count} lists',
+  'maps.noLinkFound': 'I cannot see a link in there. It has to be a whole address, starting with https://',
   'maps.linksFound_one': 'One link found',
   'maps.linksFound_other': '{count} links found',
   'maps.someFailed': 'Could not read: {names}. The others were added.',

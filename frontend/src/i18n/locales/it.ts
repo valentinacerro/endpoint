@@ -211,6 +211,7 @@ export const it = {
   'maps.resolved_other': 'Trovate {found} posizioni su {total}.',
   'maps.fromLists_one': 'Da una lista',
   'maps.fromLists_other': 'Da {count} liste',
+  'maps.noLinkFound': 'Qui dentro non vedo nessun link. Dev’essere un indirizzo intero, che comincia con https://',
   'maps.linksFound_one': 'Un link trovato',
   'maps.linksFound_other': '{count} link trovati',
   'maps.someFailed': 'Non sono riuscito a leggere: {names}. Gli altri sono stati aggiunti.',

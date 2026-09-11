@@ -86,3 +86,21 @@ describe('shortenLink', () => {
     expect(shortenLink('not a url at all')).toBe('not a url at all')
   })
 })
+
+describe('a single link, which is still the common case', () => {
+  it('reads one pasted link exactly as before', () => {
+    expect(linksIn('https://maps.app.goo.gl/abc123')).toEqual(['https://maps.app.goo.gl/abc123'])
+  })
+
+  it('tolerates the spaces a paste leaves around it', () => {
+    expect(linksIn('  https://maps.app.goo.gl/abc123  \n')).toEqual([
+      'https://maps.app.goo.gl/abc123',
+    ])
+  })
+
+  it('finds nothing in a link missing its scheme', () => {
+    // Worth pinning: the form has to say so rather than just greying out
+    // its button, which is what it used to do.
+    expect(linksIn('maps.app.goo.gl/abc123')).toEqual([])
+  })
+})

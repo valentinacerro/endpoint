@@ -88,6 +88,10 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
 
       {links.length > 1 && <p className="muted small">{count('maps.linksFound', links.length)}</p>}
 
+      {/* A disabled button with no explanation is the worst of both: the
+          commonest cause is a link copied without its https:// prefix. */}
+      {text.trim() !== '' && links.length === 0 && <p className="hint">{t('maps.noLinkFound')}</p>}
+
       {failed.length > 0 && (
         <p className="field__error" role="alert">
           {t('maps.someFailed', { names: failed.join(', ') })}
