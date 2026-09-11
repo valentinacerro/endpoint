@@ -42,6 +42,7 @@ export type IconName =
   | 'paperclip'
   | 'star'
   | 'back'
+  | 'forward'
   | 'up'
   | 'down'
   | 'directions'
@@ -82,6 +83,7 @@ export const ICON_PATHS: Record<IconName, string> = {
   paperclip: 'M17 8v8a5 5 0 01-10 0V7a3 3 0 016 0v9a1 1 0 01-2 0V8',
   star: 'M12 4l2.4 5 5.6.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.6-.8z',
   back: 'M15 5l-7 7 7 7',
+  forward: 'M9 5l7 7-7 7',
   up: 'M12 19V5M6 11l6-6 6 6',
   down: 'M12 5v14M6 13l6 6 6-6',
   directions: 'M21 3L3 10l8 3 3 8z',

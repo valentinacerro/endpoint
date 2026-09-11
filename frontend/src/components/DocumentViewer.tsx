@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { t } from '../i18n'
 import { fetchDocument } from '../offline/attachmentCache'
+import { Icon } from './Icon'
 
 interface Props {
   url: string
@@ -141,16 +142,18 @@ export function DocumentViewer({ url, contentType, filename, onClose }: Props) {
             className="button button--small button--quiet"
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             disabled={page <= 1}
+            aria-label={t('document.prevPage')}
           >
-            ‹
+            <Icon name="back" size={16} />
           </button>
           <span className="muted">{t('document.page', { page, total: pageCount })}</span>
           <button
             className="button button--small button--quiet"
             onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
             disabled={page >= pageCount}
+            aria-label={t('document.nextPage')}
           >
-            ›
+            <Icon name="forward" size={16} />
           </button>
         </footer>
       )}

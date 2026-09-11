@@ -1,7 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="14" fill="#1e2952" />
-  <rect x="26" y="13" width="12" height="9" rx="4" fill="none" stroke="#f5f6fa" stroke-width="2.5" />
-  <rect x="13" y="21" width="38" height="29" rx="4" fill="#f5f6fa" />
-  <rect x="36" y="21" width="2.4" height="29" fill="#1e2952" />
-  <circle cx="23" cy="32" r="4.2" fill="#e85d54" />
+  <!--
+    The one drawing of the mark: the sun on the horizon.
+
+    scripts/make_icons.py rasterises this file into every PNG the manifest
+    asks for, so there is no second drawing to drift out of step — there
+    used to be, and it had.
+
+    The first <rect> is the ground, and the script reads its fill: for the
+    PNGs it hides the rect and paints the colour behind the whole frame
+    instead, because Android and iOS round the corners themselves and an
+    icon that arrives already rounded gets a pale wedge in each corner.
+    The rounding here is for the browser tab, where nothing masks it.
+
+    Colours are literals rather than the stylesheet's tokens: a favicon
+    and a home-screen tile are baked images and do not follow the reader's
+    colour scheme.
+  -->
+  <rect width="64" height="64" rx="14" fill="#1c4f3f" />
+  <circle cx="32" cy="34" r="15" fill="#d98b68" />
+  <path d="M5 44h54" fill="none" stroke="#f8f7f3" stroke-width="5.5" stroke-linecap="round" />
 </svg>

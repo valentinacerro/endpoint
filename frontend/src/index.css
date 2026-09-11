@@ -169,11 +169,6 @@ body {
   background: var(--brand);
 }
 
-@media (prefers-color-scheme: dark) {
-  .sync-banner {
-    color: var(--on-brand);
-  }
-}
 
 .sync-banner--offline {
   background: var(--text-muted);
@@ -333,11 +328,6 @@ select.field__input {
     transform 80ms ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  .button {
-    color: var(--on-brand);
-  }
-}
 
 .button:hover:not(:disabled) {
   background: var(--brand-soft);
@@ -758,8 +748,7 @@ select.field__input {
   justify-content: center;
   width: 1.6rem;
   height: 1.6rem;
-  font-size: 13px;
-  line-height: 1;
+  color: var(--entry-accent);
   background: var(--surface);
   border: 2px solid var(--entry-accent);
   border-radius: 50%;
@@ -850,7 +839,7 @@ select.field__input {
 }
 
 .pill--pending {
-  color: var(--kind-food);
+  color: color-mix(in srgb, var(--kind-food) 75%, var(--text));
   background: color-mix(in srgb, var(--kind-food) 16%, transparent);
 }
 
@@ -966,7 +955,7 @@ a.entry__content:hover .entry__title {
   cursor: pointer;
 }
 
-.toolbar__link:hover {
+.toolbar__link:not(.toolbar__link--on):hover {
   color: var(--text);
   border-color: var(--border-strong);
 }
@@ -977,11 +966,6 @@ a.entry__content:hover .entry__title {
   border-color: var(--brand);
 }
 
-@media (prefers-color-scheme: dark) {
-  .toolbar__link--on {
-    color: var(--on-brand);
-  }
-}
 
 /* ==========================================================================
    Map
@@ -1007,7 +991,7 @@ a.entry__content:hover .entry__title {
   justify-content: center;
   width: 26px;
   height: 26px;
-  font-family: inherit;
+  font-family: var(--ui);
   font-size: 12px;
   font-weight: 700;
   color: #fff;
@@ -1565,14 +1549,15 @@ a.entry__content:hover .entry__title {
   background: var(--brand);
   border: none;
   border-radius: 999px;
-  box-shadow: 0 4px 16px rgb(30 41 82 / 30%);
+  box-shadow: 0 4px 16px rgb(23 22 15 / 24%);
   cursor: pointer;
   transition: transform 80ms ease;
 }
 
 @media (prefers-color-scheme: dark) {
+  /* The only part that differs: --shadow is `none` in dark, but a
+     floating button still needs to lift off the page. */
   .fab {
-    color: var(--on-brand);
     box-shadow: 0 4px 16px rgb(0 0 0 / 45%);
   }
 }
@@ -1658,7 +1643,7 @@ a.entry__content:hover .entry__title {
 
 .sync-banner--pending {
   background: var(--kind-food);
-  color: #1a1c24;
+  color: var(--on-brand);
 }
 
 .sync-banner__text {

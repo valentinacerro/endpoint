@@ -91,7 +91,7 @@ export function TimelineEntry({ placed, showZone, tripId, documents, onMoveDays 
 
         <div className="entry__marker">
           <span className="entry__dot" aria-hidden="true">
-            {icon}
+            <Icon name={icon} size={14} />
           </span>
         </div>
 

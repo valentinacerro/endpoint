@@ -14,6 +14,7 @@ import { Fab } from '../components/Fab'
 import { t } from '../i18n'
 import { checklistCategoryLabel } from '../i18n/labels'
 import { group, nextPosition, progress, suggestions, type Suggestion } from '../lib/packing'
+import { Icon } from '../components/Icon'
 
 /**
  * The packing list.
@@ -118,18 +119,7 @@ export function Packing() {
                     aria-pressed={item.is_done}
                   >
                     <span className={`pack__box ${item.is_done ? 'pack__box--on' : ''}`}>
-                      {item.is_done && (
-                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                          <path
-                            d="M5 13l4 4L19 7"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                      {item.is_done && <Icon name="check" size={14} />}
                     </span>
                     <span className={`pack__text ${item.is_done ? 'pack__text--on' : ''}`}>
                       {item.text}
