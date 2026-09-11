@@ -149,6 +149,7 @@ export const en: Record<TranslationKey, string> = {
   'booking.status.pending': 'Unconfirmed',
   'booking.status.cancelled': 'Cancelled',
 
+  'booking.more': 'More details (code, address, notes)',
   'booking.field.kind': 'Kind',
   'booking.field.title': 'Name',
   'booking.field.provider': 'Provider',
@@ -186,6 +187,10 @@ export const en: Record<TranslationKey, string> = {
   'map.missingCoords_other': '{count} stops have no position and are not on the map.',
   'map.needsNetwork': 'The map needs the network: its tiles cannot be saved offline.',
 
+  'lookup.searching': 'Searching…',
+  'lookup.nothing': 'No place by that name. You can write it anyway and add the position later.',
+  'lookup.located': 'Position found: it will show on the map and in the day planner.',
+  'lookup.noPosition': 'No position: it will not show on the map. Pick a suggestion, or paste a Maps link.',
   'maps.open': 'Open in Maps',
   'maps.directions': 'Directions',
   'maps.fromLink': 'Paste a Google Maps link',

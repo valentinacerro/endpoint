@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '../api/trips'
 import { PLACE_CATEGORIES, type PlaceCategory, type Priority } from '../api/types'
 import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
+import { PlaceSearch } from '../components/PlaceSearch'
 import { ImportPlaces } from '../components/ImportPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
@@ -13,9 +14,22 @@ import { dayKeyInZone, formatDayKey, formatDuration, formatTimeInZone } from '..
 
 const PRIORITIES: readonly Priority[] = ['must_see', 'high', 'normal', 'low']
 
-function AddPlace({ tripId, onDone }: { tripId: string; onDone: () => void }) {
+function AddPlace({
+  tripId,
+  near,
+  onDone,
+}: {
+  tripId: string
+  near: { lat: number; lon: number } | null
+  onDone: () => void
+}) {
   const create = useCreatePlace(tripId)
   const [name, setName] = useState('')
+  // Filled in by picking a suggestion. Typing a name by hand still
+  // works and simply leaves these null, which is what happens today.
+  const [found, setFound] = useState<{ lat: number; lon: number; address: string | null } | null>(
+    null,
+  )
   const [category, setCategory] = useState<PlaceCategory>('sight')
   const [priority, setPriority] = useState<Priority>('normal')
   const [minutes, setMinutes] = useState(60)
@@ -29,6 +43,9 @@ function AddPlace({ tripId, onDone }: { tripId: string; onDone: () => void }) {
         category,
         priority,
         visit_minutes: minutes,
+        lat: found?.lat ?? null,
+        lon: found?.lon ?? null,
+        address: found?.address ?? null,
         // weather_exposure is left out on purpose: the server derives it
         // from the category, so the form stays short.
       },
@@ -38,16 +55,29 @@ function AddPlace({ tripId, onDone }: { tripId: string; onDone: () => void }) {
 
   return (
     <form className="card stack" onSubmit={onSubmit}>
-      <label className="field">
-        <span className="field__label">{t('places.name')}</span>
-        <input
-          className="field__input"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          autoFocus
-          required
-        />
-      </label>
+      <PlaceSearch
+        label={t('places.name')}
+        near={near}
+        autoFocus
+        onText={(typed) => {
+          setName(typed)
+          // Typing after picking means the suggestion no longer
+          // describes what is in the box, so its position goes with it
+          // rather than being attached to a different place.
+          setFound(null)
+        }}
+        onPick={(hit) => {
+          setName(hit.name)
+          setCategory(hit.category)
+          setFound({ lat: hit.lat, lon: hit.lon, address: hit.address })
+        }}
+      />
+
+      {found ? (
+        <p className="muted small">{t('lookup.located')}</p>
+      ) : (
+        name.trim() !== '' && <p className="muted small">{t('lookup.noPosition')}</p>
+      )}
 
       <div className="row">
         <label className="field field--grow">
@@ -126,6 +156,16 @@ export function PlacesPanel() {
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
 
   const places = bundle.data.places
+
+  /**
+   * Where to look first when searching by name.
+   *
+   * The first stop that has coordinates. Unbiased, "ichiran ramen"
+   * offers Hong Kong before Tokyo; biased, it offers the one round the
+   * corner. A trip with no located stop yet simply searches the world.
+   */
+  const located = bundle.data.stops.find((stop) => stop.lat !== null && stop.lon !== null)
+  const near = located ? { lat: located.lat as number, lon: located.lon as number } : null
 
   return (
     <>
@@ -212,7 +252,7 @@ export function PlacesPanel() {
       {importing && (
         <ImportPlaces tripId={tripId} places={places} onDone={() => setImporting(false)} />
       )}
-      {adding && <AddPlace tripId={tripId} onDone={() => setAdding(false)} />}
+      {adding && <AddPlace tripId={tripId} near={near} onDone={() => setAdding(false)} />}
 
       {!adding && !pasting && !importing && (
         <div className="row">

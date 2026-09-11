@@ -65,6 +65,23 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
   const isTravel = TRAVEL_KINDS.has(kind)
   const isPlace = PLACE_KINDS.has(kind)
 
+  /**
+   * Eleven fields is too many to face on a phone, so the secondary ones
+   * fold away — but never over something already written. Editing a
+   * booking that has a confirmation code must show that code, or the
+   * form looks like it lost it.
+   */
+  const [showMore, setShowMore] = useState(
+    Boolean(
+      booking?.provider ||
+        booking?.confirmation_code ||
+        booking?.address ||
+        booking?.origin_label ||
+        booking?.destination_label ||
+        booking?.notes,
+    ),
+  )
+
   function onSubmit(event: FormEvent) {
     event.preventDefault()
     if (!title.trim()) return
@@ -175,7 +192,7 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
 
       {isTravel && zones.length > 1 && <p className="hint">{t('booking.hint.differentZones')}</p>}
 
-      {isTravel && (
+      {showMore && isTravel && (
         <div className="row">
           <label className="field field--grow">
             <span className="field__label">{t('booking.field.origin')}</span>
@@ -196,7 +213,7 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
         </div>
       )}
 
-      {isPlace && (
+      {showMore && isPlace && (
         <label className="field">
           <span className="field__label">{t('booking.field.address')}</span>
           <input
@@ -207,6 +224,13 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
         </label>
       )}
 
+      {!showMore && (
+        <button type="button" className="button button--quiet" onClick={() => setShowMore(true)}>
+          {t('booking.more')}
+        </button>
+      )}
+
+      {showMore && (
       <div className="row">
         <label className="field field--grow">
           <span className="field__label">{t('booking.field.provider')}</span>
@@ -225,16 +249,19 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
           />
         </label>
       </div>
+      )}
 
-      <label className="field">
-        <span className="field__label">{t('booking.field.notes')}</span>
-        <textarea
-          className="field__input"
-          rows={2}
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-        />
-      </label>
+      {showMore && (
+        <label className="field">
+          <span className="field__label">{t('booking.field.notes')}</span>
+          <textarea
+            className="field__input"
+            rows={2}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+        </label>
+      )}
 
       {saving.error && (
         <p className="field__error" role="alert">

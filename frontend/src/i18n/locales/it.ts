@@ -152,6 +152,7 @@ export const it = {
   'booking.status.pending': 'Da confermare',
   'booking.status.cancelled': 'Annullata',
 
+  'booking.more': 'Altri dettagli (codice, indirizzo, note)',
   'booking.field.kind': 'Tipo',
   'booking.field.title': 'Nome',
   'booking.field.provider': 'Fornitore',
@@ -189,6 +190,10 @@ export const it = {
   'map.missingCoords_other': '{count} tappe non hanno una posizione e non sono sulla mappa.',
   'map.needsNetwork': 'La mappa ha bisogno della rete: le sue tessere non si possono salvare offline.',
 
+  'lookup.searching': 'Cerco…',
+  'lookup.nothing': 'Nessun posto con questo nome. Puoi scriverlo lo stesso e aggiungere la posizione dopo.',
+  'lookup.located': 'Posizione trovata: comparirà sulla mappa e nel calcolo della giornata.',
+  'lookup.noPosition': 'Senza posizione: non comparirà sulla mappa. Scegli un suggerimento, oppure incolla un link di Maps.',
   'maps.open': 'Apri in Maps',
   'maps.directions': 'Indicazioni',
   'maps.fromLink': 'Incolla un link di Google Maps',

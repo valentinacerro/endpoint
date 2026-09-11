@@ -23,6 +23,7 @@ import type {
   DayNote,
   DiaryEntry,
   Memory,
+  PlaceHit,
   MemoryWrite,
   Expense,
   ExpenseWrite,
@@ -307,6 +308,36 @@ export function useFetchRate() {
   return useMutation<RateOut, ApiError, { base: string; quote: string; on: string }>({
     mutationFn: ({ base, quote, on }) =>
       apiFetch<RateOut>(`/api/rates?base=${base}&quote=${quote}&on=${on}`),
+  })
+}
+
+// --- Looking a place up by name ---
+
+/**
+ * Suggestions for a place being typed.
+ *
+ * A query, not a mutation, so React Query does the caching: going back
+ * a letter and forward again does not ask twice. `keepPreviousData` is
+ * what stops the list blinking empty between keystrokes, which reads as
+ * "nothing found" for a moment and is the single most annoying thing a
+ * search box can do.
+ */
+export function usePlaceSearch(query: string, near: { lat: number; lon: number } | null) {
+  const trimmed = query.trim()
+  return useQuery({
+    queryKey: ['geo', trimmed, near?.lat ?? null, near?.lon ?? null],
+    queryFn: () => {
+      const params = new URLSearchParams({ q: trimmed })
+      if (near) {
+        params.set('lat', String(near.lat))
+        params.set('lon', String(near.lon))
+      }
+      return apiFetch<PlaceHit[]>(`/api/geo/search?${params}`)
+    },
+    // Two letters match half the world and cost somebody else a request.
+    enabled: trimmed.length >= 3,
+    placeholderData: (previous) => previous,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

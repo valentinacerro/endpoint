@@ -290,6 +290,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/geo/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Places
+         * @description Suggestions for a place being typed.
+         *
+         *     Not attached to a trip: it reads nothing of yours, so it needs no
+         *     trip in the path. It is still behind the app's authentication, like
+         *     every other route under /api.
+         */
+        get: operations["search_places_api_geo_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rates": {
         parameters: {
             query?: never;
@@ -1084,6 +1108,20 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HitOut */
+        HitOut: {
+            /** Name */
+            name: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Where */
+            where: string | null;
+            /** Address */
+            address: string | null;
+            category: components["schemas"]["PlaceCategory"];
         };
         /** ImportSummary */
         ImportSummary: {
@@ -2452,6 +2490,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResolveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_places_api_geo_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                lat?: number | null;
+                lon?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HitOut"][];
                 };
             };
             /** @description Validation Error */

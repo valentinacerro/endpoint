@@ -50,6 +50,8 @@ export const EXPENSE_CATEGORIES = [
   'other',
 ] as const satisfies readonly ExpenseCategory[]
 
+export type PlaceHit = S['HitOut']
+
 export type Weather = S['WeatherOut']
 export type DayWeather = S['DayWeatherOut']
 
