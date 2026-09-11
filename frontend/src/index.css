@@ -1558,6 +1558,72 @@ a.entry__content:hover .entry__title {
   flex-shrink: 0;
 }
 
+/* --- The home screen ---
+   Three lines that mean the same three things whatever the trip is
+   doing: a small eyebrow that names the moment, the headline, and the
+   line that supports it. Everything under them is ordinary app
+   furniture, which is the point — the head is the only part that has to
+   feel like an opening. */
+
+.today__head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 0 2px;
+}
+
+.today__label {
+  margin: 0;
+  font-size: var(--type-label);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.today__count {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: var(--type-hero);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  /* A long destination is a headline, not a single-line label. */
+  text-wrap: balance;
+}
+
+.today__where {
+  margin: 0;
+  font-size: var(--type-title);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.today__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: var(--type-compact);
+}
+
+.today__spent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.today__all {
+  align-self: center;
+  padding: 10px;
+  font-size: var(--type-small);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 /* --- Floating action --- */
 
 .fab {

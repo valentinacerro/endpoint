@@ -10,10 +10,7 @@ const dictionaries = { it: italian, en }
  * Strings kept although nothing asks for them, each with its reason.
  * Not a dumping ground: a new entry here should feel like a decision.
  */
-const ALLOWED_UNUSED = [
-  // Rendered from the manifest and index.html, not from a component.
-  'app.name',
-]
+const ALLOWED_UNUSED: string[] = []
 
 /** Every source file that could name a translation key. */
 function readSources(): string[] {

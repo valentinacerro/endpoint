@@ -106,6 +106,7 @@ export function TripList() {
     <>
       <AppBar
         title={t('trips.title')}
+        back="/"
         action={
           <button className="appbar__button" onClick={() => logout.mutate()}>
             {t('trips.logout')}

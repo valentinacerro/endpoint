@@ -77,7 +77,7 @@ export function TripDetail() {
       <AppBar
         title={trip.title}
         subtitle={dates}
-        back="/"
+        back="/trips"
         action={
           <Link className="appbar__button" to={`/trips/${tripId}/search`} aria-label={t('search.title')}>
             <Icon name="search" size={20} />

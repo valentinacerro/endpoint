@@ -65,7 +65,7 @@ export function TripEdit() {
 
   function onDelete() {
     if (!confirm(t('common.confirmDelete', { name: trip!.title }))) return
-    remove.mutate(tripId!, { onSuccess: () => navigate('/') })
+    remove.mutate(tripId!, { onSuccess: () => navigate('/trips') })
   }
 
   return (

@@ -25,6 +25,7 @@ import { StopsPanel } from './routes/StopsPanel'
 import { TripDetail } from './routes/TripDetail'
 import { TripEdit } from './routes/TripEdit'
 import { TripLayout } from './routes/TripLayout'
+import { Today } from './routes/Today'
 import { TripList } from './routes/TripList'
 import { TripMore } from './routes/TripMore'
 
@@ -65,7 +66,8 @@ export default function App() {
       <SyncBanner />
       <UpdatePrompt />
       <Routes>
-        <Route path="/" element={<TripList />} />
+        <Route path="/" element={<Today />} />
+        <Route path="/trips" element={<TripList />} />
         <Route path="/settings" element={<Settings />} />
         {/* Where Android's share sheet delivers a link. */}
         <Route path="/share" element={<Share />} />
