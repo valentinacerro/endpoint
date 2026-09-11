@@ -82,6 +82,28 @@
      name of a trip, a countdown, a day — and a sans for everything that
      is scanned. The difference between the two is most of what stops an
      app looking generic. */
+  /* --- The scale ---
+     Nine steps. Before this there were seventeen sizes across eighty-one
+     declarations, thirty of them on half pixels — 12.5px alone appeared
+     fourteen times — which is not a scale but an accumulation of one
+     decision at a time. Nothing a reader has to read now sits under
+     12px.
+
+     Two sizes are deliberately NOT steps and stay literal:
+       `body` is 16px, the root every rem is measured from;
+       `.field__input` is 16px because anything smaller makes Android
+       zoom the page on focus, which is a layout bug, not a type choice.
+     Both say so where they are. */
+  --type-label: 11px; /* uppercase tracked labels, tab labels, badges */
+  --type-caption: 12px; /* the densest thing anyone reads */
+  --type-small: 13px; /* secondary text: metadata, hints, chips */
+  --type-compact: 14px; /* dense rows, small buttons */
+  --type-body: 15px; /* the app's reading size */
+  --type-lead: 17px; /* the title of a row in a list */
+  --type-title: 20px; /* serif: screen and section titles */
+  --type-display: 26px; /* serif: the title of a page you land on */
+  --type-hero: 30px; /* the one big number */
+
   --display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
   --ui: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -133,6 +155,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--ui);
+  /* Not a step of the scale: the root every rem is measured from. */
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -162,7 +185,7 @@ body {
   flex-direction: column;
   gap: 5px;
   padding: 9px 16px;
-  font-size: 13px;
+  font-size: var(--type-small);
   font-weight: 500;
   text-align: center;
   color: var(--on-brand);
@@ -243,7 +266,7 @@ body {
 .hint {
   margin: 0;
   padding: 10px 14px;
-  font-size: 13.5px;
+  font-size: var(--type-compact);
   line-height: 1.45;
   color: var(--text-muted);
   background: var(--surface-sunken);
@@ -260,7 +283,7 @@ body {
 }
 
 .field__label {
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--text-muted);
@@ -302,7 +325,7 @@ select.field__input {
 
 .field__error {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--type-compact);
   color: var(--danger);
 }
 
@@ -316,7 +339,7 @@ select.field__input {
   min-height: 46px; /* comfortable thumb target */
   padding: 12px 18px;
   font: inherit;
-  font-size: 15.5px;
+  font-size: var(--type-body);
   font-weight: 600;
   color: var(--on-brand);
   background: var(--brand);
@@ -357,7 +380,7 @@ select.field__input {
 .button--small {
   min-height: 36px;
   padding: 6px 12px;
-  font-size: 14px;
+  font-size: var(--type-compact);
 }
 
 /* Two fields side by side on a phone leaves each too narrow to read what
@@ -419,14 +442,15 @@ select.field__input {
   font-family: var(--display);
   font-weight: 400;
   margin: 0;
-  font-size: 26px;
+  font-size: var(--type-display);
   letter-spacing: -0.01em;
+  line-height: 1.15;
 }
 
 .login__subtitle {
   margin: -10px 0 0;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: var(--type-compact);
 }
 
 /* ==========================================================================
@@ -468,21 +492,21 @@ select.field__input {
 
 .list__title {
   grid-column: 1;
-  font-size: 17px;
+  font-size: var(--type-lead);
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
 .list__meta {
   grid-column: 1;
-  font-size: 13.5px;
+  font-size: var(--type-compact);
   color: var(--text-muted);
 }
 
 .list__chevron {
   grid-column: 2;
   grid-row: 1 / span 2;
-  font-size: 20px;
+  font-size: var(--type-title);
   color: var(--border-strong);
 }
 
@@ -500,7 +524,7 @@ select.field__input {
 }
 
 .next__label {
-  font-size: 11.5px;
+  font-size: var(--type-label);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -510,8 +534,9 @@ select.field__input {
 .next__title {
   font-family: var(--display);
   font-weight: 400;
-  font-size: 20px;
+  font-size: var(--type-title);
   letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 /* ==========================================================================
@@ -534,7 +559,7 @@ select.field__input {
   gap: 10px;
   margin: 0;
   padding: 10px 0 8px;
-  font-size: 15px;
+  font-size: var(--type-body);
   /* Sticky over a transparent background would let rows show through. */
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -553,7 +578,7 @@ select.field__input {
 .day__stop {
   margin-left: auto;
   padding: 3px 10px;
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-weight: 600;
   color: var(--brand);
   background: color-mix(in srgb, var(--brand) 12%, transparent);
@@ -563,7 +588,7 @@ select.field__input {
 .day__empty {
   margin: 0 0 4px;
   padding-left: 4px;
-  font-size: 14px;
+  font-size: var(--type-compact);
   color: var(--text-muted);
 }
 
@@ -574,7 +599,7 @@ select.field__input {
   width: 100%;
   padding: 9px 12px;
   font: inherit;
-  font-size: 13.5px;
+  font-size: var(--type-compact);
   text-align: left;
   color: var(--text);
   background: color-mix(in srgb, var(--kind-food) 9%, var(--surface));
@@ -676,7 +701,7 @@ select.field__input {
   flex-direction: column;
   align-items: flex-end;
   padding-top: 2px;
-  font-size: 15px;
+  font-size: var(--type-body);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
@@ -699,7 +724,7 @@ select.field__input {
     flex-wrap: wrap;
     gap: 8px;
     padding-top: 0;
-    font-size: 14px;
+    font-size: var(--type-compact);
   }
 
   .entries::before {
@@ -724,13 +749,13 @@ select.field__input {
 }
 
 .entry__zone {
-  font-size: 11.5px;
+  font-size: var(--type-caption);
   font-weight: 500;
   color: var(--text-muted);
 }
 
 .entry__hint {
-  font-size: 11.5px;
+  font-size: var(--type-caption);
   font-weight: 400;
   color: var(--text-muted);
 }
@@ -763,20 +788,20 @@ select.field__input {
 }
 
 .entry__title {
-  font-size: 15.5px;
+  font-size: var(--type-body);
   font-weight: 600;
   letter-spacing: -0.005em;
   overflow-wrap: break-word;
 }
 
 .entry__meta {
-  font-size: 13px;
+  font-size: var(--type-small);
   color: var(--text-muted);
   overflow-wrap: break-word;
 }
 
 .entry__route {
-  font-size: 13px;
+  font-size: var(--type-small);
   font-weight: 500;
   color: var(--entry-accent);
 }
@@ -805,7 +830,7 @@ select.field__input {
 
 .gap__label {
   grid-column: 3;
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-style: italic;
   color: var(--text-muted);
 }
@@ -821,7 +846,7 @@ select.field__input {
 .entry__clash {
   grid-column: 3;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
   color: var(--danger);
 }
@@ -830,7 +855,7 @@ select.field__input {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 7px;
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -859,7 +884,7 @@ select.field__input {
 
 .entry__move .chip {
   padding: 2px 9px;
-  font-size: 14px;
+  font-size: var(--type-compact);
   line-height: 1.2;
 }
 
@@ -897,7 +922,7 @@ a.entry__content:hover .entry__title {
 }
 
 .detail__label {
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -906,14 +931,14 @@ a.entry__content:hover .entry__title {
 
 .detail__value {
   margin: 0;
-  font-size: 15.5px;
+  font-size: var(--type-body);
   overflow-wrap: anywhere;
 }
 
 .detail__value code {
   padding: 2px 7px;
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: var(--type-body);
   letter-spacing: 0.04em;
   background: var(--surface-sunken);
   border-radius: 6px;
@@ -945,7 +970,7 @@ a.entry__content:hover .entry__title {
 .toolbar__link {
   padding: 7px 13px;
   font: inherit;
-  font-size: 13.5px;
+  font-size: var(--type-compact);
   font-weight: 600;
   color: var(--text-muted);
   text-decoration: none;
@@ -992,7 +1017,7 @@ a.entry__content:hover .entry__title {
   width: 26px;
   height: 26px;
   font-family: var(--ui);
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 700;
   color: #fff;
   background: var(--pin, #7c8090);
@@ -1032,7 +1057,7 @@ a.entry__content:hover .entry__title {
   justify-content: center;
   width: 1.75rem;
   height: 1.75rem;
-  font-size: 13px;
+  font-size: var(--type-small);
   font-weight: 700;
   color: var(--brand);
   background: color-mix(in srgb, var(--brand) 12%, transparent);
@@ -1052,7 +1077,7 @@ a.entry__content:hover .entry__title {
 }
 
 .stop__meta {
-  font-size: 12.5px;
+  font-size: var(--type-small);
   color: var(--text-muted);
   overflow-wrap: break-word;
 }
@@ -1144,7 +1169,7 @@ a.entry__content:hover .entry__title {
 }
 
 .doc__meta {
-  font-size: 12.5px;
+  font-size: var(--type-small);
   color: var(--text-muted);
 }
 
@@ -1165,7 +1190,7 @@ a.entry__content:hover .entry__title {
   gap: 6px;
   padding: 5px 10px;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-weight: 600;
   color: var(--text-muted);
   background: var(--surface-sunken);
@@ -1191,13 +1216,13 @@ a.entry__content:hover .entry__title {
 
 .chip--danger {
   padding: 5px 11px;
-  font-size: 15px;
+  font-size: var(--type-body);
   line-height: 1;
   color: var(--danger);
 }
 
 .small {
-  font-size: 13px;
+  font-size: var(--type-small);
 }
 
 /* ==========================================================================
@@ -1225,7 +1250,7 @@ a.entry__content:hover .entry__title {
 }
 
 .viewer__name {
-  font-size: 14px;
+  font-size: var(--type-compact);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1276,7 +1301,7 @@ a.entry__content:hover .entry__title {
   justify-content: space-between;
   gap: var(--gap);
   padding: 12px 16px;
-  font-size: 14px;
+  font-size: var(--type-compact);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1312,9 +1337,10 @@ a.entry__content:hover .entry__title {
 .totals__big {
   font-family: var(--display);
   font-weight: 400;
-  font-size: 30px;
+  font-size: var(--type-hero);
   letter-spacing: -0.005em;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .totals__big--over {
@@ -1364,7 +1390,7 @@ a.entry__content:hover .entry__title {
   grid-template-columns: 3.5rem 1fr auto;
   align-items: baseline;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--type-compact);
 }
 
 .plan__time {
@@ -1380,7 +1406,7 @@ a.entry__content:hover .entry__title {
   display: inline-block;
   margin-left: 5px;
   padding: 0 5px;
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 700;
   color: var(--kind-food);
   background: color-mix(in srgb, var(--kind-food) 16%, transparent);
@@ -1389,7 +1415,7 @@ a.entry__content:hover .entry__title {
 }
 
 .plan__travel {
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -1438,18 +1464,19 @@ a.entry__content:hover .entry__title {
   font-family: var(--display);
   font-weight: 400;
   margin: 0;
-  font-size: 20px;
+  font-size: var(--type-title);
   letter-spacing: -0.005em;
   /* One line, always: a wrapping title changes the height of the bar and
      makes the whole screen jump between sections. */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .appbar__subtitle {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--type-small);
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1463,7 +1490,7 @@ a.entry__content:hover .entry__title {
 .appbar__button {
   padding: 8px 12px;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--type-compact);
   font-weight: 600;
   color: var(--brand);
   background: none;
@@ -1500,7 +1527,7 @@ a.entry__content:hover .entry__title {
   gap: 3px;
   min-height: var(--tabbar-height);
   padding: 8px 2px;
-  font-size: 10.5px;
+  font-size: var(--type-label);
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-muted);
@@ -1543,7 +1570,7 @@ a.entry__content:hover .entry__title {
   gap: 7px;
   padding: 14px 20px 14px 16px;
   font: inherit;
-  font-size: 15px;
+  font-size: var(--type-body);
   font-weight: 650;
   color: var(--on-brand);
   background: var(--brand);
@@ -1567,7 +1594,7 @@ a.entry__content:hover .entry__title {
 }
 
 .fab__plus {
-  font-size: 20px;
+  font-size: var(--type-title);
   line-height: 1;
   font-weight: 400;
 }
@@ -1612,18 +1639,18 @@ a.entry__content:hover .entry__title {
 }
 
 .rows__title {
-  font-size: 15.5px;
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
 .rows__hint {
-  font-size: 12.5px;
+  font-size: var(--type-small);
   color: var(--text-muted);
 }
 
 .rows__chevron {
   flex-shrink: 0;
-  font-size: 20px;
+  font-size: var(--type-title);
   color: var(--border-strong);
 }
 
@@ -1635,7 +1662,7 @@ a.entry__content:hover .entry__title {
   width: auto;
   min-width: 8ch;
   padding: 6px 26px 6px 9px;
-  font-size: 13px;
+  font-size: var(--type-small);
   background-position:
     calc(100% - 13px) calc(50% + 2px),
     calc(100% - 9px) calc(50% + 2px);
@@ -1657,7 +1684,7 @@ a.entry__content:hover .entry__title {
 .sync-banner__action {
   padding: 2px 10px;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-weight: 700;
   color: inherit;
   background: color-mix(in srgb, currentColor 18%, transparent);
@@ -1671,7 +1698,7 @@ a.entry__content:hover .entry__title {
 .day__count {
   margin-left: auto;
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -1732,7 +1759,7 @@ a.entry__content:hover .entry__title {
 }
 
 .pack__text {
-  font-size: 15px;
+  font-size: var(--type-body);
   line-height: 1.35;
 }
 
@@ -1770,7 +1797,7 @@ a.entry__content:hover .entry__title {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: var(--type-compact);
 }
 
 /* A wet day has to be findable by glance, not by reading millimetres. */
@@ -1809,7 +1836,7 @@ a.entry__content:hover .entry__title {
    the five call sites has been rendering, and what none of them wanted. */
 .section__title {
   margin: 8px 0 0;
-  font-size: 15px;
+  font-size: var(--type-body);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -1817,14 +1844,14 @@ a.entry__content:hover .entry__title {
 
 .swap__line {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--type-body);
   line-height: 1.4;
 }
 
 /* --- Nearby --- */
 
 .nearby__name {
-  font-size: 16px;
+  font-size: var(--type-lead);
   font-weight: 650;
   color: inherit;
   text-decoration: none;
@@ -1833,7 +1860,7 @@ a.entry__content:hover .entry__title {
 
 .nearby__meta {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--type-compact);
   color: var(--text-muted);
 }
 
@@ -1863,15 +1890,16 @@ a.entry__content:hover .entry__title {
 .sheet__title {
   font-family: var(--display);
   margin: 0;
-  font-size: 26px;
+  font-size: var(--type-display);
   font-weight: 400;
   letter-spacing: -0.005em;
+  line-height: 1.15;
 }
 
 .sheet__dates,
 .sheet__stops {
   margin: 3px 0 0;
-  font-size: 13.5px;
+  font-size: var(--type-compact);
   color: var(--text-muted);
 }
 
@@ -1885,7 +1913,7 @@ a.entry__content:hover .entry__title {
   align-items: baseline;
   margin: 0 0 6px;
   padding-bottom: 3px;
-  font-size: 14px;
+  font-size: var(--type-compact);
   font-weight: 700;
   border-bottom: 1px solid var(--border);
 }
@@ -1917,14 +1945,14 @@ a.entry__content:hover .entry__title {
 
 .sheet__zone {
   display: block;
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-muted);
 }
 
 .sheet__name {
   margin: 0;
-  font-size: 14.5px;
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
@@ -1933,7 +1961,7 @@ a.entry__content:hover .entry__title {
 .sheet__note,
 .sheet__foot {
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-weight: 400;
 }
 
@@ -1949,12 +1977,12 @@ a.entry__content:hover .entry__title {
 
 .sheet__detail {
   margin: 1px 0 0;
-  font-size: 13px;
+  font-size: var(--type-small);
 }
 
 .sheet__label {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--type-label);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -2044,7 +2072,7 @@ a.entry__content:hover .entry__title {
   align-items: baseline;
   width: 100%;
   margin: 0;
-  font-size: 14px;
+  font-size: var(--type-compact);
 }
 
 .jotting__day {
@@ -2054,7 +2082,7 @@ a.entry__content:hover .entry__title {
 
 .jotting__stop {
   margin-left: auto;
-  font-size: 12.5px;
+  font-size: var(--type-small);
   font-weight: 600;
   color: var(--brand);
 }
@@ -2062,7 +2090,7 @@ a.entry__content:hover .entry__title {
 .jotting__happened,
 .jotting__blank {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--type-small);
   color: var(--text-muted);
 }
 
@@ -2072,14 +2100,14 @@ a.entry__content:hover .entry__title {
 .jotting__text {
   margin: 2px 0;
   max-width: 62ch;
-  font-size: 15px;
+  font-size: var(--type-body);
   line-height: 1.55;
   white-space: pre-wrap;
 }
 
 .jotting__input {
   width: 100%;
-  font-size: 15px;
+  font-size: var(--type-body);
   line-height: 1.55;
   resize: vertical;
 }
@@ -2160,11 +2188,11 @@ a.entry__content:hover .entry__title {
 }
 
 .lookup__name {
-  font-size: 14.5px;
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
 .lookup__where {
-  font-size: 12.5px;
+  font-size: var(--type-small);
   color: var(--text-muted);
 }
