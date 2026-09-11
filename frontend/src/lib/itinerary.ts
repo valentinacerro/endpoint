@@ -97,14 +97,73 @@ function placeEntry(place: Place, fallbackZone: string): DayEntry | null {
   }
 }
 
-/** The stop covering a given day, if its dates say so. */
-function stopForDay(stops: Stop[], day: CalendarDate): Stop | null {
-  for (const stop of stops) {
+/** Every stop whose dates cover a day. Usually one; on a move, two. */
+export function stopsOn(stops: readonly Stop[], day: CalendarDate): Stop[] {
+  return stops.filter((stop) => {
     const from = stop.arrive_date
     const to = stop.depart_date ?? stop.arrive_date
-    if (from && to && from <= day && day <= to) return stop
+    return Boolean(from && to && from <= day && day <= to)
+  })
+}
+
+export type DayOwnership =
+  | { stop: Stop; why: 'only_stop' | 'day_trip' | 'arriving' }
+  | { stop: null; why: 'no_stop' | 'overlapping_stops' }
+
+/**
+ * Which city a day belongs to, and on what grounds.
+ *
+ * This used to return whichever covering stop came first in the list,
+ * which is wrong in the two cases where more than one covers a day, and
+ * both of them are ordinary.
+ *
+ * On a handover — Tokyo departs on the 16th, Kyoto arrives on the 16th —
+ * first-match handed the day to Tokyo, the city you are leaving. You
+ * sleep in Kyoto, so Kyoto owns it. That mistake reached further than
+ * the day header: `Weather.tsx` labels a visit with `day.stop.id`, so a
+ * Kyoto temple on the 16th was tagged as Tokyo, and the rain rebalancer
+ * was then free to swap it with a Tokyo place on another day — the exact
+ * cross-city move its own comment forbids.
+ *
+ * On a day trip — Hakone, the 14th to the 15th, inside a Tokyo leg that
+ * runs the 12th to the 18th — the shorter span is the more specific
+ * statement about where you are, so it wins.
+ *
+ * Anything else is a data problem and is named rather than guessed at.
+ */
+export function baseStopOn(stops: readonly Stop[], day: CalendarDate): DayOwnership {
+  const covering = stopsOn(stops, day)
+
+  if (covering.length === 0) return { stop: null, why: 'no_stop' }
+  if (covering.length === 1) return { stop: covering[0], why: 'only_stop' }
+
+  if (covering.length === 2) {
+    const [first, second] = covering
+    const inner = strictlyInside(first, second) ?? strictlyInside(second, first)
+    if (inner) return { stop: inner, why: 'day_trip' }
+
+    // A handover: one leaves today, the other arrives today.
+    const leaving = covering.filter((stop) => (stop.depart_date ?? stop.arrive_date) === day)
+    const arriving = covering.filter((stop) => stop.arrive_date === day)
+    if (leaving.length === 1 && arriving.length === 1 && leaving[0] !== arriving[0]) {
+      return { stop: arriving[0], why: 'arriving' }
+    }
   }
-  return null
+
+  return { stop: null, why: 'overlapping_stops' }
+}
+
+/** True when `inner`'s span sits entirely within `outer`'s, and is shorter. */
+function strictlyInside(inner: Stop, outer: Stop): Stop | null {
+  const innerFrom = inner.arrive_date
+  const innerTo = inner.depart_date ?? inner.arrive_date
+  const outerFrom = outer.arrive_date
+  const outerTo = outer.depart_date ?? outer.arrive_date
+  if (!innerFrom || !innerTo || !outerFrom || !outerTo) return null
+
+  const contained = outerFrom <= innerFrom && innerTo <= outerTo
+  const shorter = innerFrom > outerFrom || innerTo < outerTo
+  return contained && shorter ? inner : null
 }
 
 /** Work out the free time and clashes running down a single day. */
@@ -168,7 +227,7 @@ export function buildTimeline(bundle: TripBundle): Timeline {
   const days = keys.map((key, index) => ({
     key,
     number: index + 1,
-    stop: stopForDay(bundle.stops, key),
+    stop: baseStopOn(bundle.stops, key).stop,
     entries: place(
       // Both are instants in UTC, so a plain string comparison sorts them
       // chronologically regardless of the zones they display in.

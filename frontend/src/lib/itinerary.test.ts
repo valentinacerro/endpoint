@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Booking, Place, Stop, TripBundle } from '../api/types'
-import { buildTimeline, nextBooking } from './itinerary'
+import { baseStopOn, buildTimeline, nextBooking, stopsOn } from './itinerary'
 
 function bundle(overrides: Partial<TripBundle> = {}): TripBundle {
   return {
@@ -301,5 +301,79 @@ describe('what happens next', () => {
   it('returns nothing once the trip is over', () => {
     const past = booking({ title: 'Done', start_at: '2026-04-01T09:00:00Z', start_tz: 'Asia/Tokyo' })
     expect(nextBooking(bundle({ bookings: [past] }), now)).toBeNull()
+  })
+})
+
+/**
+ * Which city a day belongs to.
+ *
+ * `stopForDay` used to return whichever covering stop came first, which
+ * is wrong in the two cases where more than one covers a day — and both
+ * of those are ordinary, not edge cases.
+ */
+describe('baseStopOn', () => {
+  const tokyo = stop({ name: 'Tokyo', arrive_date: '2026-04-12', depart_date: '2026-04-16' })
+  const kyoto = stop({ name: 'Kyoto', arrive_date: '2026-04-16', depart_date: '2026-04-20' })
+  const hakone = stop({ name: 'Hakone', arrive_date: '2026-04-14', depart_date: '2026-04-15' })
+
+  it('gives an ordinary day to the one stop that covers it', () => {
+    expect(baseStopOn([tokyo, kyoto], '2026-04-13')).toEqual({ stop: tokyo, why: 'only_stop' })
+  })
+
+  it('gives a handover day to the city you arrive in, not the one you leave', () => {
+    // You sleep in Kyoto on the 16th. First-match gave it to Tokyo
+    // because Tokyo comes first in the list.
+    expect(baseStopOn([tokyo, kyoto], '2026-04-16')).toEqual({ stop: kyoto, why: 'arriving' })
+  })
+
+  it('does not depend on the order the stops arrive in', () => {
+    expect(baseStopOn([kyoto, tokyo], '2026-04-16').stop?.name).toBe('Kyoto')
+  })
+
+  it('gives a day trip to the shorter stay inside the longer one', () => {
+    // Hakone sits inside the Tokyo leg. The narrower span is the more
+    // specific statement about where you actually are.
+    expect(baseStopOn([tokyo, hakone], '2026-04-14')).toEqual({ stop: hakone, why: 'day_trip' })
+  })
+
+  it('says so when no stop covers the day', () => {
+    expect(baseStopOn([tokyo, kyoto], '2026-04-25')).toEqual({ stop: null, why: 'no_stop' })
+  })
+
+  it('refuses to guess when two stops simply overlap', () => {
+    // Not a handover and not a nesting: a data problem worth naming
+    // rather than resolving by list order.
+    const osaka = stop({ name: 'Osaka', arrive_date: '2026-04-14', depart_date: '2026-04-18' })
+    expect(baseStopOn([tokyo, osaka], '2026-04-15')).toEqual({
+      stop: null,
+      why: 'overlapping_stops',
+    })
+  })
+
+  it('reaches the timeline, which is what the rain rebalancer reads', () => {
+    // Weather.tsx labels every visit with `day.stop.id`. With the old
+    // rule a Kyoto temple on the handover day was tagged as Tokyo, and
+    // rebalance was then free to trade it with a Tokyo place on another
+    // day — the cross-city swap its own comment forbids.
+    const base = bundle()
+    const timeline = buildTimeline(
+      bundle({
+        stops: [tokyo, kyoto],
+        trip: { ...base.trip, start_date: '2026-04-12', end_date: '2026-04-20' },
+      }),
+    )
+    const handover = timeline.days.find((day) => day.key === '2026-04-16')
+    expect(handover?.stop?.name).toBe('Kyoto')
+  })
+
+  it('ignores a stop with no dates', () => {
+    const sketch = stop({ name: 'Da decidere', arrive_date: null, depart_date: null })
+    expect(baseStopOn([sketch, tokyo], '2026-04-13').stop?.name).toBe('Tokyo')
+  })
+
+  it('treats a one-day stop with no departure as covering that day', () => {
+    const nara = stop({ name: 'Nara', arrive_date: '2026-04-17', depart_date: null })
+    expect(stopsOn([nara], '2026-04-17')).toHaveLength(1)
+    expect(stopsOn([nara], '2026-04-18')).toHaveLength(0)
   })
 })
