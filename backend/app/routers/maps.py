@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
@@ -10,6 +12,11 @@ router = APIRouter(prefix="/api/maps", tags=["maps"])
 
 class ResolveIn(BaseModel):
     url: str = Field(min_length=1, max_length=2048)
+    #: Where the trip is, so a link that names a place without placing it
+    #: is looked up in the right city. Optional: without it the geocoder
+    #: answers with the most famous namesake.
+    near_lat: float | None = Field(default=None, ge=-90, le=90)
+    near_lon: float | None = Field(default=None, ge=-180, le=180)
 
 
 class ResolveOut(BaseModel):
@@ -17,6 +24,9 @@ class ResolveOut(BaseModel):
     lat: float | None
     lon: float | None
     url: str
+    #: "link" when the coordinates were in the URL, "geocoded" when they
+    #: were looked up from the name, null when there are none.
+    position: Literal["link", "geocoded"] | None
 
 
 @router.post("/resolve", response_model=ResolveOut)
@@ -27,4 +37,9 @@ class ResolveOut(BaseModel):
 # Google — the client also spaces the calls out.
 @limiter.limit("60/minute")
 async def resolve_link(request: Request, payload: ResolveIn) -> MapsPlace:
-    return await maps.resolve(payload.url)
+    near = (
+        (payload.near_lat, payload.near_lon)
+        if payload.near_lat is not None and payload.near_lon is not None
+        else None
+    )
+    return await maps.resolve(payload.url, near)

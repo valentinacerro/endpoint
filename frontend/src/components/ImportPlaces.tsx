@@ -11,6 +11,8 @@ interface Props {
   tripId: string
   places: Place[]
   onDone: () => void
+  /** Where the trip is, so a name-only link is placed in the right city. */
+  near: { lat: number; lon: number } | null
 }
 
 /**
@@ -22,7 +24,7 @@ interface Props {
  * afterwards as a separate, interruptible step rather than making the
  * upload take minutes.
  */
-export function ImportPlaces({ tripId, places, onDone }: Props) {
+export function ImportPlaces({ tripId, places, near, onDone }: Props) {
   const upload = useImportPlaces(tripId)
   const resolve = useResolveMapsLink()
   const update = useUpdatePlace(tripId)
@@ -48,7 +50,7 @@ export function ImportPlaces({ tripId, places, onDone }: Props) {
 
     for (const [index, place] of missing.entries()) {
       try {
-        const resolved = await resolve.mutateAsync(place.url!)
+        const resolved = await resolve.mutateAsync({ url: place.url!, near })
         if (resolved.lat !== null) {
           await update.mutateAsync({ id: place.id, lat: resolved.lat, lon: resolved.lon })
           hits += 1

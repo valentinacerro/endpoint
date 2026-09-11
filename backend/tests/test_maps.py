@@ -117,3 +117,55 @@ def test_the_endpoint_refuses_a_foreign_host(client: TestClient) -> None:
     response = client.post("/api/maps/resolve", json={"url": "https://example.com/x"})
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "not_a_maps_link"
+
+
+class TestPlacingByName:
+    """A link that names a place without placing it gets looked up.
+
+    Google's share links do not always carry coordinates; the page behind
+    them draws its map in JavaScript, so there is nothing to read. This
+    used to produce a place that could not be put on the map.
+    """
+
+    @pytest.mark.anyio
+    async def test_a_name_only_link_is_geocoded_near_the_trip(self, monkeypatch) -> None:
+        from app.services import geocode
+
+        asked: list[tuple[str, tuple[float, float] | None]] = []
+
+        async def fake_search(query, near=None):
+            asked.append((query, near))
+            return [geocode.Hit("Tokyo Tower", 35.6586, 139.7454, "Tokyo", None, "sight")]
+
+        monkeypatch.setattr(geocode, "search", fake_search)
+        place = await resolve(
+            "https://www.google.com/maps/search/?api=1&query=Tokyo+Tower", near=(35.68, 139.76)
+        )
+        assert asked == [("Tokyo Tower", (35.68, 139.76))]
+        assert (place.lat, place.lon) == (pytest.approx(35.6586), pytest.approx(139.7454))
+        assert place.position == "geocoded"
+
+    @pytest.mark.anyio
+    async def test_a_link_with_its_own_coordinates_is_not_looked_up(self, monkeypatch) -> None:
+        from app.services import geocode
+
+        async def must_not_be_called(query, near=None):
+            raise AssertionError("geocoder called for a link that already had coordinates")
+
+        monkeypatch.setattr(geocode, "search", must_not_be_called)
+        place = await resolve("https://www.google.com/maps/place/Senso-ji/@35.7147,139.7966,17z")
+        assert place.position == "link"
+        assert place.lat == pytest.approx(35.7147)
+
+    @pytest.mark.anyio
+    async def test_a_name_the_geocoder_does_not_know_stays_unplaced(self, monkeypatch) -> None:
+        from app.services import geocode
+
+        async def nothing(query, near=None):
+            return []
+
+        monkeypatch.setattr(geocode, "search", nothing)
+        place = await resolve("https://www.google.com/maps/search/?api=1&query=Xyzzyq+Plugh")
+        assert place.name == "Xyzzyq Plugh"
+        assert place.lat is None
+        assert place.position is None

@@ -10,11 +10,13 @@ response body is ever returned.
 
 import re
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import parse_qs, unquote, urlparse
 
 import httpx
 
 from app.errors import AppError
+from app.services import geocode
 
 #: Hosts we are willing to fetch. Google runs Maps on many country domains,
 #: hence the suffix check rather than a flat list.
@@ -40,12 +42,20 @@ _BARE_COORDS = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$")
 _PLACE_NAME = re.compile(r"/place/([^/@]+)")
 
 
+#: How the coordinates were arrived at, so the screen can say so.
+#:   link      — read out of the URL itself, as Maps wrote them
+#:   geocoded  — the URL carried only a name, and the geocoder placed it
+#:   None      — no position at all
+PositionSource = Literal["link", "geocoded"]
+
+
 @dataclass(frozen=True)
 class MapsPlace:
     name: str | None
     lat: float | None
     lon: float | None
     url: str
+    position: PositionSource | None = None
 
 
 def _host_allowed(url: str) -> bool:
@@ -113,11 +123,37 @@ def parse_maps_url(url: str) -> MapsPlace:
     if name and (_BARE_COORDS.match(name) or len(name) < 2):
         name = None
 
-    return MapsPlace(name=name, lat=lat, lon=lon, url=url)
+    return MapsPlace(
+        name=name, lat=lat, lon=lon, url=url, position="link" if lat is not None else None
+    )
 
 
-async def resolve(url: str) -> MapsPlace:
-    """Resolve a Maps link, following a short link if that is what it is."""
+async def _placed_by_name(place: MapsPlace, near: tuple[float, float] | None) -> MapsPlace:
+    """Give a place that has only a name its coordinates, by asking the geocoder.
+
+    Google's share links do not always carry a position: a "Copy link" from
+    the Android app can redirect to a URL that names the place and nothing
+    else, and the page behind it draws its map with JavaScript, so there is
+    nothing to read. Rather than save a place that cannot be put on the map
+    — which is what used to happen — look the name up the same way the
+    search box does, biased to where the trip is. The result says it was
+    estimated, so the screen can too.
+    """
+    if place.lat is not None or not place.name:
+        return place
+    hits = await geocode.search(place.name, near)
+    if not hits:
+        return place
+    hit = hits[0]
+    return MapsPlace(name=place.name, lat=hit.lat, lon=hit.lon, url=place.url, position="geocoded")
+
+
+async def resolve(url: str, near: tuple[float, float] | None = None) -> MapsPlace:
+    """Resolve a Maps link, following a short link if that is what it is.
+
+    `near` is where the trip is, when known, so a name-only link is placed
+    in the right city rather than at the most famous namesake.
+    """
     url = url.strip()
     if not url.startswith(("http://", "https://")):
         raise AppError("invalid_url", "That does not look like a link", field="url")
@@ -129,8 +165,10 @@ async def resolve(url: str) -> MapsPlace:
         )
 
     parsed = parse_maps_url(url)
-    if parsed.lat is not None:
-        return parsed
+    if parsed.lat is not None or parsed.name is not None:
+        # A long link: everything it will ever tell us is in the URL. Only a
+        # name means a request to the geocoder, never one to Google.
+        return await _placed_by_name(parsed, near)
 
     # Nothing readable in the link itself, so it is a short one and has to be
     # followed. Redirects are handled here rather than by httpx so that every
@@ -166,4 +204,4 @@ async def resolve(url: str) -> MapsPlace:
             "No place could be read from that link",
             field="url",
         )
-    return final
+    return await _placed_by_name(final, near)

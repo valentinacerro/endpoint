@@ -53,6 +53,7 @@ export const EXPENSE_CATEGORIES = [
 export type PlaceHit = S['HitOut']
 
 export type Weather = S['WeatherOut']
+export type ResolvedPlace = S['ResolveOut']
 export type DayWeather = S['DayWeatherOut']
 
 export type ChecklistItem = S['ChecklistItemRead']

@@ -5,7 +5,7 @@ import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '.
 import { PLACE_CATEGORIES, type Place, type PlaceCategory, type Priority } from '../api/types'
 import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
 import { PlaceSearch } from '../components/PlaceSearch'
-import { inferStops } from '../lib/stops'
+import { inferStops, tripCentre } from '../lib/stops'
 import { ImportPlaces } from '../components/ImportPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
@@ -273,12 +273,21 @@ export function PlacesPanel() {
 
       {pasting && (
         <>
-          <AddPlaceFromLink tripId={tripId} onDone={() => setPasting(false)} />
+          <AddPlaceFromLink
+            tripId={tripId}
+            near={tripCentre(bundle.data)}
+            onDone={() => setPasting(false)}
+          />
           <p className="muted small">{t('share.hint')}</p>
         </>
       )}
       {importing && (
-        <ImportPlaces tripId={tripId} places={places} onDone={() => setImporting(false)} />
+        <ImportPlaces
+          tripId={tripId}
+          places={places}
+          near={tripCentre(bundle.data)}
+          onDone={() => setImporting(false)}
+        />
       )}
       {adding && <AddPlace tripId={tripId} near={near} onDone={() => setAdding(false)} />}
 

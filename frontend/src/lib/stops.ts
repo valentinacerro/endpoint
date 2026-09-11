@@ -111,6 +111,24 @@ function overlapsStop(booking: Booking, stop: Stop, fallbackZone: string): boole
  * you are staying in on those dates, attributed by date because a
  * booking has no stop of its own.
  */
+/**
+ * One point that stands for the whole trip, for biasing a lookup.
+ *
+ * The medoid of the stop centres — an actual stop, never a point in the
+ * sea between two of them — or the first located place or hotel when no
+ * stop can be placed. Null when nothing in the trip has a position yet,
+ * in which case a lookup is simply unbiased.
+ */
+export function tripCentre(bundle: TripBundle): { lat: number; lon: number } | null {
+  const centres = [...stopCentres(bundle).values()]
+  const middle = medoid(centres)
+  if (middle) return { lat: middle.lat, lon: middle.lon }
+  const anything = [...bundle.places, ...bundle.bookings].find(
+    (item) => item.lat !== null && item.lon !== null,
+  )
+  return anything ? { lat: anything.lat as number, lon: anything.lon as number } : null
+}
+
 export function stopCentres(bundle: TripBundle): Map<string, Centre> {
   const centres = new Map<string, Centre>()
   const fallbackZone = bundle.trip.primary_tz

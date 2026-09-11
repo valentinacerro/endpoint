@@ -30,13 +30,23 @@ function reasonFor(error: unknown): string {
   return known[code] ?? t('maps.error.generic')
 }
 
-export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: () => void }) {
+export function AddPlaceFromLink({
+  tripId,
+  near,
+  onDone,
+}: {
+  tripId: string
+  /** Where the trip is, so a name-only link is placed in the right city. */
+  near: { lat: number; lon: number } | null
+  onDone: () => void
+}) {
   const resolve = useResolveMapsLink()
   const create = useCreatePlace(tripId)
   const [text, setText] = useState('')
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [failed, setFailed] = useState<{ name: string; why: string }[]>([])
   const [noPosition, setNoPosition] = useState(0)
+  const [estimated, setEstimated] = useState(0)
 
   const links = linksIn(text)
 
@@ -46,8 +56,10 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
 
     setFailed([])
     setNoPosition(0)
+    setEstimated(0)
     setProgress({ done: 0, total: links.length })
     let blind = 0
+    let guessed = 0
     const missed: { name: string; why: string }[] = []
 
     // One at a time: each link is a redirect the server has to follow,
@@ -55,7 +67,7 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
     // is a dozen timeouts rather than a dozen places.
     for (const [index, link] of links.entries()) {
       try {
-        const found = await resolve.mutateAsync(link)
+        const found = await resolve.mutateAsync({ url: link, near })
         await create.mutateAsync({
           name: found.name ?? shortenLink(link),
           category: 'sight',
@@ -66,6 +78,7 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
           url: found.url,
         })
         if (found.lat === null) blind += 1
+        else if (found.position === 'geocoded') guessed += 1
       } catch (error) {
         // One bad link must not throw away the ten good ones after it —
         // and it should say what was wrong with it, not merely that
@@ -80,6 +93,7 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
     setProgress(null)
     setFailed(missed)
     setNoPosition(blind)
+    setEstimated(guessed)
     if (missed.length === 0) {
       setText('')
       if (blind === 0) onDone()
@@ -117,6 +131,7 @@ export function AddPlaceFromLink({ tripId, onDone }: { tripId: string; onDone: (
           ))}
         </div>
       )}
+      {estimated > 0 && <p className="hint">{count('maps.someEstimated', estimated)}</p>}
       {noPosition > 0 && <p className="hint">{count('maps.someWithoutPosition', noPosition)}</p>}
 
       <div className="row row--end">

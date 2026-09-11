@@ -251,6 +251,9 @@ export const it = {
   'maps.oneFailed': '{name}: {why}',
   'maps.someWithoutPosition_one': 'Un luogo è stato aggiunto senza posizione.',
   'maps.someWithoutPosition_other': '{count} luoghi sono stati aggiunti senza posizione.',
+  'maps.estimated': 'Posizione stimata dal nome: controllala sulla mappa.',
+  'maps.someEstimated_one': 'Il link non aveva la posizione: l’ho stimata dal nome, controllala sulla mappa.',
+  'maps.someEstimated_other': '{count} link non avevano la posizione: l’ho stimata dal nome, controllale sulla mappa.',
   'maps.noCoords': 'Nome trovato, ma senza posizione. Puoi aggiungerla dopo.',
 
   'places.title': 'Da vedere',

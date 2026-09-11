@@ -1403,6 +1403,10 @@ export interface components {
         ResolveIn: {
             /** Url */
             url: string;
+            /** Near Lat */
+            near_lat?: number | null;
+            /** Near Lon */
+            near_lon?: number | null;
         };
         /** ResolveOut */
         ResolveOut: {
@@ -1414,6 +1418,8 @@ export interface components {
             lon: number | null;
             /** Url */
             url: string;
+            /** Position */
+            position: ("link" | "geocoded") | null;
         };
         /** ScheduleEntry */
         ScheduleEntry: {

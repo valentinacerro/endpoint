@@ -22,22 +22,23 @@ import type {
   ChecklistItemWrite,
   DayNote,
   DiaryEntry,
-  Memory,
-  PlaceHit,
-  MemoryWrite,
   Expense,
   ExpenseWrite,
+  Memory,
+  MemoryWrite,
   Place,
   PlaceCreate,
+  PlaceHit,
   PlaceUpdate,
+  ResolvedPlace,
   Stop,
   StopCreate,
   StopUpdate,
   Trip,
   TripBundle,
-  Weather,
   TripCreate,
   TripUpdate,
+  Weather,
 } from './types'
 
 export const keys = {
@@ -180,22 +181,25 @@ export function useDeletePlace(tripId: string) {
 
 // --- Google Maps links ---
 
-export interface ResolvedPlace {
-  name: string | null
-  lat: number | null
-  lon: number | null
-  url: string
-}
-
 /**
  * Ask the server to read a Google Maps link.
  *
  * It has to be the server: a shared link is a `maps.app.goo.gl` redirect,
  * and the browser cannot follow one cross-origin to see where it lands.
+ *
+ * `near` is where the trip is. A share link does not always carry a
+ * position — the page behind it draws its map in JavaScript — and then
+ * the server looks the name up instead; the bias is what makes it find
+ * the Ichiran in Tokyo rather than the one in Hong Kong. The answer's
+ * `position` says which happened.
  */
 export function useResolveMapsLink() {
-  return useMutation<ResolvedPlace, ApiError, string>({
-    mutationFn: (url) => apiFetch<ResolvedPlace>('/api/maps/resolve', { method: 'POST', body: { url } }),
+  return useMutation<ResolvedPlace, ApiError, { url: string; near: { lat: number; lon: number } | null }>({
+    mutationFn: ({ url, near }) =>
+      apiFetch<ResolvedPlace>('/api/maps/resolve', {
+        method: 'POST',
+        body: { url, near_lat: near?.lat ?? null, near_lon: near?.lon ?? null },
+      }),
   })
 }
 

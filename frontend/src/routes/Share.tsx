@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 
-import { useCreatePlace, useResolveMapsLink, useTrips } from '../api/trips'
+import { useCreatePlace, useResolveMapsLink, useTripBundle, useTrips } from '../api/trips'
 import { AppBar } from '../components/AppBar'
 import { count, t } from '../i18n'
 import { linksIn, looksLikeAList, shortenLink } from '../lib/share'
+import { tripCentre } from '../lib/stops'
 
-type Outcome = { link: string; label: string; state: 'saved' | 'noPosition' | 'failed' }
+type Outcome = {
+  link: string
+  label: string
+  state: 'saved' | 'estimated' | 'noPosition' | 'failed'
+}
 
 /**
  * Where a link shared from another app lands.
@@ -97,6 +102,7 @@ function Importer({
 }) {
   const resolve = useResolveMapsLink()
   const create = useCreatePlace(tripId)
+  const bundle = useTripBundle(tripId)
 
   const [done, setDone] = useState<Outcome[]>([])
   const [running, setRunning] = useState(true)
@@ -112,7 +118,10 @@ function Importer({
       for (const link of links) {
         const label = shortenLink(link)
         try {
-          const found = await resolve.mutateAsync(link)
+          const found = await resolve.mutateAsync({
+            url: link,
+            near: bundle.data ? tripCentre(bundle.data) : null,
+          })
           await create.mutateAsync({
             name: found.name ?? label,
             category: 'sight',
@@ -124,7 +133,16 @@ function Importer({
           })
           setDone((sofar) => [
             ...sofar,
-            { link, label: found.name ?? label, state: found.lat === null ? 'noPosition' : 'saved' },
+            {
+              link,
+              label: found.name ?? label,
+              state:
+                found.position === 'geocoded'
+                  ? 'estimated'
+                  : found.lat === null
+                    ? 'noPosition'
+                    : 'saved',
+            },
           ])
         } catch {
           // One bad link should not abandon the other eleven.
@@ -155,6 +173,7 @@ function Importer({
               <span className="doc__name">{entry.label}</span>
               <span className="doc__meta">
                 {entry.state === 'saved' && t('share.ok')}
+                {entry.state === 'estimated' && t('maps.estimated')}
                 {entry.state === 'noPosition' && t('maps.noCoords')}
                 {entry.state === 'failed' && t('maps.error.generic')}
               </span>

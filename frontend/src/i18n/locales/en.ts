@@ -249,6 +249,9 @@ export const en: Record<TranslationKey, string> = {
   'maps.oneFailed': '{name}: {why}',
   'maps.someWithoutPosition_one': 'One place was added without a position.',
   'maps.someWithoutPosition_other': '{count} places were added without a position.',
+  'maps.estimated': 'Position estimated from the name: check it on the map.',
+  'maps.someEstimated_one': 'The link carried no position: it was estimated from the name, check it on the map.',
+  'maps.someEstimated_other': '{count} links carried no position: they were estimated from the name, check them on the map.',
   'maps.noCoords': 'Name found, but no position. You can add it later.',
 
   'places.title': 'To see',
