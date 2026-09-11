@@ -8,13 +8,34 @@ The full project plan lives in
 `~/.claude/plans/ciao-sto-organizzando-un-whimsical-heron.md`.
 
 > **Language convention.** Code, comments, documentation and backend messages
-> are in English. The user interface is in Italian, and every string of it
-> lives in `frontend/src/i18n/locales/it.ts` — the one file whose *values* are
-> deliberately not English. Backend `message` fields are developer-facing
-> fallbacks; the UI picks its wording from the machine-readable `code`.
+> are in English. The interface is Italian or English, chosen in Settings;
+> `frontend/src/i18n/locales/it.ts` is the source dictionary and the one file
+> whose *values* are deliberately not English. Backend `message` fields are
+> developer-facing fallbacks; the UI picks its wording from the
+> machine-readable `code`.
 
-**Current state: Phase 1 in progress.** Phase 0 is done — a working skeleton
-with authentication, an installable PWA and the offline cache wired up.
+**Current state: all three phases are built.** Itinerary, stops, bookings,
+documents, offline cache, Maps links and import, the day optimiser, expenses,
+the packing list, the rain re-balancer, search, nearby, printing, the diary,
+the memory map, and Italian/English.
+
+**Not done, and worth knowing before a trip:**
+
+- **The suite has never run against real Postgres.** SQLite does not exercise
+  `JSONB`, `bytea`, `TIMESTAMPTZ` or `NUMERIC` the way Neon does. Make a Neon
+  branch and run `make test-pg TEST_DATABASE_URL=...` against it — never
+  against the branch holding real data, which the suite would wipe.
+- **No end-to-end test.** The one that would earn its keep is the plan's:
+  load a trip online, pin an attachment, go offline, reload, and check the
+  timeline draws with the right times and the PDF still opens.
+- **Keep-warm is off.** `.github/workflows/keepalive.yml` needs `HEALTH_URL`
+  set and its `schedule` uncommented a few days before leaving — and
+  commented back out on return. Read the arithmetic at the top of that file
+  first.
+- **Only some writes survive being offline.** Expenses, the packing list,
+  the diary and memory points are queued and replayed. Bookings, stops,
+  places, day notes and document uploads still need a connection, and say so
+  rather than failing quietly.
 
 ---
 
