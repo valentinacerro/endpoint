@@ -14,10 +14,149 @@ The full project plan lives in
 > developer-facing fallbacks; the UI picks its wording from the
 > machine-readable `code`.
 
+---
+
+## What it does
+
+A trip is a **title, some dates, a home timezone and a currency**. Under it sit
+**stops** — the cities, in order, each with its own timezone and its own
+arrival and departure dates — and everything else hangs off those: bookings,
+places you want to see, documents, expenses, photographs.
+
+The phone fetches the whole trip in **one request**
+(`GET /api/trips/{id}/bundle`) and keeps it in IndexedDB. Every read screen
+renders from that single cached copy, which is why the app works in airplane
+mode with no per-screen offline code anywhere.
+
+Five destinations live in the bar along the bottom — **Itinerary, Places, Map,
+Spending, More**. Five is the most a thumb can aim at; the rest is behind
+*More*, because stops and settings are not what you reach for standing on a
+platform.
+
+### Itinerary
+
+The day-by-day plan: each day numbered, dated, and labelled with the city it is
+spent in. At the top, the next booking still ahead of you. Under each day
+heading a free-text note, then the day's entries in order — bookings and
+scheduled visits together, each at the time it happens in the zone it happens
+in. Zone labels appear only on a trip that crosses more than one.
+
+- **Plan the day** arranges a single day: it takes what cannot move — a flight,
+  a timed museum slot, a check-in — and fits everything else around it. You get
+  a preview, a list of what it had to drop and why, and a Cancel beside the
+  Apply. Nothing is written until you accept.
+- A visit can be nudged onto the previous or next day without opening anything.
+- Tapping a booking opens its details: reference codes, addresses, telephone
+  numbers, and the documents attached to it.
+- At the bottom, everything **not yet scheduled** — the wish list, and any
+  booking with no date — each droppable onto a day from there.
+
+### Places
+
+The wish list: what you want to see, with a category, a priority and how long
+you think it takes. Four ways in, and typing the name is the worst of them:
+
+- **Share from Google Maps.** With the app installed on the phone: Maps →
+  Share → endpoint. The link arrives, its position is resolved, the place is
+  saved.
+- **Paste links in bulk.** A textarea, because planning happens in batches —
+  eleven links in a note at the end of an evening, all in at once.
+- **Google Takeout.** Upload a saved-places export (`.zip`, or a single `.csv`
+  out of one). Positions carried in the links are read immediately; the rest
+  are offered afterwards as a separate, interruptible step, one redirect each.
+- **Type a name** and pick a suggestion, searched near wherever you are
+  looking.
+
+Each place shows which city it belongs to. Where you never said, it is
+**inferred from the coordinates** and labelled as inferred: within 30 km it is
+that city's, out to 150 km it is a day of its own, beyond that it belongs to
+no city on this trip. The guess is never written down, so `place.stop_id` keeps
+meaning exactly one thing — you said so.
+
+### Map
+
+The trip's pins, numbered in the order you would walk them, for one day or for
+the whole trip, and a count of the entries it could not draw for want of
+coordinates. **The one screen that needs a network**: map tiles cannot be
+cached offline.
+
+### Spending
+
+Expenses by day, with a category and how they were paid. Totals are kept per
+currency and also converted into the trip's own currency at the ECB reference
+rate for the day of the purchase, so a budget has something to measure against.
+That rate is an estimate and says so — banks add a spread of a percent or two —
+and can be replaced later with the real figure off a statement. Money is summed
+in integer minor units throughout, never in decimals.
+
+### More
+
+| Screen | What it is for |
+| --- | --- |
+| **Organise the trip** | Spreads the whole wish list across all the days, in the right cities, instead of you deciding thirty times which afternoon each place belongs to. It shows what it could *not* fit first — no coordinates, shut every day you are there, no day attributed to that city — then a preview of every day. Writes nothing until you tap Apply, and then in one request, all or nothing. |
+| **Diary** | A day at a time, each with a short reminder of what was on that day's itinerary. Nobody remembers on Thursday what the Monday temple was called. |
+| **Memories** | Where you actually went, drawn from your own photographs. The browser reads the coordinates and timestamp out of each file and sends **only those** — about a hundred bytes a photo. The pictures never leave the device. |
+| **Nearby** | What of *yours* is around you right now: distance, walking or transit minutes, and whether it is still open — and for how much longer. Needs the GPS and nothing else. |
+| **Search** | Everything in the trip, out of the cached bundle. No request and no debounce: it answers in a basement, which is where you are standing when someone wants the confirmation code. |
+| **Weather** | A daily forecast per city, and the rain re-balancer: given a wet Tuesday and a dry Friday, it looks for a museum on Friday that could trade places with the garden on Tuesday. It proposes; it never rearranges. |
+| **Packing** | A checklist by category, with a starter list suggested from the trip's dates and the countries of its stops. Whole rows are the tap target, and it needs no network. |
+| **Stops** | The cities: order, dates, timezone, position. **Locate stops** proposes coordinates for the ones that have none — proposes, because "Tokyo" matches a suburb of Tokyo more often than you would like, and a wrong city quietly claims places that belong elsewhere. |
+| **Print** | The trip on one sheet of paper, with the confirmation codes and addresses printed outright rather than one tap away. Nothing in software defends against a dead phone. Any browser prints this to a PDF. |
+| **Offline status** | The screen you check before boarding: what is *really* on this phone. It counts actual cached entries rather than trusting that a download happened, and fetches every document in one tap. |
+| **Settings** | The interface language, Italian or English, remembered on this device rather than on the server. |
+| **Edit trip** | Title, destination, dates, timezone, currency, budget, status. |
+
+### Documents
+
+PDFs and images (JPEG, PNG, WebP) attach to a booking, and are sniffed for
+their real type rather than trusted by extension. They are shown **inside the
+app** — PDFs drawn with pdf.js onto a canvas, because Chrome on Android would
+rather offer you a download and throw you out of the app, and because a cached
+blob can be drawn where an `<iframe>` pointed at a URL could not. Each can be
+pinned for offline, and in the three days before departure the itinerary starts
+saying which ones are not yet on the phone.
+
+---
+
+## How you use it
+
+**Setting a trip up.** Create the trip with its dates. Add the **stops**, one
+per city, with arrival and departure dates and the right timezone — almost
+everything else reasons from those: which city a day belongs to, which forecast
+to fetch, what zone a photograph's clock was probably set to. Then run **Locate
+stops** so each city has a position on the earth.
+
+**Collecting places.** Over the following weeks: share or paste links from
+Google Maps, or import a Takeout export. Nothing needs scheduling yet — a place
+with coordinates and a category is enough to work with later.
+
+**Turning the pile into a plan.** **Organise the trip** offers a day for every
+place at once; read what it could not fit, then apply. **Plan the day** reworks
+a single day afterwards, when a booking moves. Either way you can still drop a
+place onto a day by hand from the wish list. Add bookings as they are made and
+attach the voucher to each.
+
+**The week before.** Work through the packing list. Check the forecast — a
+fortnight is as far as one reaches — and take the re-balancer's swaps if they
+make sense. Then open **Offline status**, download every document, and print
+one sheet of paper.
+
+**On the road.** The itinerary in the morning; **Nearby** when an afternoon
+opens up; **Search** when someone asks for a booking reference; expenses as you
+spend them; the diary in the evening. All of that works with no signal, and
+what you write is queued and sent when there is one.
+
+**Afterwards.** Import the photographs for the memory map, finish the diary,
+set the trip to *done*.
+
+---
+
+## Where it stands
+
 **Current state: all three phases are built.** Itinerary, stops, bookings,
-documents, offline cache, Maps links and import, the day optimiser, expenses,
-the packing list, the rain re-balancer, search, nearby, printing, the diary,
-the memory map, and Italian/English.
+documents, offline cache, Maps links and import, the day optimiser and the
+whole-trip organiser, expenses, the packing list, the rain re-balancer, search,
+nearby, printing, the diary, the memory map, and Italian/English.
 
 **Not done, and worth knowing before a trip:**
 
@@ -48,6 +187,18 @@ the memory map, and Italian/English.
 
 Queued writes are addressed by an id the client chose and sent with `PUT`, so
 a request whose response was lost in a tunnel leaves one coffee, not two.
+
+## Outside services
+
+All free, none needing a key, an account or a card — the test every dependency
+in this project has to pass.
+
+| Service | For | Worth knowing |
+| --- | --- | --- |
+| [Photon](https://photon.komoot.io) | Type-ahead place search | Proxied through the backend, so what you type never reaches Komoot with your IP attached |
+| [Open-Meteo](https://open-meteo.com) | Daily forecast | Reaches about a fortnight; one request per stop, in that stop's own zone |
+| [Frankfurter](https://frankfurter.dev) | Exchange rates | ECB reference rates, which are not what a card charges |
+| Google Maps | Opening a place, directions, resolving shared links | Plain URLs — no key, no SDK. A shared short link is resolved by following its redirects by hand, host-checked at every hop |
 
 ---
 
@@ -80,7 +231,11 @@ make web            # frontend -> http://localhost:5173
 ```
 
 Work against **http://localhost:5173**: Vite forwards `/api` and `/health` to
-the backend, reproducing the single origin you get in production.
+the backend, reproducing the single origin you get in production. Sign in with
+the password from `backend/.env`, then `make seed` fills the database with a
+realistic trip — Tokyo and Kyoto planned from Rome, so two time zones, plus a
+booking with no date yet and a voucher to open. Real data beats an empty screen
+when working on the interface.
 
 ## Commands
 
@@ -161,7 +316,18 @@ frontend/    React + Vite. Its build output lands in backend/app/static.
 Dockerfile   Single image (PWA build + backend) used by Render.
 ```
 
-Three decisions worth knowing before touching anything:
+Inside the frontend, the division that matters: `lib/` is pure functions over
+plain data — the timeline, the day optimiser, the whole-trip organiser, the
+rain re-balancer, nearby, search, the money arithmetic — with no fetching and
+no React in any of it. That is where the reasoning worth testing lives, and why
+it keeps working in a station with no signal. `routes/` and `components/` draw
+it; `api/` and `offline/` fetch, cache and queue.
+
+Four decisions worth knowing before touching anything:
+
+**One request holds the trip.** `services/bundle.py` assembles the whole thing
+and the phone renders every read screen from that one cache entry. Adding a
+screen costs no offline handling; adding a per-screen endpoint would.
 
 **One service, one origin.** FastAPI serves both the API and the PWA. With
 separate domains the session cookie would become a third-party cookie, and
