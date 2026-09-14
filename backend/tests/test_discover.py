@@ -133,7 +133,9 @@ class TestTheBoundingBox:
         assert discover._bbox(90.0, 0.0, 10.0)
 
 
-async def _no_fame(client: httpx.AsyncClient, ids: list[str]) -> dict[str, int]:
+async def _nothing_known(
+    client: httpx.AsyncClient, ids: list[str], lang: str
+) -> dict[str, discover.Detail]:
     """Wikidata is a separate service and a separate question."""
     return {}
 
@@ -263,7 +265,8 @@ class TestFame:
             return httpx.Response(200, json=TestFame._answer({"Q57965": 72, "Q1": 0}))
 
         async with _client(handler) as client:
-            assert await discover.fame(client, ["Q57965", "Q1"]) == {"Q57965": 72, "Q1": 0}
+            known = await discover.about(client, ["Q57965", "Q1"], "it")
+            assert {qid: detail.links for qid, detail in known.items()} == {"Q57965": 72, "Q1": 0}
 
     @pytest.mark.anyio
     async def test_a_person_is_absent_and_so_counts_as_nothing(self) -> None:
@@ -276,9 +279,9 @@ class TestFame:
             return httpx.Response(200, json=TestFame._answer({"Q57965": 72}))
 
         async with _client(handler) as client:
-            counts = await discover.fame(client, ["Q57965", "Q1067"])
-        assert counts == {"Q57965": 72}
-        assert counts.get("Q1067", 0) == 0
+            counts = await discover.about(client, ["Q57965", "Q1067"], "it")
+        assert {qid: detail.links for qid, detail in counts.items()} == {"Q57965": 72}
+        assert "Q1067" not in counts
 
     @pytest.mark.anyio
     async def test_it_asks_in_batches(self) -> None:
@@ -289,7 +292,7 @@ class TestFame:
             return httpx.Response(200, json=TestFame._answer({}))
 
         async with _client(handler) as client:
-            await discover.fame(client, [f"Q{n}" for n in range(700)])
+            await discover.about(client, [f"Q{n}" for n in range(700)], "it")
         assert calls == [300, 300, 100]
 
     @pytest.mark.anyio
@@ -298,7 +301,7 @@ class TestFame:
             return httpx.Response(429, text="too many queries")
 
         async with _client(handler) as client:
-            assert await discover.fame(client, ["Q57965"]) == {}
+            assert await discover.about(client, ["Q57965"], "it") == {}
 
 
 @pytest.fixture
@@ -310,7 +313,7 @@ class TestTheEndpoint:
     def test_it_answers_with_an_empty_list_when_overpass_is_down(self, client, monkeypatch) -> None:
         # The whole point: a volunteer service being unavailable is a
         # disappointment on screen, never a 502 from us.
-        async def down(lat, lon, radius_km=8.0, limit=120):
+        async def down(lat, lon, radius_km=8.0, limit=120, lang="en"):
             return []
 
         monkeypatch.setattr(discover, "around", down)
@@ -321,7 +324,7 @@ class TestTheEndpoint:
     def test_it_passes_the_radius_through(self, client, monkeypatch) -> None:
         seen: dict = {}
 
-        async def spy(lat, lon, radius_km=8.0, limit=120):
+        async def spy(lat, lon, radius_km=8.0, limit=120, lang="en"):
             seen.update(lat=lat, lon=lon, radius_km=radius_km)
             return [
                 discover.Suggestion(
@@ -421,7 +424,7 @@ class TestAskingAgainWhereWikidataDoesNotReach:
                 return httpx.Response(200, json=self._payload(2, wikidata=True))
             return httpx.Response(200, json=self._payload(40, wikidata=False, first_id=100))
 
-        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(discover, "about", _nothing_known)
         monkeypatch.setattr(httpx, "AsyncClient", _transport(handler))
         found = await discover.around(-41.13, -71.31, 5.0)
 
@@ -443,7 +446,7 @@ class TestAskingAgainWhereWikidataDoesNotReach:
             asked.append(unquote_plus(request.content.decode()))
             return httpx.Response(200, json=self._payload(60, wikidata=True))
 
-        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(discover, "about", _nothing_known)
         monkeypatch.setattr(httpx, "AsyncClient", _transport(handler))
         await discover.around(35.69, 139.70, 5.0)
         assert len(asked) == 1
@@ -459,7 +462,7 @@ class TestAskingAgainWhereWikidataDoesNotReach:
                 return httpx.Response(200, json=self._payload(2, wikidata=True))
             return httpx.Response(200, json=self._payload(30, wikidata=False))
 
-        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(discover, "about", _nothing_known)
         monkeypatch.setattr(httpx, "AsyncClient", _transport(handler))
         found = await discover.around(-41.13, -71.31, 5.0)
 
@@ -497,7 +500,7 @@ class TestTheOrderThatComesOut:
             ]
         }
 
-        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(discover, "about", _nothing_known)
         monkeypatch.setattr(
             httpx, "AsyncClient", _transport(lambda _: httpx.Response(200, json=payload))
         )
@@ -586,3 +589,121 @@ class TestOrderingWhereNothingIsRankable:
             osm_id="n/2",
         )
         assert [p.osm_id for p in discover.rank([z, a])] == ["n/1", "n/2"]
+
+
+class TestWhatAPersonNeedsInOrderToChoose:
+    """A name is not enough to choose from.
+
+    "I found places thanks to the suggestions of the app but I don't know
+    what they are." Twenty rows reading "Gokokuji · Tempio · 1h 30min"
+    say what kind of thing each is and nothing about which are worth a
+    morning. Wikidata answers both in the query already being made.
+    """
+
+    @staticmethod
+    def _rows(*entries: dict) -> dict:
+        return {"results": {"bindings": list(entries)}}
+
+    @staticmethod
+    def _row(
+        qid: str,
+        links: int,
+        desc: str | None = None,
+        lang: str | None = None,
+        img: str | None = None,
+    ) -> dict:
+        row: dict = {
+            "item": {"value": f"http://www.wikidata.org/entity/{qid}"},
+            "links": {"value": str(links)},
+        }
+        if desc is not None:
+            row["desc"] = {"value": desc, "xml:lang": lang}
+        if img is not None:
+            row["img"] = {"value": img}
+        return row
+
+    @pytest.mark.anyio
+    async def test_it_asks_for_the_reader_s_language_and_english_too(self) -> None:
+        # Measured on sixty places in Lisbon: English described all
+        # sixty-six rows and Italian twenty-seven. Asking only for the
+        # reader's language would leave three in five blank.
+        asked: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            asked.append(request.url.params["query"])
+            return httpx.Response(200, json=self._rows())
+
+        async with _client(handler) as client:
+            await discover.about(client, ["Q1"], "it")
+
+        assert '"it", "en"' in asked[0]
+
+    @pytest.mark.anyio
+    async def test_the_reader_s_language_wins_over_english(self) -> None:
+        # SPARQL returns the cross product, so an entity described in both
+        # arrives as two rows — in whichever order the server felt like.
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json=self._rows(
+                    self._row("Q1", 5, "art museum in Tokyo", "en"),
+                    self._row("Q1", 5, "museo d'arte a Tokyo", "it"),
+                ),
+            )
+
+        async with _client(handler) as client:
+            known = await discover.about(client, ["Q1"], "it")
+        assert known["Q1"].description == "museo d'arte a Tokyo"
+
+    @pytest.mark.anyio
+    async def test_english_is_kept_when_the_reader_s_language_has_nothing(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=self._rows(self._row("Q1", 5, "art museum", "en")))
+
+        async with _client(handler) as client:
+            known = await discover.about(client, ["Q1"], "it")
+        assert known["Q1"].description == "art museum"
+
+    @pytest.mark.anyio
+    async def test_the_italian_row_wins_whichever_order_it_arrives_in(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json=self._rows(
+                    self._row("Q1", 5, "museo d'arte a Tokyo", "it"),
+                    self._row("Q1", 5, "art museum in Tokyo", "en"),
+                ),
+            )
+
+        async with _client(handler) as client:
+            known = await discover.about(client, ["Q1"], "it")
+        assert known["Q1"].description == "museo d'arte a Tokyo"
+
+    @pytest.mark.anyio
+    async def test_a_photograph_is_asked_for_at_a_size_a_phone_can_afford(self) -> None:
+        """P18 points at the original upload: measured at four megabytes
+        for the Tokyo National Museum, against 25 KB at 320 pixels."""
+        original = "http://commons.wikimedia.org/wiki/Special:FilePath/Museum.jpg"
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=self._rows(self._row("Q1", 5, img=original)))
+
+        async with _client(handler) as client:
+            known = await discover.about(client, ["Q1"], "it")
+
+        assert known["Q1"].image == original
+        assert discover._thumbnail(original) == f"{original}?width=320"
+
+    @pytest.mark.anyio
+    async def test_an_entity_with_neither_still_keeps_its_rank(self) -> None:
+        # The `OPTIONAL`s are load-bearing: an inner join would drop this
+        # row entirely and quietly cost the place its fame.
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=self._rows(self._row("Q1", 42)))
+
+        async with _client(handler) as client:
+            known = await discover.about(client, ["Q1"], "it")
+
+        assert known["Q1"].links == 42
+        assert known["Q1"].description is None
+        assert known["Q1"].image is None

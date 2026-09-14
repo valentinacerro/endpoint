@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router'
 
 import { useDiscover, useSchedulePlaces, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
+import { PlaceCard } from '../components/PlaceCard'
 import { count, t } from '../i18n'
-import { placeCategoryLabel } from '../i18n/labels'
 import { formatDayKey, formatDuration, formatTimeInZone } from '../lib/datetime'
 import { gapsIn, unsearchable } from '../lib/autoPlan'
 import { bundleWith, proposeFor, type Proposed } from '../lib/fillGaps'
@@ -275,10 +275,14 @@ export function PlanTrip() {
                   {proposed.map((item) => (
                     <li key={item.place.id} className="doc">
                       <span className="doc__open" style={{ cursor: 'default' }}>
-                        <span className="doc__name">{item.place.name}</span>
-                        <span className="doc__meta">
-                          {[placeCategoryLabel(item.place.category), item.stopName].join(' · ')}
-                        </span>
+                        <PlaceCard
+                          name={item.place.name}
+                          category={item.place.category}
+                          description={item.description}
+                          image={item.image}
+                          fame={item.fame}
+                          extra={item.stopName}
+                        />
                       </span>
                       <div className="doc__actions">
                         <button

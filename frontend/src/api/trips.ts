@@ -10,6 +10,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
 import { guessBooking, guessPlace, guessStop, waitingAttachment } from '../lib/optimistic'
+import { activeLocale } from '../i18n/locale'
 import { enqueue, payloadOf, type QueuedWrite } from '../offline/outbox'
 import { shouldKeep } from '../offline/useOutbox'
 
@@ -777,15 +778,17 @@ export function usePlaceSearch(query: string, near: { lat: number; lon: number }
  */
 export function useDiscover() {
   const queryClient = useQueryClient()
+  const lang = activeLocale()
   return (near: { lat: number; lon: number }, radiusKm = 5) =>
     queryClient.fetchQuery({
-      queryKey: ['discover', near.lat, near.lon, radiusKm] as const,
+      queryKey: ['discover', near.lat, near.lon, radiusKm, lang] as const,
       queryFn: () =>
         apiFetch<Suggestion[]>(
           `/api/geo/discover?${new URLSearchParams({
             lat: String(near.lat),
             lon: String(near.lon),
             radius_km: String(radiusKm),
+            lang,
           })}`,
         ),
       staleTime: Infinity,
@@ -793,14 +796,18 @@ export function useDiscover() {
 }
 
 export function useSuggestions(near: { lat: number; lon: number } | null, radiusKm = 5) {
+  const lang = activeLocale()
   return useQuery({
-    queryKey: ['discover', near?.lat ?? null, near?.lon ?? null, radiusKm] as const,
+    queryKey: ['discover', near?.lat ?? null, near?.lon ?? null, radiusKm, lang] as const,
     queryFn: () =>
       apiFetch<Suggestion[]>(
         `/api/geo/discover?${new URLSearchParams({
           lat: String(near!.lat),
           lon: String(near!.lon),
           radius_km: String(radiusKm),
+          // The descriptions come back in this language where Wikidata
+          // has one, and in English where it does not.
+          lang,
         })}`,
       ),
     enabled: near !== null,

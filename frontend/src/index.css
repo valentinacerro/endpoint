@@ -2702,3 +2702,55 @@ a.entry__content:hover .entry__title {
   font-size: 12px;
   opacity: 0.85;
 }
+
+/* --- A suggested place, told well enough to choose from --- */
+/* A name and a category is not a description: "Gokokuji · Tempio" could
+   be a national treasure or a shed. The photograph carries most of the
+   weight here, so it keeps its square whether or not there is one — a
+   list where half the rows have an image and half do not is harder to
+   read than one with none. */
+.suggest {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  min-width: 0;
+  text-align: left;
+}
+.suggest__photo {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--surface-sunken);
+}
+.suggest__photo--none {
+  border: 1px dashed var(--border);
+}
+.suggest__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.suggest__name {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.25;
+}
+.suggest__what {
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.35;
+  /* Two lines, then stop. Wikidata is usually one clause but occasionally
+     writes a paragraph, and a row that grows to six lines turns a list of
+     twenty into a scroll nobody finishes. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.suggest__meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}

@@ -18,8 +18,11 @@ import { expect, test, type Page } from '@playwright/test'
  * covers the real call.
  */
 
+const PHOTO = 'http://commons.wikimedia.org/wiki/Special:FilePath/Senso-ji.jpg?width=320'
+
 const AROUND_TOKYO = [
-  { name: 'Sensō-ji', lat: 35.7148, lon: 139.7967, category: 'temple', fame: 90, wikidata: 'Q206144', osm_id: 'w/1' },
+  { name: 'Sensō-ji', lat: 35.7148, lon: 139.7967, category: 'temple', fame: 90, wikidata: 'Q206144', osm_id: 'w/1',
+    description: 'tempio buddhista ad Asakusa, Tokyo', image: PHOTO },
   { name: 'Tokyo National Museum', lat: 35.7188, lon: 139.7765, category: 'museum', fame: 80, wikidata: 'Q653433', osm_id: 'w/2' },
   { name: 'Ueno Park', lat: 35.7141, lon: 139.7744, category: 'park', fame: 70, wikidata: null, osm_id: 'w/3' },
   { name: 'Meiji Jingū', lat: 35.6764, lon: 139.6993, category: 'shrine', fame: 85, wikidata: 'Q383981', osm_id: 'w/4' },
@@ -222,4 +225,45 @@ test('a city the service will not answer for does not take the others down', asy
   await expect(page.getByText('Sensō-ji')).toBeVisible()
   // And Kyoto's silence is named rather than swallowed.
   await expect(page.getByText(/a Kyoto non ho ricevuto risposta/i)).toBeVisible()
+})
+
+test('a proposal says what it is and shows it', async ({ page }) => {
+  // "I found places thanks to the suggestions but I don't know what they
+  // are." A name and a category could be a national treasure or a shed.
+  await page.route('**/api/geo/discover**', (route) => route.fulfill({ json: AROUND_TOKYO }))
+  // The photograph itself is intercepted: what is tested is that the app
+  // asks for one at a size it can afford, not Wikimedia's uptime.
+  await page.route('**/commons.wikimedia.org/**', (route) =>
+    route.fulfill({ contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAAAAACw=', 'base64') }),
+  )
+
+  const tripId = await bareTrip(page)
+  await page.goto(`/trips/${tripId}/plan`)
+  await page.getByRole('button', { name: 'Calcola il piano' }).click()
+
+  await expect(page.getByText('tempio buddhista ad Asakusa, Tokyo')).toBeVisible()
+
+  const photo = page.locator('.suggest__photo').first()
+  await expect(photo).toBeVisible()
+  // Sized in the URL. P18 gives the original — four megabytes for the
+  // Tokyo National Museum — and twenty of those is not a list, it is a
+  // download.
+  await expect(photo).toHaveAttribute('src', /width=320/)
+  // And only what has been scrolled to.
+  await expect(photo).toHaveAttribute('loading', 'lazy')
+})
+
+test('it asks for the descriptions in the language being read', async ({ page }) => {
+  const asked: string[] = []
+  await page.route('**/api/geo/discover**', (route) => {
+    asked.push(new URL(route.request().url()).searchParams.get('lang') ?? '')
+    return route.fulfill({ json: AROUND_TOKYO })
+  })
+
+  const tripId = await bareTrip(page)
+  await page.goto(`/trips/${tripId}/plan`)
+  await page.getByRole('button', { name: 'Calcola il piano' }).click()
+  await expect(page.getByText(/li ho trovati io/i)).toBeVisible()
+
+  expect(asked).toEqual(['it'])
 })

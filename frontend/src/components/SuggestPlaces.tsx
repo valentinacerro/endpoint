@@ -6,6 +6,7 @@ import { count, t } from '../i18n'
 import { placeCategoryLabel } from '../i18n/labels'
 import { byTaste, categoriesIn, onlyNew } from '../lib/suggest'
 import { Icon } from './Icon'
+import { PlaceCard } from './PlaceCard'
 import { TasteSort } from './TasteSort'
 
 /**
@@ -173,13 +174,13 @@ export function SuggestPlaces({
                 <span className={`pack__box ${on ? 'pack__box--on' : ''}`}>
                   {on && <Icon name="check" size={14} />}
                 </span>
-                <span className="rows__body">
-                  <span className="pack__text">{item.name}</span>
-                  <span className="rows__hint">
-                    {placeCategoryLabel(item.category)}
-                    {item.fame > 0 && ` · ${t('suggest.fame', { n: item.fame })}`}
-                  </span>
-                </span>
+                <PlaceCard
+                  name={item.name}
+                  category={item.category}
+                  description={item.description}
+                  image={item.image}
+                  fame={item.fame}
+                />
               </button>
             </li>
           )

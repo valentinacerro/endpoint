@@ -23,6 +23,9 @@ export interface Proposed {
   stopName: string
   /** How much has been written about it, which is our only clue to famous. */
   fame: number
+  /** One line saying what it is, and a photograph, both from Wikidata. */
+  description: string | null
+  image: string | null
 }
 
 /**
@@ -86,6 +89,8 @@ export function proposeFor(
       place: asPlace(tripId, gap.stopId, suggestion, newId()),
       stopName: gap.stopName,
       fame: suggestion.fame,
+      description: suggestion.description ?? null,
+      image: suggestion.image ?? null,
     }))
 }
 

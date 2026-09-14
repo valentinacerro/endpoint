@@ -56,6 +56,12 @@ class SuggestionOut(BaseModel):
     fame: int
     wikidata: str | None
     osm_id: str
+    #: One line saying what it actually is. A name on its own does not
+    #: tell you whether "Gokokuji" is a temple or a car park, which is
+    #: what made a list of suggestions hard to choose from.
+    description: str | None = None
+    #: A photograph, already sized for a list.
+    image: str | None = None
 
 
 @router.get("/locate", response_model=HitOut | None)
@@ -88,6 +94,11 @@ async def discover_places(
     lat: Annotated[float, Query(ge=-90, le=90)],
     lon: Annotated[float, Query(ge=-180, le=180)],
     radius_km: Annotated[float, Query(gt=0, le=50)] = 8.0,
+    # The reader's language, for the one-line descriptions. English is
+    # asked for alongside it regardless and used where the other is
+    # missing — measured on sixty places in Lisbon, English described all
+    # of them and Italian two in five.
+    lang: Annotated[str, Query(pattern=r"^[a-z]{2}$")] = "en",
 ) -> list[discover.Suggestion]:
     """What there is to see around a point, the best known first.
 
@@ -99,4 +110,4 @@ async def discover_places(
     that fails to appear is a disappointment where a 502 would be a bug.
     The client caches what it gets, so a second look costs nothing.
     """
-    return await discover.around(lat, lon, radius_km)
+    return await discover.around(lat, lon, radius_km, lang=lang)

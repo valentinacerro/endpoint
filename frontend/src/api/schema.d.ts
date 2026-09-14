@@ -1772,6 +1772,10 @@ export interface components {
             wikidata: string | null;
             /** Osm Id */
             osm_id: string;
+            /** Description */
+            description?: string | null;
+            /** Image */
+            image?: string | null;
         };
         /**
          * TimePrecision
@@ -3070,6 +3074,7 @@ export interface operations {
                 lat: number;
                 lon: number;
                 radius_km?: number;
+                lang?: string;
             };
             header?: never;
             path?: never;
