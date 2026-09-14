@@ -247,6 +247,7 @@ export const it = {
     'Il fuso della tappa decide in quale giornata finiscono le sue prenotazioni.',
 
   'map.title': 'Mappa',
+  'map.waiting': 'Da programmare',
   'map.allDays': 'Tutto il viaggio',
   'map.nothingToShow': 'Nessuna tappa con una posizione. Aggiungi i luoghi da un link di Maps e compariranno qui.',
   'map.missingCoords_one': 'Una tappa non ha una posizione e non è sulla mappa.',

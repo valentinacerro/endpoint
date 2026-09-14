@@ -244,6 +244,7 @@ export const en: Record<TranslationKey, string> = {
   'stops.tzHint': 'A stop’s zone decides which day its bookings land on.',
 
   'map.title': 'Map',
+  'map.waiting': 'Not yet planned',
   'map.allDays': 'The whole trip',
   'map.nothingToShow':
     'No stop has a position. Add places from a Maps link and they will appear here.',

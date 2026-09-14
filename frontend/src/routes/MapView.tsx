@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 
 import { useTripBundle } from '../api/trips'
-import type { BookingKind } from '../api/types'
+import type { BookingKind, Place } from '../api/types'
 import { TripMap, type MapPin } from '../components/TripMap'
 import { AppBar } from '../components/AppBar'
 import { count, t } from '../i18n'
 import { formatDayKey } from '../lib/datetime'
 import { buildTimeline, type Day, type PlacedEntry } from '../lib/itinerary'
+
+/** The filter chip for places that have not been given a day. */
+const WAITING = 'waiting'
 
 const TRAVEL: ReadonlySet<BookingKind> = new Set([
   'flight',
@@ -42,7 +45,19 @@ function coordsOf(placed: PlacedEntry): { lat: number; lon: number; label: strin
   return { lat: source.lat, lon: source.lon, label: source.label }
 }
 
-export function pinsFor(days: Day[]): { pins: MapPin[]; missing: number } {
+/**
+ * Pins for what is planned, and for what is not.
+ *
+ * `waiting` used to be missing entirely, and that was the whole of "the
+ * map does not work": a trip you have just collected twenty places for
+ * has nothing on any day yet, so the map drew none of them and said
+ * there was nothing to show. The places you are deciding between are
+ * exactly the ones worth seeing on a map.
+ */
+export function pinsFor(
+  days: Day[],
+  waiting: readonly Place[] = [],
+): { pins: MapPin[]; missing: number } {
   const pins: MapPin[] = []
   let missing = 0
 
@@ -66,6 +81,21 @@ export function pinsFor(days: Day[]): { pins: MapPin[]; missing: number } {
     })
   }
 
+  for (const place of waiting) {
+    if (typeof place.lat !== 'number' || typeof place.lon !== 'number') {
+      missing += 1
+      continue
+    }
+    pins.push({
+      id: place.id,
+      order: null,
+      lat: place.lat,
+      lon: place.lon,
+      label: place.name,
+      kind: place.category === 'food' ? 'food' : 'see',
+    })
+  }
+
   return { pins, missing }
 }
 
@@ -80,8 +110,13 @@ export function MapView() {
   const timeline = buildTimeline(bundle.data)
   // Only days with something on them: chips for empty days would be noise.
   const days = timeline.days.filter((day) => day.entries.length > 0)
-  const shown = selected ? days.filter((day) => day.key === selected) : days
-  const { pins, missing } = pinsFor(shown)
+  const waiting = timeline.unscheduledPlaces
+  const showWaiting = selected === null || selected === WAITING
+  const shown = selected && selected !== WAITING ? days.filter((day) => day.key === selected) : days
+  const { pins, missing } = pinsFor(
+    selected === WAITING ? [] : shown,
+    showWaiting ? waiting : [],
+  )
 
   return (
     <>
@@ -92,7 +127,7 @@ export function MapView() {
       />
       <main className="page stack">
 
-      {days.length > 1 && (
+      {(days.length > 1 || (days.length > 0 && waiting.length > 0)) && (
         <nav className="toolbar">
           <button
             className={`toolbar__link ${selected === null ? 'toolbar__link--on' : ''}`}
@@ -109,6 +144,14 @@ export function MapView() {
               {formatDayKey(day.key)}
             </button>
           ))}
+          {waiting.length > 0 && (
+            <button
+              className={`toolbar__link ${selected === WAITING ? 'toolbar__link--on' : ''}`}
+              onClick={() => setSelected(WAITING)}
+            >
+              {t('map.waiting')}
+            </button>
+          )}
         </nav>
       )}
 

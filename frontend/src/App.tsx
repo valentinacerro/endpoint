@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 
 import { useSession } from './api/auth'
-import { useLocale } from './i18n'
+import { t, useLocale } from './i18n'
 import { SyncBanner } from './components/SyncBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { requestPersistentStorage } from './offline/persister'
@@ -51,7 +51,24 @@ export default function App() {
     if (authenticated) void requestPersistentStorage()
   }, [authenticated])
 
-  if (session.isPending) return <div className="splash" />
+  if (session.isPending) {
+    // Not a bare div. This is the longest wait in the app — a free
+    // instance that has gone to sleep takes up to a minute and a half to
+    // answer, and `apiFetch` spends that retrying rather than failing —
+    // and what stood here was an empty box with no banner, because the
+    // banner only started at the next branch. A minute of black screen is
+    // indistinguishable from an app that does not work, which is what it
+    // was reported as.
+    return (
+      <>
+        <SyncBanner />
+        <div className="splash">
+          <img className="splash__mark" src="/icons/icon-192.png" alt="" width={72} height={72} />
+          <p className="splash__name">{t('app.name')}</p>
+        </div>
+      </>
+    )
+  }
   if (!authenticated) {
     return (
       <>

@@ -92,3 +92,49 @@ describe('turning a day into map pins', () => {
     expect(result.pins.map((pin) => pin.kind)).toEqual(['travel', 'stay', 'food', 'see'])
   })
 })
+
+describe('the places still waiting for a day', () => {
+  const place = (over: Partial<Place>): Place =>
+    ({
+      id: over.id ?? crypto.randomUUID(),
+      name: 'Senso-ji',
+      category: 'temple',
+      lat: 35.7148,
+      lon: 139.7967,
+      ...over,
+    }) as Place
+
+  it('draws them, which is the whole of "the map does not work"', () => {
+    // A trip you have just collected places for has nothing on any day.
+    // Before this, that map was empty and said there was nothing to show.
+    const result = pinsFor([], [place({ name: 'Senso-ji' }), place({ name: 'Skytree' })])
+    expect(result.pins.map((pin) => pin.label)).toEqual(['Senso-ji', 'Skytree'])
+  })
+
+  it('leaves them unnumbered, because they have no place in a sequence', () => {
+    const result = pinsFor([], [place({})])
+    expect(result.pins[0].order).toBeNull()
+  })
+
+  it('keeps numbering the planned ones from one, across the whole selection', () => {
+    const result = pinsFor(
+      [day([placeEntry({ name: 'primo', lat: 35.7, lon: 139.8 })])],
+      [place({ name: 'in attesa' })],
+    )
+    expect(result.pins.map((pin) => [pin.order, pin.label])).toEqual([
+      [1, 'primo'],
+      [null, 'in attesa'],
+    ])
+  })
+
+  it('counts one without a position as missing rather than dropping it silently', () => {
+    const result = pinsFor([], [place({ lat: null, lon: null })])
+    expect(result.pins).toHaveLength(0)
+    expect(result.missing).toBe(1)
+  })
+
+  it('colours somewhere to eat differently from somewhere to see', () => {
+    const result = pinsFor([], [place({ category: 'food' }), place({ category: 'museum' })])
+    expect(result.pins.map((pin) => pin.kind)).toEqual(['food', 'see'])
+  })
+})

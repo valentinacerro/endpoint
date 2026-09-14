@@ -4,8 +4,12 @@ import { t } from '../i18n'
 
 export interface MapPin {
   id: string
-  /** 1-based position within the day, drawn inside the pin. */
-  order: number
+  /**
+   * 1-based position within the selection, drawn inside the pin — or null
+   * for a place that has not been given a day yet. Numbering those would
+   * claim an order they do not have.
+   */
+  order: number | null
   lat: number
   lon: number
   label: string
@@ -74,7 +78,10 @@ export function TripMap({ pins }: { pins: MapPin[] }) {
         L.marker([pin.lat, pin.lon], {
           icon: L.divIcon({
             className: 'map-pin-wrap',
-            html: `<span class="map-pin" style="--pin:${KIND_COLOUR[pin.kind]}">${pin.order}</span>`,
+            html:
+              pin.order === null
+                ? `<span class="map-pin map-pin--waiting" style="--pin:${KIND_COLOUR[pin.kind]}"></span>`
+                : `<span class="map-pin" style="--pin:${KIND_COLOUR[pin.kind]}">${pin.order}</span>`,
             iconSize: [26, 26],
             iconAnchor: [13, 13],
           }),

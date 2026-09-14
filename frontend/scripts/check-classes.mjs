@@ -23,6 +23,7 @@ const CSS = join(SRC, 'index.css')
 const NOT_IN_JSX = new Map([
   ['map-pin', 'written into Leaflet marker HTML, not a className'],
   ['map-pin-wrap', 'passed to Leaflet as its icon className'],
+  ['map-pin--waiting', 'the same, for a place with no day yet'],
 ])
 
 /**
