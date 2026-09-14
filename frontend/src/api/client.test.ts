@@ -33,6 +33,24 @@ function server(...answers: Array<Response | Error | 'hang'>) {
   return calls
 }
 
+/**
+ * The error a failing request rejects with, captured at once.
+ *
+ * A promise left bare for even a tick while the clock is advanced is an
+ * unhandled rejection rather than a test — and typing the handler is not
+ * enough, because `apiFetch<T>` with no T infers `unknown` and the catch
+ * widens straight back to it. This also asserts the request actually
+ * failed, so a case that one day stops failing cannot pass quietly.
+ */
+function failure(request: Promise<unknown>): Promise<ApiError> {
+  return request.then(
+    () => {
+      throw new Error('expected the request to fail')
+    },
+    (error: ApiError) => error,
+  )
+}
+
 const ok = (body: unknown) =>
   new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
 const gateway = (status: number) => new Response('', { status })
@@ -91,7 +109,7 @@ describe('a phone with no network', () => {
     // The handler is attached before the clock moves: this one rejects
     // on the first attempt, and a promise left bare for even a tick is an
     // unhandled rejection rather than a test.
-    const caught = apiFetch('/api/auth/me').catch((error: ApiError) => error)
+    const caught = failure(apiFetch('/api/auth/me'))
     await vi.advanceTimersByTimeAsync(0)
     expect((await caught).code).toBe('offline')
     expect(getConnection()).toBe('offline')
@@ -100,7 +118,7 @@ describe('a phone with no network', () => {
   it('does not retry, because there is nothing to retry against', async () => {
     setOnline(false)
     const calls = server(new TypeError('Failed to fetch'))
-    await expect(apiFetch('/api/auth/me')).rejects.toBeInstanceOf(ApiError)
+    expect(await failure(apiFetch('/api/auth/me'))).toBeInstanceOf(ApiError)
     expect(calls).toHaveLength(1)
   })
 })
@@ -119,9 +137,7 @@ describe('a phone on wifi and a server that will not answer', () => {
     setOnline(true)
     server(new TypeError('Failed to fetch'))
 
-    const caught = apiFetch('/api/trips', { method: 'POST', body: {} }).catch(
-      (error: ApiError) => error,
-    )
+    const caught = failure(apiFetch('/api/trips', { method: 'POST', body: {} }))
     await vi.advanceTimersByTimeAsync(0)
 
     expect(getConnection()).toBe('unreachable')
@@ -132,7 +148,7 @@ describe('a phone on wifi and a server that will not answer', () => {
     setOnline(true)
     server(new TypeError('Failed to fetch'))
 
-    const caught = apiFetch('/api/auth/me').catch((error: ApiError) => error)
+    const caught = failure(apiFetch('/api/auth/me'))
     // Exactly the sum of the backoffs — 1 + 3 + 8 + 20 + 30 seconds — so
     // the clock stops before the twenty-second healing probe can fire and
     // paper over what the request loop actually said.
@@ -145,7 +161,7 @@ describe('a phone on wifi and a server that will not answer', () => {
   it('recovers on its own once the server comes back', async () => {
     setOnline(true)
     server(new TypeError('Failed to fetch'))
-    const failing = apiFetch('/api/auth/me').catch(() => null)
+    const failing = failure(apiFetch('/api/auth/me'))
     await vi.advanceTimersByTimeAsync(120_000)
     await failing
     expect(getConnection()).toBe('unreachable')
@@ -161,8 +177,9 @@ describe('a phone on wifi and a server that will not answer', () => {
 describe('what may and may not be repeated', () => {
   it('never repeats a write, because the first one may have landed', async () => {
     const calls = server(new TypeError('Failed to fetch'))
-    const request = apiFetch('/api/trips', { method: 'POST', body: { title: 'Giappone' } })
-    const caught = request.catch(() => null)
+    const caught = failure(
+      apiFetch('/api/trips', { method: 'POST', body: { title: 'Giappone' } }),
+    )
     await vi.advanceTimersByTimeAsync(120_000)
     await caught
     expect(calls.filter((call) => call.method === 'POST')).toHaveLength(1)
