@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Attachment, Booking, ChecklistItem, Expense, Trip, TripBundle } from '../api/types'
-import { chooseMoment, readiness, spentOn, stopToday } from './today'
+import { chooseMoment, readiness, refine, spentOn, stopToday } from './today'
 
 function trip(over: Partial<Trip> = {}): Trip {
   return {
@@ -63,11 +63,10 @@ describe('which trip today is about', () => {
     })
   })
 
-  it('reads the day in the trip’s own zone, not the device’s', () => {
-    // 16:00 UTC on the 12th is one in the morning of the 13th in Tokyo and
-    // still six in the evening of the 12th in Rome — April, so Rome is on
-    // summer time and the gap is seven hours. If the app read the device's
-    // day it would say day 2 all through her first Tokyo morning.
+  it('counts the day against the home clock, which is all it has', () => {
+    // `chooseMoment` only has the trip list, so it uses `primary_tz` —
+    // documented as the home clock. Refining that against where you are
+    // actually standing is `refine`'s job, below.
     const inTokyo = trip({ primary_tz: 'Asia/Tokyo' })
     const inRome = trip({ primary_tz: 'Europe/Rome' })
     const instant = at('2026-04-12T16:00:00Z')
@@ -231,5 +230,46 @@ describe('where you are today', () => {
   it('ignores a stop that never says when it starts', () => {
     const data = bundle({ stops: [stop('Ovunque', null, null)] })
     expect(stopToday(data, '2026-04-13')).toBeNull()
+  })
+})
+
+describe('re-reading the day where you are standing', () => {
+  // Rome is on summer time in April, so Tokyo is seven hours ahead: at
+  // 16:00 UTC on the 12th it is already the 13th there and still the
+  // evening of the 12th at home.
+  const evening = at('2026-04-12T16:00:00Z')
+  const home = trip({ primary_tz: 'Europe/Rome' })
+
+  it('moves the day forward when the trip zone is ahead of home', () => {
+    const chosen = chooseMoment([home], evening)
+    expect(chosen).toMatchObject({ phase: 'during', day: 2 })
+    expect(refine(chosen, 'Asia/Tokyo', evening)).toMatchObject({
+      day: 3,
+      today: '2026-04-13',
+    })
+  })
+
+  it('leaves it alone when the zone is the same', () => {
+    const chosen = chooseMoment([home], evening)
+    expect(refine(chosen, 'Europe/Rome', evening)).toEqual(chosen)
+  })
+
+  it('leaves it alone when there is no zone to refine against', () => {
+    const chosen = chooseMoment([home], evening)
+    expect(refine(chosen, null, evening)).toEqual(chosen)
+  })
+
+  it('does not touch a trip that has not started or has ended', () => {
+    const soon = chooseMoment([trip({ start_date: '2026-05-01', end_date: '2026-05-04' })], evening)
+    expect(refine(soon, 'Asia/Tokyo', evening)).toEqual(soon)
+  })
+
+  it('does not push the last day past the end of the trip', () => {
+    // The evening of the final day at home is already tomorrow in Tokyo,
+    // and "day 15 of 14" is not a thing to show anyone.
+    const lastEvening = at('2026-04-24T16:00:00Z')
+    const chosen = chooseMoment([home], lastEvening)
+    expect(chosen).toMatchObject({ day: 14, total: 14 })
+    expect(refine(chosen, 'Asia/Tokyo', lastEvening)).toEqual(chosen)
   })
 })

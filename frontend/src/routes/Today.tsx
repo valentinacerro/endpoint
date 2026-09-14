@@ -14,7 +14,7 @@ import {
   formatTimeInZone,
 } from '../lib/datetime'
 import { nextBooking } from '../lib/itinerary'
-import { chooseMoment, readiness, spentOn, stopToday, type Moment } from '../lib/today'
+import { chooseMoment, readiness, refine, spentOn, stopToday, type Moment } from '../lib/today'
 import { pinnedUrls } from '../offline/attachmentCache'
 import { SKY_ICON, skyOf } from '../lib/weather'
 
@@ -181,8 +181,13 @@ function BeforeTrip({ moment }: { moment: Extract<Moment, { phase: 'before' }> }
 }
 
 /** The trip you are on. */
-function DuringTrip({ moment }: { moment: Extract<Moment, { phase: 'during' }> }) {
-  const bundle = useTripBundle(moment.trip.id)
+function DuringTrip({ moment: chosen }: { moment: Extract<Moment, { phase: 'during' }> }) {
+  const bundle = useTripBundle(chosen.trip.id)
+  // The day number is counted against the home clock until the bundle
+  // arrives and says which city you are in. Seven hours matter: in Tokyo
+  // it is tomorrow for most of a Roman evening.
+  const firstGuess = bundle.data ? stopToday(bundle.data, chosen.today) : null
+  const moment = refine(chosen, firstGuess?.tz ?? null) as typeof chosen
   const stop = bundle.data ? stopToday(bundle.data, moment.today) : null
   const spent = bundle.data ? spentOn(bundle.data, moment.today) : 0
 

@@ -9,10 +9,17 @@
  * Pure, because it is the part worth testing. The screen that uses it is
  * just markup.
  *
- * "Today" is read in each trip's OWN zone, not the device's. On the
- * morning of the third day in Tokyo the app should say "Day 3" whether
- * or not Rome has got there yet — the trip's calendar is the one you are
- * living in.
+ * "Today" wants to be read in the zone you are actually standing in. On
+ * the morning of the third day in Tokyo the app should say "Day 3"
+ * whether or not Rome has got there yet.
+ *
+ * That takes two steps, because they need different things. Choosing
+ * WHICH trip uses `primary_tz`, which the model documents as the home
+ * clock — good enough, since a day either way only matters at a
+ * boundary and both candidates are the same trip. Saying which DAY OF
+ * it you are on is what a reader actually looks at, and that is refined
+ * against the stop's own zone by `refine()`, once the caller has the
+ * bundle and knows where you are sleeping.
  */
 
 import type { Attachment, Booking, Expense, Trip, TripBundle } from '../api/types'
@@ -90,6 +97,28 @@ export function chooseMoment(trips: readonly Trip[], now: Date = new Date()): Mo
   if (next) return { phase: 'before', ...next }
   if (previous) return { phase: 'after', ...previous }
   return { phase: 'none' }
+}
+
+/**
+ * The same moment, re-read in the zone of the place you are in.
+ *
+ * `chooseMoment` has only the trip list, so it counts days against the
+ * home clock. Once the bundle is loaded the stop's zone is known, and in
+ * Tokyo that is seven hours further on — enough to spend a whole morning
+ * reading "day 2" on the third day.
+ */
+export function refine(moment: Moment, zone: string | null, now: Date = new Date()): Moment {
+  if (moment.phase !== 'during' || !zone) return moment
+
+  const today = dayKeyInZone(now.toISOString(), zone)
+  const start = moment.trip.start_date as CalendarDate
+  const end = lastDay(moment.trip) as CalendarDate
+  // Outside the trip in this zone: the trip is ending or has not started
+  // where you are. Leave the choice alone rather than inventing a phase
+  // the caller is not rendering.
+  if (today < start || today > end) return moment
+
+  return { ...moment, today, day: daysBetween(start, today) + 1 }
 }
 
 export interface Readiness {
