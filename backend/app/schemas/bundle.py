@@ -11,6 +11,7 @@ from app.schemas.expense import ExpenseRead
 from app.schemas.memory import MemoryRead
 from app.schemas.place import PlaceRead
 from app.schemas.stop import StopRead
+from app.schemas.travel_time import TravelTimeRead
 from app.schemas.trip import TripRead
 
 
@@ -33,5 +34,6 @@ class TripBundle(BaseModel):
     day_notes: list[DayNoteRead]
     diary: list[DiaryEntryRead]
     memories: list[MemoryRead]
+    travel_times: list[TravelTimeRead]
     attachments: list[AttachmentRead]
     generated_at: dt.datetime

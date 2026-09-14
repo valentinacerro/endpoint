@@ -20,7 +20,7 @@ import {
   zonedInputToInstant,
   type CalendarDate,
 } from './datetime'
-import { travelMinutes, type Point } from './geo'
+import { travelMinutes, type Known, type Point } from './geo'
 
 export type Priority = 'must_see' | 'high' | 'normal' | 'low'
 
@@ -82,12 +82,32 @@ export interface PlanOptions {
    * outwards from somewhere real rather than from its first candidate.
    */
   startPoint?: Point | null
+  /**
+   * Legs whose time you looked up yourself.
+   *
+   * Threaded all the way down rather than applied at the end: the times
+   * do not merely label the plan, they decide the order and whether the
+   * day fits. A correction the router never saw would show the right
+   * number beside the wrong itinerary.
+   */
+  known?: Known
 }
 
 export interface PlannedVisit {
   id: string
   startAt: string
   travelMinutesBefore: number
+  /**
+   * The two ends of the leg that `travelMinutesBefore` measures.
+   *
+   * Carried so a reader can correct it. The estimate is honest about
+   * distance and long about time — it cannot know whether a railway
+   * joins two points — and the only free fix is a number you looked up,
+   * which needs somewhere to be typed and something to be typed against.
+   * Null at the start of a day, where there is no previous point.
+   */
+  legFrom: Point | null
+  legTo: Point | null
   /** True when we scheduled it without knowing whether it is open. */
   hoursUnknown: boolean
 }
@@ -153,7 +173,11 @@ function earliestStart(openness: Openness, from: number, visitMinutes: number): 
 // --- Ordering ----------------------------------------------------------
 
 /** Nearest neighbour from a starting point: a decent first guess. */
-export function nearestNeighbour(items: Candidate[], from: Point | null): Candidate[] {
+export function nearestNeighbour(
+  items: Candidate[],
+  from: Point | null,
+  known?: Known,
+): Candidate[] {
   const remaining = [...items]
   const ordered: Candidate[] = []
   let current = from
@@ -163,7 +187,7 @@ export function nearestNeighbour(items: Candidate[], from: Point | null): Candid
     if (current) {
       let bestCost = Infinity
       remaining.forEach((item, index) => {
-        const cost = travelMinutes(current!, item.point)
+        const cost = travelMinutes(current!, item.point, known)
         if (cost < bestCost) {
           bestCost = cost
           bestIndex = index
@@ -184,15 +208,15 @@ export function nearestNeighbour(items: Candidate[], from: Point | null): Candid
  * answer: we have no idea, and inventing a number would be worse than
  * admitting the leg is unmeasured.
  */
-function legCost(from: Point | null, to: Point | null): number {
-  return from && to ? travelMinutes(from, to) : 0
+function legCost(from: Point | null, to: Point | null, known?: Known): number {
+  return from && to ? travelMinutes(from, to, known) : 0
 }
 
-function tourCost(items: Candidate[], from: Point | null): number {
+function tourCost(items: Candidate[], from: Point | null, known?: Known): number {
   let total = 0
   let previous = from
   for (const item of items) {
-    total += legCost(previous, item.point)
+    total += legCost(previous, item.point, known)
     previous = item.point
   }
   return total
@@ -205,10 +229,10 @@ function tourCost(items: Candidate[], from: Point | null): number {
  * to remove — it commits to a cheap first hop and pays for it later. 2-opt
  * untangles those crossings, and at a dozen stops it is instant.
  */
-export function twoOpt(items: Candidate[], from: Point | null): Candidate[] {
+export function twoOpt(items: Candidate[], from: Point | null, known?: Known): Candidate[] {
   if (items.length < 3) return items
   let best = [...items]
-  let bestCost = tourCost(best, from)
+  let bestCost = tourCost(best, from, known)
   let improved = true
   // Bounded so a pathological input cannot spin: it converges long before.
   let rounds = 0
@@ -223,7 +247,7 @@ export function twoOpt(items: Candidate[], from: Point | null): Candidate[] {
           ...best.slice(i, k + 1).reverse(),
           ...best.slice(k + 1),
         ]
-        const cost = tourCost(candidate, from)
+        const cost = tourCost(candidate, from, known)
         if (cost < bestCost - 0.0001) {
           best = candidate
           bestCost = cost
@@ -278,7 +302,7 @@ export function planDay(
   candidates: Candidate[],
   options: PlanOptions,
 ): DayPlan {
-  const { day, zone, dayStart = '09:00', dayEnd = '21:00' } = options
+  const { day, zone, dayStart = '09:00', dayEnd = '21:00', known } = options
   const openAt = minutesOfDay(dayStart)
   const closeAt = minutesOfDay(dayEnd)
 
@@ -298,7 +322,7 @@ export function planDay(
   )
 
   const startPoint = options.startPoint ?? fixed.find((anchor) => anchor.point)?.point ?? null
-  const ordered = twoOpt(nearestNeighbour(wanted, startPoint), startPoint)
+  const ordered = twoOpt(nearestNeighbour(wanted, startPoint, known), startPoint, known)
 
   /**
    * The gaps between the things that cannot move.
@@ -365,19 +389,21 @@ export function planDay(
 
     let placed = false
     for (const window of state) {
-      const move = legCost(window.where, candidate.point)
+      const move = legCost(window.where, candidate.point, known)
       const arrival = window.at + move
       const start = earliestStart(openness, arrival, candidate.visitMinutes)
       if (start === null) continue
       // Room to get to whatever closes the window, not merely room to
       // finish the visit.
-      const exit = legCost(candidate.point, window.exitTo)
+      const exit = legCost(candidate.point, window.exitTo, known)
       if (start + candidate.visitMinutes + exit > window.until) continue
 
       visits.push({
         id: candidate.id,
         startAt: instantAt(day, start, zone),
         travelMinutesBefore: move,
+        legFrom: window.where,
+        legTo: candidate.point,
         hoursUnknown: openness.kind === 'unknown',
       })
       travel += move
@@ -395,7 +421,7 @@ export function planDay(
   // candidate: it is the journey from whatever ended up last, and adding
   // it as each visit lands would count every abandoned intermediate.
   for (const window of state) {
-    if (window.used) travel += legCost(window.where, window.exitTo)
+    if (window.used) travel += legCost(window.where, window.exitTo, known)
   }
 
   visits.sort((a, b) => a.startAt.localeCompare(b.startAt))

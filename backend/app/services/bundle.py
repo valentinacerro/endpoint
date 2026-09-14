@@ -23,6 +23,7 @@ from app.models import (
     Memory,
     Place,
     Stop,
+    TravelTime,
     Trip,
 )
 from app.schemas.bundle import TripBundle
@@ -57,6 +58,7 @@ TRIP_CHILDREN: tuple[tuple[str, type], ...] = (
     ("checklist", ChecklistItem),
     ("diary", DiaryEntry),
     ("memories", Memory),
+    ("travel_times", TravelTime),
 )
 
 
@@ -116,6 +118,7 @@ def build(db: Session, trip: Trip) -> TripBundle:
     memories = list(
         db.scalars(select(Memory).where(Memory.trip_id == trip.id).order_by(Memory.taken_at))
     )
+    travel_times = list(db.scalars(select(TravelTime).where(TravelTime.trip_id == trip.id)))
     diary = list(
         db.scalars(select(DiaryEntry).where(DiaryEntry.trip_id == trip.id).order_by(DiaryEntry.day))
     )
@@ -136,6 +139,7 @@ def build(db: Session, trip: Trip) -> TripBundle:
             "day_notes": day_notes,
             "diary": diary,
             "memories": memories,
+            "travel_times": travel_times,
             "attachments": attachments,
             "generated_at": dt.datetime.now(dt.UTC),
         }

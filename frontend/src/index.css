@@ -1491,6 +1491,24 @@ a.entry__content:hover .entry__title {
   cursor: help;
 }
 
+/* The estimate is a button when both ends are known: tapping it is how a
+   guess becomes a number you checked. */
+.plan__travel--editable {
+  font: inherit;
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed var(--border-strong);
+  padding: 0;
+  cursor: pointer;
+}
+
+.plan__travel--known {
+  color: var(--kind-stay);
+  border-bottom-color: transparent;
+}
+
 .plan__travel {
   font-size: var(--type-caption);
   color: var(--text-muted);

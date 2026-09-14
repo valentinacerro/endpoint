@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.models.memory import Memory
     from app.models.place import Place
     from app.models.stop import Stop
+    from app.models.travel_time import TravelTime
 
 
 class Trip(Base, UuidPk, Timestamps):
@@ -78,6 +79,11 @@ class Trip(Base, UuidPk, Timestamps):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="ChecklistItem.position",
+    )
+    travel_times: Mapped[list[TravelTime]] = relationship(
+        back_populates="trip",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     day_notes: Mapped[list[DayNote]] = relationship(
         back_populates="trip",

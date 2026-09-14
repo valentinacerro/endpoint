@@ -685,6 +685,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/travel-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Travel Time
+         * @description Record how long a leg really takes, replacing any earlier answer.
+         *
+         *     PUT addressed by the pair of coordinates rather than POST returning an
+         *     id: there is at most one correction per leg, so the client already knows
+         *     the address and never has to ask whether one exists. Writing the same
+         *     thing twice is harmless, which is what the offline queue needs.
+         *
+         *     The coordinates are rounded on the way in, exactly as they are on the
+         *     way out, or the same leg saved from two sources would never match the
+         *     correction typed for it.
+         */
+        put: operations["set_travel_time_api_trips__trip_id__travel_times_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trips/{trip_id}/travel-times/{travel_time_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Forget Travel Time
+         * @description Go back to the estimate for this leg.
+         */
+        delete: operations["forget_travel_time_api_trips__trip_id__travel_times__travel_time_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/bundle": {
         parameters: {
             query?: never;
@@ -1647,6 +1696,37 @@ export interface components {
          * @enum {string}
          */
         TimeSource: "exif" | "assumed";
+        /** TravelTimeRead */
+        TravelTimeRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** From Lat */
+            from_lat: number;
+            /** From Lon */
+            from_lon: number;
+            /** To Lat */
+            to_lat: number;
+            /** To Lon */
+            to_lon: number;
+            /** Minutes */
+            minutes: number;
+        };
+        /** TravelTimeWrite */
+        TravelTimeWrite: {
+            /** From Lat */
+            from_lat: number;
+            /** From Lon */
+            from_lon: number;
+            /** To Lat */
+            to_lat: number;
+            /** To Lon */
+            to_lon: number;
+            /** Minutes */
+            minutes: number;
+        };
         /**
          * TripBundle
          * @description Everything the app needs about one trip, in a single response.
@@ -1673,6 +1753,8 @@ export interface components {
             diary: components["schemas"]["DiaryEntryRead"][];
             /** Memories */
             memories: components["schemas"]["MemoryRead"][];
+            /** Travel Times */
+            travel_times: components["schemas"]["TravelTimeRead"][];
             /** Attachments */
             attachments: components["schemas"]["AttachmentRead"][];
             /**
@@ -3400,6 +3482,71 @@ export interface operations {
             path: {
                 trip_id: string;
                 attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_travel_time_api_trips__trip_id__travel_times_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TravelTimeWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TravelTimeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forget_travel_time_api_trips__trip_id__travel_times__travel_time_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                travel_time_id: string;
             };
             cookie?: never;
         };

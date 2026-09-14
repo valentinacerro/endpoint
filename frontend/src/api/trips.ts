@@ -419,6 +419,31 @@ export function useLocatePlace() {
   })
 }
 
+/**
+ * Record how long a leg really takes.
+ *
+ * A PUT at an address the client already knows — the pair of coordinates
+ * — so writing the same thing twice is harmless, which is what the
+ * offline queue needs.
+ */
+export function useSetTravelTime(tripId: string) {
+  return useTripMutation<
+    { from: { lat: number; lon: number }; to: { lat: number; lon: number }; minutes: number },
+    unknown
+  >(tripId, ({ from, to, minutes }) =>
+    apiFetch(`/api/trips/${tripId}/travel-times`, {
+      method: 'PUT',
+      body: {
+        from_lat: from.lat,
+        from_lon: from.lon,
+        to_lat: to.lat,
+        to_lon: to.lon,
+        minutes,
+      },
+    }),
+  )
+}
+
 export function useLookupPlace() {
   return useMutation<PlaceHit[], ApiError, { query: string }>({
     mutationFn: ({ query }) =>

@@ -6,6 +6,8 @@ import { count, t } from '../i18n'
 import { formatDuration, formatTimeInZone } from '../lib/datetime'
 import type { Day } from '../lib/itinerary'
 import { planTrip, type TripPlan } from '../lib/planTrip'
+import { knownLegs, legKey } from '../lib/geo'
+import { CorrectLeg } from './CorrectLeg'
 
 interface Props {
   bundle: TripBundle
@@ -39,6 +41,7 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
 
   const zone = day.stop?.tz ?? bundle.trip.primary_tz
   const names = new Map(bundle.places.map((place) => [place.id, place.name]))
+  const known = knownLegs(bundle.travel_times)
 
   function compute() {
     setFailed(false)
@@ -121,7 +124,13 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
                 )}
               </span>
               {visit.travelMinutesBefore > 0 && (
-                <span className="plan__travel">+{formatDuration(visit.travelMinutesBefore)}</span>
+                <CorrectLeg
+                  tripId={tripId}
+                  from={visit.legFrom}
+                  to={visit.legTo}
+                  minutes={visit.travelMinutesBefore}
+                  corrected={known.has(legKey(visit.legFrom!, visit.legTo!))}
+                />
               )}
             </li>
           ))}

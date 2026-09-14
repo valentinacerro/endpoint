@@ -15,6 +15,7 @@ from app.models.expense import Expense
 from app.models.memory import Memory
 from app.models.place import Place
 from app.models.stop import Stop
+from app.models.travel_time import TravelTime
 from app.models.trip import Trip
 
 __all__ = [
@@ -28,5 +29,6 @@ __all__ = [
     "Memory",
     "Place",
     "Stop",
+    "TravelTime",
     "Trip",
 ]

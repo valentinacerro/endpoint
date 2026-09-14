@@ -34,6 +34,7 @@ from app.routers import (
     places,
     rates,
     stops,
+    travel_times,
     trips,
     weather,
 )
@@ -121,6 +122,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(expenses.router)
     api.include_router(checklist.router)
     api.include_router(attachments.router)
+    api.include_router(travel_times.router)
     api.include_router(bundle.router)
     app.include_router(api)
 

@@ -23,7 +23,7 @@ import {
   minutesOfDayInZone,
   type CalendarDate,
 } from './datetime'
-import { routeMinutes, type Point } from './geo'
+import { knownLegs, routeMinutes, type Known, type Point } from './geo'
 import { baseStopOn } from './itinerary'
 import {
   localMinutes,
@@ -367,6 +367,10 @@ function candidateOf(place: Place): Candidate {
 }
 
 export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): TripPlan {
+  // The legs whose time you looked up yourself. Built once and handed to
+  // everything below: these decide the order and whether a day fits, not
+  // just what is printed next to it.
+  const known = knownLegs(bundle.travel_times)
   const inferred = inferStops(bundle)
   const centres = new Map(
     [...stopCentres(bundle)].map(([id, centre]) => [id, { lat: centre.lat, lon: centre.lon }]),
@@ -446,8 +450,8 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
     if (open.length === 0) continue
 
     const centre = centres.get(stopId) ?? null
-    const route = orderRoute(open.map(candidateOf), centre)
-    const buckets = chop(route, usable, centre)
+    const route = orderRoute(open.map(candidateOf), centre, known)
+    const buckets = chop(route, usable, centre, known)
 
     // --- forward pass, carrying what did not fit ---
     let carry: Candidate[] = []
@@ -466,6 +470,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
         dayStart: fromMinutes(slot.openAt),
         dayEnd: fromMinutes(slot.closeAt),
         startPoint: slot.centre,
+        known,
       })
       plans.set(slot.key, plan)
 
@@ -505,6 +510,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
             dayStart: fromMinutes(slot.openAt),
             dayEnd: fromMinutes(slot.closeAt),
             startPoint: slot.centre,
+            known,
           },
         )
         offered.set(candidate.id, [...(offered.get(candidate.id) ?? []), slot.key])
@@ -602,9 +608,9 @@ function fromMinutes(minutes: number): string {
  * for a day and not fine for a city's entire wish list on a phone — so
  * above thirty places the nearest-neighbour order stands on its own.
  */
-function orderRoute(candidates: Candidate[], from: Point | null): Candidate[] {
-  const near = nearestNeighbour(candidates, from)
-  return candidates.length <= 30 ? twoOpt(near, from) : near
+function orderRoute(candidates: Candidate[], from: Point | null, known?: Known): Candidate[] {
+  const near = nearestNeighbour(candidates, from, known)
+  return candidates.length <= 30 ? twoOpt(near, from, known) : near
 }
 
 function rebuild(ids: string[], places: Place[]): Candidate[] {
@@ -625,13 +631,21 @@ function rebuild(ids: string[], places: Place[]): Candidate[] {
  * overflow every day a little instead of one neighbourhood falling off
  * the end.
  */
-function chop(route: Candidate[], slots: Slot[], centre: Point | null): Candidate[][] {
+function chop(
+  route: Candidate[],
+  slots: Slot[],
+  centre: Point | null,
+  known?: Known,
+): Candidate[][] {
   const buckets: Candidate[][] = slots.map(() => [])
   if (route.length === 0 || slots.length === 0) return buckets
 
   const demand =
     route.reduce((sum, candidate) => sum + candidate.visitMinutes, 0) +
-    routeMinutes([...(centre ? [centre] : []), ...route.map((candidate) => candidate.point)])
+    routeMinutes(
+      [...(centre ? [centre] : []), ...route.map((candidate) => candidate.point)],
+      known,
+    )
   const capacity = slots.reduce((sum, slot) => sum + slot.freeMinutes, 0)
   // A little slack, so something just over a boundary still lands rather
   // than being pushed a whole day later.

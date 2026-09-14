@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { haversineKm, routeMinutes, travelMinutes, travelMode } from './geo'
+import { haversineKm, knownLegs, routeMinutes, travelMinutes, travelMode } from './geo'
 
 // Real Tokyo coordinates, so the numbers can be sanity-checked against a
 // map rather than against themselves.
@@ -69,5 +69,68 @@ describe('how long it takes', () => {
 
   it('is zero for a route of one stop', () => {
     expect(routeMinutes([SENSOJI])).toBe(0)
+  })
+})
+
+describe('a leg whose time you looked up', () => {
+  const sensoji = { lat: 35.7148, lon: 139.7967 }
+  const shibuya = { lat: 35.6595, lon: 139.7006 }
+
+  it('is used instead of the estimate', () => {
+    // The estimate says 54 minutes for this one; the trains say 35.
+    const estimated = travelMinutes(sensoji, shibuya)
+    const known = knownLegs([
+      { from_lat: 35.7148, from_lon: 139.7967, to_lat: 35.6595, to_lon: 139.7006, minutes: 35 },
+    ])
+    expect(estimated).toBeGreaterThan(40)
+    expect(travelMinutes(sensoji, shibuya, known)).toBe(35)
+  })
+
+  it('is found again when the place was saved a few metres off', () => {
+    // Two geocoders disagree about a building by tens of metres. Without
+    // matching at four decimals the correction would silently be lost.
+    const known = knownLegs([
+      { from_lat: 35.7148, from_lon: 139.7967, to_lat: 35.6595, to_lon: 139.7006, minutes: 35 },
+    ])
+    const nudged = { lat: 35.71482, lon: 139.79668 }
+    expect(travelMinutes(nudged, shibuya, known)).toBe(35)
+  })
+
+  it('does not answer for a genuinely different place nearby', () => {
+    // The other half of matching at four decimals. Half a kilometre away
+    // is a different journey, not a rounding error — and a key coarse
+    // enough to catch it would hand you one leg's time for another's.
+    const known = knownLegs([
+      { from_lat: 35.7148, from_lon: 139.7967, to_lat: 35.6595, to_lon: 139.7006, minutes: 35 },
+    ])
+    const elsewhere = { lat: 35.7198, lon: 139.7967 }
+    expect(travelMinutes(elsewhere, shibuya, known)).not.toBe(35)
+  })
+
+  it('does not answer for the other direction, which is another journey', () => {
+    const known = knownLegs([
+      { from_lat: 35.7148, from_lon: 139.7967, to_lat: 35.6595, to_lon: 139.7006, minutes: 35 },
+    ])
+    expect(travelMinutes(shibuya, sensoji, known)).not.toBe(35)
+  })
+
+  it('is never adjusted by the detour factor — it is not an estimate', () => {
+    const known = knownLegs([
+      { from_lat: 0, from_lon: 0, to_lat: 0.5, to_lon: 0.5, minutes: 12 },
+    ])
+    expect(travelMinutes({ lat: 0, lon: 0 }, { lat: 0.5, lon: 0.5 }, known)).toBe(12)
+  })
+
+  it('counts along a whole route', () => {
+    const known = knownLegs([
+      { from_lat: 35.7148, from_lon: 139.7967, to_lat: 35.6595, to_lon: 139.7006, minutes: 35 },
+    ])
+    const total = routeMinutes([sensoji, shibuya], known)
+    expect(total).toBe(35)
+  })
+
+  it('leaves an uncorrected leg estimated', () => {
+    const known = knownLegs([])
+    expect(travelMinutes(sensoji, shibuya, known)).toBe(travelMinutes(sensoji, shibuya))
   })
 })

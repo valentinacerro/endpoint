@@ -28,6 +28,7 @@ function bundle(partial: Partial<TripBundle> = {}): TripBundle {
     day_notes: [],
     diary: [],
     memories: [],
+    travel_times: [],
     attachments: [],
     generated_at: '2026-04-01T00:00:00Z',
     ...partial,
