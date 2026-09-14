@@ -7,6 +7,7 @@ import { BookingForm } from '../components/BookingForm'
 import { DayNoteEditor } from '../components/DayNoteEditor'
 import { OfflineReminder } from '../components/OfflineReminder'
 import { OptimizeDay } from '../components/OptimizeDay'
+import { FirstSteps, startingOut } from '../components/FirstSteps'
 import { TourOffer } from '../components/TourOffer'
 import { SchedulePlace } from '../components/SchedulePlace'
 import { TimelineEntry } from '../components/TimelineEntry'
@@ -113,6 +114,8 @@ export function TripDetail() {
 
       <TourOffer />
 
+      <FirstSteps bundle={data} tripId={tripId} />
+
       {/* The one thing the whole planner exists for, said once and at the
           top. It used to be row one of twelve behind a tab called "More",
           which is where a feature goes to be never found. */}
@@ -128,7 +131,10 @@ export function TripDetail() {
         </Link>
       )}
 
-      {nothingAtAll && <p className="empty">{t('timeline.empty')}</p>}
+      {/* Not while the first steps are up: "add a booking" is not the next
+          thing to do, and saying so directly under a numbered list that
+          says otherwise is how a screen stops being trusted. */}
+      {nothingAtAll && !startingOut(data) && <p className="empty">{t('timeline.empty')}</p>}
 
       {timeline.days.map((day) => (
         <section key={day.key} className="day">
