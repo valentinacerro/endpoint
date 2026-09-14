@@ -17,12 +17,7 @@ import { seedTrip } from './seed'
 
 const NARROW = { width: 320, height: 680 }
 
-async function signIn(page: Page) {
-  await page.goto('/')
-  await page.getByLabel(/password/i).fill('walkthrough')
-  await page.getByRole('button', { name: 'Entra' }).click()
-  await expect(page.getByRole('link', { name: 'Tutti i viaggi' }).first()).toBeVisible()
-}
+/** Signed in already, once for the whole run: see `signed-in.setup.ts`. */
 
 /** Anything sticking out past the right edge, named so it can be found. */
 async function overflowing(page: Page): Promise<string[]> {
@@ -54,7 +49,6 @@ test.describe.configure({ mode: 'serial' })
 test.use({ viewport: NARROW })
 
 test('every screen fits a 320px phone', async ({ page }) => {
-  await signIn(page)
   // `page.request`, not the `request` fixture: that one has its own
   // cookie jar, so the seed came back 401 and this test walked seven
   // empty screens and passed. An empty screen fits any width.

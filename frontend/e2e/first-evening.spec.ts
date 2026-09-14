@@ -15,6 +15,10 @@ import { expect, test, type Page } from '@playwright/test'
  * read. `test_geocode.py` covers the real call.
  */
 
+// Signed out on purpose: the rest of the suite shares one login, and this
+// is the one walk where arriving at the password box is the point.
+test.use({ storageState: { cookies: [], origins: [] } })
+
 const PASSWORD = 'walkthrough'
 
 /** One fixed answer, so the walk is about the app rather than the weather. */

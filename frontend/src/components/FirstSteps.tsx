@@ -64,8 +64,12 @@ export function FirstSteps({ bundle, tripId }: { bundle: TripBundle; tripId: str
     {
       done: organised,
       to: `/trips/${tripId}/plan`,
+      // Gated on the first step and not the second: the planner goes and
+      // finds places when there are none, so "collect some first" was
+      // sending people off to do by hand the thing it does for them. What
+      // it genuinely cannot do without is a city it can place on a map.
       title: t('start.plan'),
-      hint: collected ? t('start.planHint') : t('start.planLocked'),
+      hint: located ? t('start.planHint') : t('start.planLocked'),
     },
   ]
 

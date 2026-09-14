@@ -18,15 +18,18 @@ import { seedTrip } from './seed'
  * network comes back.
  */
 
-const PASSWORD = 'walkthrough'
+/** Signed in already, once for the whole run: see `signed-in.setup.ts`. */
 
-async function signIn(page: Page) {
-  await page.goto('/')
-  await page.getByLabel(/password/i).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Entra' }).click()
-  // Waited for: without it the seed below runs before the cookie is set,
-  // 401s, and the test walks an empty screen that proves nothing.
-  await expect(page.getByRole('link', { name: 'Tutti i viaggi' }).first()).toBeVisible()
+/**
+ * Wait until the service worker is the one answering.
+ *
+ * Any navigation made with the network off is served by it and by nothing
+ * else. On a phone it has been in control since the first visit; in a
+ * fresh browser context it may not be yet, and a test that cuts the line
+ * first is testing Chrome's registration timing rather than the app.
+ */
+async function serviceWorkerReady(page: Page): Promise<void> {
+  await page.evaluate(() => navigator.serviceWorker.ready)
 }
 
 /** Its own trip, so this file does not depend on another having run. */
@@ -44,7 +47,6 @@ test.describe.serial('with no network', () => {
     page,
     context,
   }) => {
-    await signIn(page)
     const tripId = await openThePlaces(page)
 
     // Into the tunnel. Not a stubbed route: the browser is actually
@@ -81,7 +83,6 @@ test.describe.serial('with no network', () => {
     // first. Sending them would ask the server to delete a place it was
     // never told about, which it would refuse — and the queue would
     // report a failure for a place that correctly does not exist.
-    await signIn(page)
     const tripId = await openThePlaces(page)
 
     // Watched, because this is the only place the difference shows. With
@@ -147,7 +148,6 @@ test.describe.serial('a document with no network', () => {
     // whether a `File` really survives IndexedDB is a question only a
     // real browser can answer, which is why this test reloads the page
     // before letting the queue drain.
-    await signIn(page)
     const tripId = await seedTrip(page.request)
     const bookings = await page.request
       .get(`/api/trips/${tripId}/bookings`)
@@ -155,6 +155,11 @@ test.describe.serial('a document with no network', () => {
     const hotel = bookings.find((booking: { kind: string }) => booking.kind === 'hotel')
     await page.goto(`/trips/${tripId}/bookings/${hotel.id}`)
     await expect(page.getByRole('button', { name: /allega documento/i })).toBeVisible()
+    // The reload below happens with the network off, so the service
+    // worker has to be the one answering it. Waiting for it to take
+    // control is the difference between testing the queue and testing
+    // whether Chrome had got round to registering a worker yet.
+    await serviceWorkerReady(page)
 
     await context.setOffline(true)
     await page.setInputFiles('input[type=file]', VOUCHER)
@@ -196,7 +201,6 @@ test.describe.serial('a document with no network', () => {
     // before departure. A document still in the write queue is on the
     // phone already, and at no address the server would answer, so
     // offering to download it would be offering to download nothing.
-    await signIn(page)
     const tripId = await seedTrip(page.request)
     const bookings = await page.request
       .get(`/api/trips/${tripId}/bookings`)
@@ -209,6 +213,8 @@ test.describe.serial('a document with no network', () => {
 
     await page.goto(`/trips/${tripId}/bookings/${hotel.id}`)
     await expect(page.getByRole('button', { name: /allega documento/i })).toBeVisible()
+    // The navigation below happens with the network off.
+    await serviceWorkerReady(page)
     await context.setOffline(true)
     await page.setInputFiles('input[type=file]', VOUCHER)
     await expect(page.getByText(/in attesa di rete/i)).toBeVisible()
@@ -228,11 +234,14 @@ test.describe.serial('a trip started with no network', () => {
     // with a hole in it is a queue nobody can trust. The trip is named by
     // the phone when the form opens, which is what makes it queueable and
     // what lets the first stop be addressed before the server has replied.
-    await signIn(page)
     await page.goto('/trips')
+    // Waited for before the network goes: `goto` resolves on load, while
+    // the trip list is still on its way.
+    const start = page.getByRole('button', { name: /nuovo viaggio/i })
+    await expect(start).toBeVisible()
     await context.setOffline(true)
 
-    await page.getByRole('button', { name: /nuovo viaggio/i }).click()
+    await start.click()
     await page.getByLabel(/dove vai/i).fill('Lisbona')
     await page.getByRole('button', { name: /^salva$/i }).click()
 
@@ -256,7 +265,6 @@ test.describe.serial('a plan applied with no network', () => {
     // POST: it is idempotent anyway, because it names every place it
     // moves and gives each an absolute time, so replaying it in a tunnel
     // leaves the same itinerary rather than a second copy of one.
-    await signIn(page)
     const tripId = await seedTrip(page.request)
     await page.goto(`/trips/${tripId}/plan`)
     // Waited for before the network goes: `goto` resolves on load, while

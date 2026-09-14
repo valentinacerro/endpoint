@@ -35,6 +35,15 @@ export default defineConfig({
     locale: 'it-IT',
     trace: 'retain-on-failure',
   },
+  projects: [
+    // One login for the whole run; see e2e/signed-in.setup.ts for why.
+    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    {
+      name: 'phone',
+      dependencies: ['setup'],
+      use: { storageState: 'e2e/.auth/session.json' },
+    },
+  ],
   webServer: {
     command: `python3 e2e/server.py ${PORT}`,
     url: `http://127.0.0.1:${PORT}/health`,

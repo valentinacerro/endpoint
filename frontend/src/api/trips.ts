@@ -729,6 +729,31 @@ export function usePlaceSearch(query: string, near: { lat: number; lon: number }
  * so the second look at a city must not pay for the first. An empty
  * answer is a legitimate one — the screen says so rather than retrying.
  */
+/**
+ * Ask what is around a point, now, rather than while a screen renders.
+ *
+ * `useSuggestions` is the hook a panel uses for one city. The planner
+ * needs several, chosen after a plan has been computed, so it cannot
+ * declare them up front. `fetchQuery` gets the same cache: a city the
+ * suggestion panel already looked at is not asked about twice.
+ */
+export function useDiscover() {
+  const queryClient = useQueryClient()
+  return (near: { lat: number; lon: number }, radiusKm = 5) =>
+    queryClient.fetchQuery({
+      queryKey: ['discover', near.lat, near.lon, radiusKm] as const,
+      queryFn: () =>
+        apiFetch<Suggestion[]>(
+          `/api/geo/discover?${new URLSearchParams({
+            lat: String(near.lat),
+            lon: String(near.lon),
+            radius_km: String(radiusKm),
+          })}`,
+        ),
+      staleTime: Infinity,
+    })
+}
+
 export function useSuggestions(near: { lat: number; lon: number } | null, radiusKm = 5) {
   return useQuery({
     queryKey: ['discover', near?.lat ?? null, near?.lon ?? null, radiusKm] as const,

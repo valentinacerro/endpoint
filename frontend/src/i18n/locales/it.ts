@@ -165,12 +165,12 @@ export const it = {
   'start.title': 'Da dove si comincia',
   'start.stops': 'Di’ dove vai, e quando',
   'start.stopsHint': 'Una tappa per città, con le date. Da lì l’app ricava meteo, distanze e in che giorno sei dove.',
-  'start.places': 'Raccogli cosa vuoi vedere',
+  'start.places': 'Raccogli cosa vuoi vedere (se vuoi)',
   'start.placesHint': 'Incolla i link da Google Maps, oppure lascia che sia l’app a proporti cosa c’è intorno.',
   'start.placesLocked': 'Dopo la prima tappa: serve sapere dove cercare.',
-  'start.plan': 'Falli distribuire nei giorni',
-  'start.planHint': 'L’app li sistema da sola e ti mostra la proposta prima di cambiare qualcosa.',
-  'start.planLocked': 'Dopo aver raccolto qualche luogo.',
+  'start.plan': 'Fatti fare l’itinerario',
+  'start.planHint': 'Distribuisce nei giorni i luoghi che hai. Se non ne hai abbastanza, cerca lui cosa c’è e te lo propone. Non cambia niente finché non confermi.',
+  'start.planLocked': 'Dopo la prima tappa: serve sapere dove cercare.',
   'locate.missing_one': 'Un luogo è senza posizione',
   'locate.missing_other': '{count} luoghi sono senza posizione',
   'locate.hint': 'Non compaiono sulla mappa e il pianificatore non può sistemarli. Tocca per cercarle.',
@@ -635,8 +635,18 @@ export const it = {
   'more.planHint': 'Distribuisci i luoghi su tutti i giorni',
   'trip_plan.title': 'Organizza il viaggio',
   'trip_plan.intro':
-    'Prende i luoghi che hai salvato e li distribuisce sui giorni, ognuno nella città in cui dormi quel giorno. Ti mostra prima cosa verrebbe fuori: non cambia niente finché non confermi, e non tocca quello che hai già sistemato a mano.',
+    'Distribuisce sui giorni i luoghi che hai salvato, ognuno nella città in cui dormi quel giorno. Se restano giorni vuoti — o se non hai ancora salvato niente — va a vedere cosa c’è in quelle città e te lo propone. Ti mostra prima cosa verrebbe fuori: non cambia niente finché non confermi, e non tocca quello che hai già sistemato a mano.',
   'trip_plan.compute': 'Calcola il piano',
+  'trip_plan.looking': 'Cerco cosa vedere…',
+  'trip_plan.lookFailed':
+    'Non sono riuscito a cercare posti nuovi: per quello serve la rete. Intanto ho ordinato quelli che hai già.',
+  'trip_plan.proposed_one': 'Un posto non ce l’avevi: l’ho trovato io, a {cities}.',
+  'trip_plan.proposed_other':
+    'Questi {count} non ce l’avevi: li ho trovati io, a {cities}.',
+  'trip_plan.proposedHint':
+    'Sono proposte, ordinate per quanto se ne parla. Togli quelle che non ti dicono niente: il piano si rifà senza. Vengono salvate fra i tuoi luoghi solo quando confermi.',
+  'trip_plan.blind':
+    'A {cities} i giorni sono vuoti e non posso cercare: manca la posizione della tappa.',
   'trip_plan.apply': 'Applica',
   'trip_plan.preview': 'Come verrebbe',
   'trip_plan.summary_one': 'Una visita su {days} giorni.',

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 import { seedTrip } from './seed'
 
@@ -17,17 +17,9 @@ import { seedTrip } from './seed'
  * hand a third party the list of what it is looking at.
  */
 
-const PASSWORD = 'walkthrough'
-
-async function signIn(page: Page) {
-  await page.goto('/')
-  await page.getByLabel(/password/i).fill(PASSWORD)
-  await page.getByRole('button', { name: 'Entra' }).click()
-  await expect(page.getByRole('link', { name: 'Tutti i viaggi' }).first()).toBeVisible()
-}
+/** Signed in already, once for the whole run: see `signed-in.setup.ts`. */
 
 test('the tiles are asked for in a way OpenStreetMap will answer', async ({ page }) => {
-  await signIn(page)
   const tripId = await seedTrip(page.request)
 
   // Intercepted rather than fetched for real: what is being tested is the
