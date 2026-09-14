@@ -117,9 +117,24 @@ class ScheduleEntry(BaseModel):
     planned_tz: str = Field(min_length=1, max_length=64)
 
 
+class NewPlace(PlaceCreate):
+    """A place the client is naming as it creates it."""
+
+    id: uuid.UUID
+
+
 class ScheduleRequest(BaseModel):
     """A whole trip's worth of scheduling, in one go."""
 
+    #: Places that do not exist yet, created before anything is scheduled.
+    #:
+    #: Here rather than in twenty separate PUTs because the planner can
+    #: propose twenty places it found itself, and creating them one at a
+    #: time meant twenty round trips against a service that takes a minute
+    #: to wake — with a half-applied trip if you walked away in the middle,
+    #: some places saved and nothing scheduled. Applying a plan is one act
+    #: and is now one request.
+    created: list[NewPlace] = Field(default_factory=list, max_length=500)
     # A fortnight of sightseeing is tens of places, not thousands. The cap
     # bounds the work one request can ask for.
     scheduled: list[ScheduleEntry] = Field(default_factory=list, max_length=500)
@@ -128,6 +143,7 @@ class ScheduleRequest(BaseModel):
 
 
 class ScheduleSummary(BaseModel):
+    created: int
     scheduled: int
     cleared: int
 
@@ -149,6 +165,20 @@ def schedule_places(trip_id: uuid.UUID, payload: ScheduleRequest, db: DbSession)
     """
     get_or_404(db, Trip, trip_id)
 
+    # --- Checked, all of it, before a single row is touched. ---
+    #
+    # The order is the guarantee. Creating first and validating after left
+    # a refused plan's places behind on a rolled-back transaction's good
+    # behaviour, which is a promise made by something other than this
+    # function.
+    taken: dict[uuid.UUID, Place] = {}
+    for entry in payload.created:
+        if entry.stop_id is not None:
+            child_of_trip(db, Stop, entry.stop_id, trip_id)
+        existing = free_or_owned(db, Place, entry.id, trip_id)
+        if existing is not None:
+            taken[entry.id] = existing
+
     wanted = [entry.id for entry in payload.scheduled] + list(payload.cleared)
     if len(set(wanted)) != len(wanted):
         raise AppError(
@@ -161,13 +191,38 @@ def schedule_places(trip_id: uuid.UUID, payload: ScheduleRequest, db: DbSession)
         place.id: place
         for place in db.scalars(select(Place).where(Place.trip_id == trip_id, Place.id.in_(wanted)))
     }
-    missing = [str(place_id) for place_id in wanted if place_id not in found]
+    # A place being created in this very request counts as being on the
+    # trip: the planner proposes somewhere and gives it a time in one act,
+    # and refusing that would make the whole point of `created` unusable.
+    about_to_exist = {entry.id for entry in payload.created}
+    missing = [
+        str(place_id)
+        for place_id in wanted
+        if place_id not in found and place_id not in about_to_exist
+    ]
     if missing:
         raise AppError(
             "place_not_found",
             f"{len(missing)} of those places are not on this trip",
             status_code=404,
         )
+
+    # --- Nothing above this line writes. Nothing below it can refuse. ---
+    made = 0
+    for entry in payload.created:
+        fields = entry.model_dump(exclude={"id"})
+        existing = taken.get(entry.id)
+        if existing is not None:
+            for field, value in fields.items():
+                setattr(existing, field, value)
+            found[entry.id] = existing
+        else:
+            # Create-or-replace at the client's id, like every other
+            # queueable write: replaying this must leave one of each.
+            fresh = Place(id=entry.id, trip_id=trip_id, **fields)
+            db.add(fresh)
+            found[entry.id] = fresh
+            made += 1
 
     for entry in payload.scheduled:
         place = found[entry.id]
@@ -180,7 +235,9 @@ def schedule_places(trip_id: uuid.UUID, payload: ScheduleRequest, db: DbSession)
         place.planned_tz = None
 
     db.commit()
-    return ScheduleSummary(scheduled=len(payload.scheduled), cleared=len(payload.cleared))
+    return ScheduleSummary(
+        created=made, scheduled=len(payload.scheduled), cleared=len(payload.cleared)
+    )
 
 
 @router.get("/{place_id}", response_model=PlaceRead)

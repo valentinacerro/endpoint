@@ -641,13 +641,20 @@ export function useFetchRate() {
  * itinerary half rearranged with no way to tell which half.
  */
 interface ScheduleBody {
+  /** Places that do not exist yet, made and given a time in one act. */
+  created?: (PlaceCreate & { id: string })[]
   scheduled: { id: string; planned_start_at: string; planned_tz: string }[]
   cleared?: string[]
 }
 
 export function useSchedulePlaces(tripId: string) {
   const queryClient = useQueryClient()
-  return useMutation<{ scheduled: number; cleared: number }, ApiError, ScheduleBody, Rollback>({
+  return useMutation<
+    { created: number; scheduled: number; cleared: number },
+    ApiError,
+    ScheduleBody,
+    Rollback
+  >({
     mutationFn: (body) =>
       sendOrQueue(
         {
@@ -661,7 +668,11 @@ export function useSchedulePlaces(tripId: string) {
           url: `/api/trips/${tripId}/places/schedule`,
           body,
         },
-        () => ({ scheduled: body.scheduled.length, cleared: body.cleared?.length ?? 0 }),
+        () => ({
+          created: body.created?.length ?? 0,
+          scheduled: body.scheduled.length,
+          cleared: body.cleared?.length ?? 0,
+        }),
       ),
     onMutate: async (body) => {
       await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })

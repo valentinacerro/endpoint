@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router'
 
-import { useCreatePlace, useDiscover, useSchedulePlaces, useTripBundle } from '../api/trips'
+import { useDiscover, useSchedulePlaces, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
 import { count, t } from '../i18n'
 import { placeCategoryLabel } from '../i18n/labels'
@@ -27,7 +27,6 @@ export function PlanTrip() {
   const apply = useSchedulePlaces(tripId ?? '')
 
   const discover = useDiscover()
-  const addPlace = useCreatePlace(tripId ?? '')
 
   const [plan, setPlan] = useState<TripPlan | null>(null)
   /** Places this app went and found, shown but not saved until you apply. */
@@ -146,11 +145,15 @@ export function PlanTrip() {
     if (!plan) return
     setFailed(false)
     try {
-      // The places it proposed have to exist before they can be given a
-      // time. Each is a PUT at an id chosen when it was proposed, so this
-      // is queueable and safe to replay like every other write.
-      for (const item of proposed) {
-        await addPlace.mutateAsync({
+      // In the same request as the times, not in twenty of their own.
+      //
+      // They were twenty sequential PUTs, and that was wrong twice over:
+      // twenty round trips against a service that takes a minute to wake,
+      // and — if you closed the app in the middle — some places saved and
+      // nothing scheduled. Applying a plan is one act, and the server
+      // refuses all of it or keeps all of it.
+      const result = await apply.mutateAsync({
+        created: proposed.map((item) => ({
           id: item.place.id,
           name: item.place.name,
           category: item.place.category,
@@ -160,10 +163,7 @@ export function PlanTrip() {
           lat: item.place.lat,
           lon: item.place.lon,
           url: item.place.url,
-        })
-      }
-
-      const result = await apply.mutateAsync({
+        })),
         scheduled: plan.writes.map((write) => ({
           id: write.placeId,
           planned_start_at: write.startAt,

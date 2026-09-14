@@ -78,12 +78,21 @@ test('one button turns an empty trip into an itinerary', async ({ page }) => {
 
   await page.getByRole('button', { name: /^applica$/i }).click()
 
-  await expect.poll(async () => {
-    const places = await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json())
-    return places.filter((p: { planned_start_at: string | null }) => p.planned_start_at).length
-  }, { timeout: 15_000 }).toBeGreaterThan(0)
+  // Counted exactly, not "more than none". `toBeGreaterThan(0)` was what
+  // this said before, and it passed happily while nineteen of twenty
+  // places were still being saved one request at a time — the run went
+  // green and the trip came out with one place on it.
+  await expect
+    .poll(
+      async () =>
+        (await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json())).length,
+      { timeout: 15_000 },
+    )
+    .toBe(AROUND_TOKYO.length)
 
   const places = await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json())
+  expect(places.filter((p: { planned_start_at: string | null }) => p.planned_start_at).length)
+    .toBeGreaterThan(0)
   // Saved as real places, in the city it looked in, at the city's zone —
   // not the phone's, which is the trap that moves everything a day.
   for (const place of places) {
@@ -107,9 +116,13 @@ test('a place dropped from the proposals is never saved', async ({ page }) => {
   await expect(page.getByText('Sensō-ji')).toBeHidden()
 
   await page.getByRole('button', { name: /^applica$/i }).click()
-  await expect.poll(async () =>
-    (await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json())).length,
-  { timeout: 15_000 }).toBeGreaterThan(0)
+  await expect
+    .poll(
+      async () =>
+        (await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json())).length,
+      { timeout: 15_000 },
+    )
+    .toBe(AROUND_TOKYO.length - 1)
 
   const names = (await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json()))
     .map((p: { name: string }) => p.name)

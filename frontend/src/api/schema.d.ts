@@ -1391,6 +1391,49 @@ export interface components {
             caption?: string | null;
         };
         /**
+         * NewPlace
+         * @description A place the client is naming as it creates it.
+         */
+        NewPlace: {
+            /** Name */
+            name: string;
+            /** @default sight */
+            category: components["schemas"]["PlaceCategory"];
+            /** @default normal */
+            priority: components["schemas"]["Priority"];
+            weather_exposure?: components["schemas"]["WeatherExposure"] | null;
+            /** Stop Id */
+            stop_id?: string | null;
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
+            /** Address */
+            address?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Visit Minutes
+             * @default 60
+             */
+            visit_minutes: number;
+            /** Planned Start At */
+            planned_start_at?: string | null;
+            /** Planned Tz */
+            planned_tz?: string | null;
+            /** Opening Hours */
+            opening_hours?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /**
          * PaymentMethod
          * @description Worth tracking in Japan, where cash is still very much alive and the
          *     two come out of different pockets.
@@ -1594,6 +1637,8 @@ export interface components {
          * @description A whole trip's worth of scheduling, in one go.
          */
         ScheduleRequest: {
+            /** Created */
+            created?: components["schemas"]["NewPlace"][];
             /** Scheduled */
             scheduled?: components["schemas"]["ScheduleEntry"][];
             /** Cleared */
@@ -1601,6 +1646,8 @@ export interface components {
         };
         /** ScheduleSummary */
         ScheduleSummary: {
+            /** Created */
+            created: number;
             /** Scheduled */
             scheduled: number;
             /** Cleared */
