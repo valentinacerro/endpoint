@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 
 import {
   useCreatePlace,
@@ -307,7 +307,7 @@ export function PlacesPanel() {
             {place.image_url && (
               <img className="doc__photo" src={place.image_url} alt="" loading="lazy" />
             )}
-            <span className="doc__open" style={{ cursor: 'default' }}>
+            <Link className="doc__open" to={`/trips/${tripId}/places/${place.id}`}>
               <span className="doc__name">
                 {place.name}
                 {place.priority === 'must_see' && <span className="pill pill--must">
@@ -338,7 +338,7 @@ export function PlacesPanel() {
                   {formatTimeInZone(place.planned_start_at, place.planned_tz)}
                 </span>
               )}
-            </span>
+            </Link>
             <label className="doc__stop doc__stop--inline">
               {/* The link between a place and a day: without a city, no
                   day can claim it and the optimiser cannot see it. */}

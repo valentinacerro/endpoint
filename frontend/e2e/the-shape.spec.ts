@@ -202,3 +202,70 @@ test('choosing a theme does not throw away the note under it', async ({ page }) 
     })
     .toEqual(['chiuso il lunedì', 'museums'])
 })
+
+test('a visit on the itinerary opens, like a booking always did', async ({ page }) => {
+  // "Non è cliccabile." A booking was a link to its own screen; a visit
+  // was a div with two arrows on it — so the thing you look at fourteen
+  // times a day had nowhere to go.
+  await page.route('**/commons.wikimedia.org/**', (route) =>
+    route.fulfill({ contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAAAAACw=', 'base64') }),
+  )
+  const tripId = await seedTrip(page.request)
+  const bundle = await page.request.get(`/api/trips/${tripId}/bundle`).then((r) => r.json())
+  const stop = bundle.stops[0]
+  const place = await (
+    await page.request.post(`/api/trips/${tripId}/places`, {
+      data: {
+        name: 'Gokokuji',
+        category: 'temple',
+        stop_id: stop.id,
+        lat: 35.7166,
+        lon: 139.7256,
+        description: 'tempio buddhista del 1681 a Bunkyō',
+        image_url: 'http://commons.wikimedia.org/wiki/Special:FilePath/Gokokuji.jpg?width=320',
+        planned_start_at: `${stop.arrive_date}T01:00:00Z`,
+        planned_tz: 'Asia/Tokyo',
+      },
+    })
+  ).json()
+
+  await page.goto(`/trips/${tripId}`)
+  const row = page.locator('.entry', { hasText: 'Gokokuji' })
+  // It reads as a day rather than a spreadsheet: a picture and a line
+  // saying what the thing is.
+  await expect(row.locator('.entry__photo')).toBeVisible()
+  await expect(row.getByText('tempio buddhista del 1681 a Bunkyō')).toBeVisible()
+
+  await row.getByRole('link', { name: /Gokokuji/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/places/${place.id}$`))
+  // By the element, not by the words: the same sentence is on the row
+  // you just left, so matching on text passes whether or not this screen
+  // says anything.
+  await expect(page.locator('.place__what')).toHaveText('tempio buddhista del 1681 a Bunkyō')
+  await expect(page.locator('.place__photo')).toBeVisible()
+  await expect(page.getByRole('link', { name: /apri in maps/i })).toBeVisible()
+})
+
+test('a place can be taken off its day from its own screen', async ({ page }) => {
+  const tripId = await seedTrip(page.request)
+  const bundle = await page.request.get(`/api/trips/${tripId}/bundle`).then((r) => r.json())
+  const stop = bundle.stops[0]
+  const place = await (
+    await page.request.post(`/api/trips/${tripId}/places`, {
+      data: {
+        name: 'Zōjō-ji', category: 'temple', stop_id: stop.id,
+        planned_start_at: `${stop.arrive_date}T02:00:00Z`, planned_tz: 'Asia/Tokyo',
+      },
+    })
+  ).json()
+
+  await page.goto(`/trips/${tripId}/places/${place.id}`)
+  await page.getByRole('button', { name: 'Togli dal programma' }).click()
+
+  await expect
+    .poll(async () =>
+      (await page.request.get(`/api/trips/${tripId}/places/${place.id}`).then((r) => r.json()))
+        .planned_start_at,
+    )
+    .toBeNull()
+})

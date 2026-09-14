@@ -20,6 +20,7 @@ import { Weather } from './routes/Weather'
 import { Login } from './routes/Login'
 import { OfflineStatus } from './routes/OfflineStatus'
 import { Bookings } from './routes/Bookings'
+import { PlaceDetail } from './routes/PlaceDetail'
 import { PlacesPanel } from './routes/PlacesPanel'
 import { PlanTrip } from './routes/PlanTrip'
 import { StopsPanel } from './routes/StopsPanel'
@@ -94,6 +95,7 @@ export default function App() {
         <Route path="/trips/:tripId" element={<TripLayout />}>
           <Route index element={<TripDetail />} />
           <Route path="places" element={<PlacesPanel />} />
+          <Route path="places/:placeId" element={<PlaceDetail />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="plan" element={<PlanTrip />} />
           <Route path="expenses" element={<Expenses />} />

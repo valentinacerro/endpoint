@@ -50,6 +50,11 @@ export function TimelineEntry({ placed, showZone, tripId, documents, onMoveDays 
 
   const body = (
     <>
+      {/* The photograph, where there is one. A day of five names reads as
+          a spreadsheet; the same five with pictures reads as a day. */}
+      {!isBooking && entry.place.image_url && (
+        <img className="entry__photo" src={entry.place.image_url} alt="" loading="lazy" />
+      )}
       <span className="entry__title">
         {isBooking ? entry.booking.title : entry.place.name}
         {isBooking && <StatusPill status={entry.booking.status} />}
@@ -65,6 +70,9 @@ export function TimelineEntry({ placed, showZone, tripId, documents, onMoveDays 
         </span>
       )}
       <span className="entry__meta">{meta}</span>
+      {!isBooking && entry.place.description && (
+        <span className="entry__what">{entry.place.description}</span>
+      )}
     </>
   )
 
@@ -103,8 +111,13 @@ export function TimelineEntry({ placed, showZone, tripId, documents, onMoveDays 
             {body}
           </Link>
         ) : (
-          <div className="entry__content">
-            {body}
+          <div className="entry__content entry__content--place">
+            {/* A link, like a booking has always been. This was a `div`:
+                the thing you look at fourteen times a day was the one
+                thing on the screen with nowhere to go. */}
+            <Link className="entry__open" to={`/trips/${tripId}/places/${entry.place.id}`}>
+              {body}
+            </Link>
             {/* Shuffling a plan is cheap; a booking is a fact and has to be
                 edited deliberately on its own screen. */}
             <span className="entry__move">
