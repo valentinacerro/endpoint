@@ -54,6 +54,7 @@ export type PlaceHit = S['HitOut']
 
 export type Weather = S['WeatherOut']
 export type ResolvedPlace = S['ResolveOut']
+export type Suggestion = S['SuggestionOut']
 export type DayWeather = S['DayWeatherOut']
 
 export type ChecklistItem = S['ChecklistItemRead']

@@ -34,6 +34,7 @@ import type {
   Stop,
   StopCreate,
   StopUpdate,
+  Suggestion,
   Trip,
   TripBundle,
   TripCreate,
@@ -370,6 +371,31 @@ export function usePlaceSearch(query: string, near: { lat: number; lon: number }
  * The query above is for a box being typed into. Filling in a list of
  * stops is a loop, and a loop wants to ask rather than to subscribe.
  */
+/**
+ * What there is to see around a point, best known first.
+ *
+ * Cached for good, like everything else here: Overpass is a volunteer
+ * service that falls over regularly and takes seconds when it does not,
+ * so the second look at a city must not pay for the first. An empty
+ * answer is a legitimate one — the screen says so rather than retrying.
+ */
+export function useSuggestions(near: { lat: number; lon: number } | null, radiusKm = 5) {
+  return useQuery({
+    queryKey: ['discover', near?.lat ?? null, near?.lon ?? null, radiusKm] as const,
+    queryFn: () =>
+      apiFetch<Suggestion[]>(
+        `/api/geo/discover?${new URLSearchParams({
+          lat: String(near!.lat),
+          lon: String(near!.lon),
+          radius_km: String(radiusKm),
+        })}`,
+      ),
+    enabled: near !== null,
+    // A city's notable places do not change between two looks at a trip.
+    staleTime: Infinity,
+  })
+}
+
 export function useLookupPlace() {
   return useMutation<PlaceHit[], ApiError, { query: string }>({
     mutationFn: ({ query }) =>

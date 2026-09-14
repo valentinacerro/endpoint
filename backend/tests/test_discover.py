@@ -45,9 +45,8 @@ class TestParsing:
 
     def test_english_name_wins_where_there_is_one(self) -> None:
         # "Senso-ji" on a screen read in a hurry beats 浅草寺.
-        found = discover.parse(
-            {"elements": [node(**{"name": "浅草寺", "name:en": "Senso-ji", "tourism": "attraction"})]}
-        )
+        tags = {"name": "浅草寺", "name:en": "Senso-ji", "tourism": "attraction"}
+        found = discover.parse({"elements": [node(**tags)]})
         assert found[0].name == "Senso-ji"
 
     def test_something_with_no_name_is_dropped(self) -> None:
@@ -92,7 +91,9 @@ class TestRanking:
         places = [
             discover.Suggestion("Local shrine", 0, 0, PlaceCategory.SHRINE, 0, None, "node/1"),
             discover.Suggestion("Tokyo Skytree", 0, 0, PlaceCategory.SIGHT, 72, "Q57965", "node/2"),
-            discover.Suggestion("Nezu Museum", 0, 0, PlaceCategory.MUSEUM, 2, "Q11526417", "node/3"),
+            discover.Suggestion(
+                "Nezu Museum", 0, 0, PlaceCategory.MUSEUM, 2, "Q11526417", "node/3"
+            ),
         ]
         assert [p.name for p in discover.rank(places)] == [
             "Tokyo Skytree",
@@ -117,7 +118,11 @@ class TestTheBoundingBox:
         # Iceland; a box that ignored this would be a thin sliver up north.
         equator = discover._bbox(0.0, 0.0, 10.0)
         north = discover._bbox(64.0, 0.0, 10.0)
-        width = lambda box: float(box.strip("()").split(",")[3]) - float(box.strip("()").split(",")[1])
+
+        def width(box: str) -> float:
+            parts = box.strip("()").split(",")
+            return float(parts[3]) - float(parts[1])
+
         assert width(north) > width(equator) * 2
 
     def test_it_does_not_divide_by_zero_at_the_pole(self) -> None:
@@ -231,9 +236,7 @@ def anyio_backend() -> str:
 
 
 class TestTheEndpoint:
-    def test_it_answers_with_an_empty_list_when_overpass_is_down(
-        self, client, monkeypatch
-    ) -> None:
+    def test_it_answers_with_an_empty_list_when_overpass_is_down(self, client, monkeypatch) -> None:
         # The whole point: a volunteer service being unavailable is a
         # disappointment on screen, never a 502 from us.
         async def down(lat, lon, radius_km=8.0, limit=120):
@@ -292,9 +295,8 @@ class TestTellingATempleFromAShrine:
         assert found[0].category == PlaceCategory.TEMPLE
 
     def test_a_shrine_building_is_a_shrine(self) -> None:
-        found = discover.parse(
-            {"elements": [node(name="Asakusa Shrine", amenity="place_of_worship", building="shrine")]}
-        )
+        shrine = node(name="Asakusa Shrine", amenity="place_of_worship", building="shrine")
+        found = discover.parse({"elements": [shrine]})
         assert found[0].category == PlaceCategory.SHRINE
 
     def test_an_ordinary_building_tag_does_not_hijack_the_category(self) -> None:

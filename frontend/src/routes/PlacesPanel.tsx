@@ -7,6 +7,7 @@ import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { inferStops, tripCentre } from '../lib/stops'
 import { ImportPlaces } from '../components/ImportPlaces'
+import { SuggestPlaces } from '../components/SuggestPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
 import { Icon } from '../components/Icon'
@@ -153,6 +154,7 @@ export function PlacesPanel() {
   const [adding, setAdding] = useState(false)
   const [pasting, setPasting] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
 
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
@@ -192,6 +194,9 @@ export function PlacesPanel() {
 
   const located = bundle.data.stops.find((stop) => stop.lat !== null && stop.lon !== null)
   const near = located ? { lat: located.lat as number, lon: located.lon as number } : null
+  const locatedStop = located
+    ? { id: located.id, name: located.name, lat: located.lat as number, lon: located.lon as number }
+    : null
 
   return (
     <>
@@ -290,8 +295,19 @@ export function PlacesPanel() {
         />
       )}
       {adding && <AddPlace tripId={tripId} near={near} onDone={() => setAdding(false)} />}
+      {suggesting &&
+        (locatedStop ? (
+          <SuggestPlaces
+            tripId={tripId}
+            stop={locatedStop}
+            places={places}
+            onDone={() => setSuggesting(false)}
+          />
+        ) : (
+          <p className="hint">{t('suggest.needsStop')}</p>
+        ))}
 
-      {!adding && !pasting && !importing && (
+      {!adding && !pasting && !importing && !suggesting && (
         <div className="row">
           {/* Listed first: pasting a link is how places actually get
               collected, while typing one by hand is the fallback. */}
@@ -300,6 +316,9 @@ export function PlacesPanel() {
           </button>
           <button className="button button--quiet" onClick={() => setAdding(true)}>
             {t('places.add')}
+          </button>
+          <button className="button button--quiet" onClick={() => setSuggesting(true)}>
+            {t('suggest.find')}
           </button>
           <button className="button button--quiet" onClick={() => setImporting(true)}>
             {t('maps.import')}
