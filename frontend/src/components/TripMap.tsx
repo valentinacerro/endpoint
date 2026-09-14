@@ -67,6 +67,24 @@ export function TripMap({ pins, empty }: { pins: MapPin[]; empty?: ReactNode }) 
         maxZoom: 19,
         // Required by the OSM tile usage policy, and only fair.
         attribution: '© OpenStreetMap',
+        /**
+         * Without this the map is a wall of "Access blocked".
+         *
+         * OSM's tile policy asks for a Referer *or* a User-Agent that
+         * identifies the application. A browser sends its own generic
+         * user agent, which identifies Chrome and not us, so the Referer
+         * is the only thing that can answer — and this app sets
+         * `Referrer-Policy: no-referrer` on every response, which strips
+         * it. Measured: a browser user agent with no Referer is refused
+         * every time, and with one it is served every time.
+         *
+         * `strict-origin-when-cross-origin` rather than lifting the
+         * header, because the header is there for a reason. It sends the
+         * origin and never the path, so OSM learns that this app exists
+         * and not which trip is open — measured in a real browser from a
+         * URL carrying a trip id, and the id does not leave.
+         */
+        referrerPolicy: 'strict-origin-when-cross-origin',
       }).addTo(instance)
 
       const points: [number, number][] = pins.map((pin) => [pin.lat, pin.lon])

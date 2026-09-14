@@ -89,15 +89,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             },
         )
 
-    if settings.is_prod:
+    @app.middleware("http")
+    async def _security_headers(request: Request, call_next):
+        """Headers that hold everywhere, and one that only means anything live.
 
-        @app.middleware("http")
-        async def _security_headers(request: Request, call_next):
-            response = await call_next(request)
+        These used to be set only under `ENV=prod`, which meant the end-to-end
+        walkthrough exercised an app that behaved differently from the one
+        people use — and `Referrer-Policy` is precisely the header that broke
+        the map, by stripping the only thing OSM had to identify us with. A
+        policy that exists only in production is a policy nothing tests.
+
+        HSTS stays behind the flag: it is meaningless over plain HTTP, which
+        is what the walkthrough and a LAN address both are.
+        """
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        if settings.is_prod:
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-            response.headers["X-Content-Type-Options"] = "nosniff"
-            response.headers["Referrer-Policy"] = "no-referrer"
-            return response
+        return response
 
     # --- Public routes: these three and no others. ---
     app.include_router(health.router)
