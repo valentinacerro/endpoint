@@ -25,6 +25,13 @@ const NOT_IN_JSX = new Map([
   ['map-pin-wrap', 'passed to Leaflet as its icon className'],
 ])
 
+/**
+ * Prefixes owned by a library that writes its own markup. We still style
+ * them — a guided-tour popover in someone else's greys looks like another
+ * app — but they will never appear in a `className` here.
+ */
+const LIBRARY_PREFIXES = ['driver-']
+
 const CLASS_NAME = /^[a-z][a-z0-9_-]*$/
 
 function walk(dir) {
@@ -207,7 +214,13 @@ const inFamily = (name) => [...families].some((prefix) => name.startsWith(prefix
 const duplicated = duplicateDefinitions()
 const missing = [...literal].filter((name) => !defined.has(name)).sort()
 const orphaned = [...defined]
-  .filter((name) => !literal.has(name) && !inFamily(name) && !NOT_IN_JSX.has(name))
+  .filter(
+    (name) =>
+      !literal.has(name) &&
+      !inFamily(name) &&
+      !NOT_IN_JSX.has(name) &&
+      !LIBRARY_PREFIXES.some((prefix) => name.startsWith(prefix)),
+  )
   .sort()
 
 let failed = false

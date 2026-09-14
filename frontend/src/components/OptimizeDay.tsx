@@ -81,15 +81,15 @@ export function OptimizeDay({ bundle, day, tripId }: Props) {
   }
 
   if (!plan) {
-    // Never hidden. A feature that disappears when it cannot run is
-    // indistinguishable from one that was never built — and this one now
-    // always has something to say, even if that is why it cannot.
+    // A chip in the day's heading rather than a button under it. Still
+    // never hidden — a feature that disappears when it cannot run is
+    // indistinguishable from one that was never built — but a full-width
+    // button repeated once per day was fourteen of them down a fortnight,
+    // which is its own kind of hidden.
     return (
-      <div className="stack stack--tight">
-        <button className="button button--quiet button--small" onClick={compute}>
-          {t('plan.optimise')}
-        </button>
-      </div>
+      <button className="chip day__optimise" onClick={compute}>
+        {t('plan.optimise')}
+      </button>
     )
   }
 

@@ -1559,6 +1559,145 @@ a.entry__content:hover .entry__title {
   flex-shrink: 0;
 }
 
+/* A single row that offers the one next thing worth doing. Deliberately
+   unlike a card of content: it is an invitation, so it leans on the
+   accent and reads as something to press. */
+.prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  border-left: 4px solid var(--accent);
+  padding: 14px 16px;
+}
+
+.prompt__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.prompt__title {
+  font-size: var(--type-lead);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.prompt__hint {
+  color: var(--text-muted);
+  font-size: var(--type-small);
+}
+
+/* --- The guided walk ---
+   driver.js ships hard-coded greys and a white popover, which on this
+   ground is wrong in light and unreadable in dark. Its stylesheet is
+   loaded with the library, so these override it; the arrow is a border
+   trick in the library's own CSS and follows `--surface` through
+   `currentColor`, which is why the popover sets a colour it does not
+   otherwise need. */
+.driver-popover {
+  max-width: 320px;
+  padding: 16px 18px;
+  color: var(--surface);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.driver-popover-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: var(--type-title);
+  line-height: 1.2;
+  color: var(--text);
+  /* Room for the close button, so a two-word title does not run under it. */
+  padding-right: 28px;
+}
+
+.driver-popover-description {
+  margin-top: 6px;
+  font-size: var(--type-small);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.driver-popover-progress-text {
+  font-size: var(--type-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.driver-popover-footer button,
+.driver-popover-close-btn {
+  font: inherit;
+  font-size: var(--type-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 6px 12px;
+  text-shadow: none;
+}
+
+/* The one that moves you forward reads as the action. */
+.driver-popover-footer button:last-child {
+  color: var(--on-brand);
+  background: var(--brand);
+}
+
+.driver-popover-close-btn {
+  /* The library places this absolutely and sizes it in ems; left alone it
+     lands as a large ring over the popover's corner, because the app
+     gives every focused control a visible outline and driver moves focus
+     here when the popover opens. */
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: var(--type-compact);
+  line-height: 1;
+  background: none;
+}
+
+
+.driver-overlay path {
+  /* Warm ink rather than pure black, so the cut-out does not look like a
+     hole punched in a different app. */
+  fill: rgb(23 22 15 / 62%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .driver-overlay path {
+    fill: rgb(0 0 0 / 68%);
+  }
+}
+
+/* Lighter than the planner's invitation: this one is optional, and two
+   equally loud rows at the top of a screen is one too many. */
+.prompt--offer {
+  border-left-color: var(--border-strong);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* In the day's heading, pushed to the end, so a fortnight of days does
+   not read as a column of buttons. */
+.day__optimise {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 /* --- The home screen ---
    Three lines that mean the same three things whatever the trip is
    doing: a small eyebrow that names the moment, the headline, and the

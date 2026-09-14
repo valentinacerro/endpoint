@@ -7,12 +7,13 @@ import { BookingForm } from '../components/BookingForm'
 import { DayNoteEditor } from '../components/DayNoteEditor'
 import { OfflineReminder } from '../components/OfflineReminder'
 import { OptimizeDay } from '../components/OptimizeDay'
+import { TourOffer } from '../components/TourOffer'
 import { SchedulePlace } from '../components/SchedulePlace'
 import { TimelineEntry } from '../components/TimelineEntry'
 import { AppBar } from '../components/AppBar'
 import { Icon } from '../components/Icon'
 import { Fab } from '../components/Fab'
-import { t } from '../i18n'
+import { count, t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
 import {
   formatCalendarDate,
@@ -110,6 +111,23 @@ export function TripDetail() {
         />
       )}
 
+      <TourOffer />
+
+      {/* The one thing the whole planner exists for, said once and at the
+          top. It used to be row one of twelve behind a tab called "More",
+          which is where a feature goes to be never found. */}
+      {timeline.unscheduledPlaces.length > 0 && (
+        <Link className="card prompt" to={`/trips/${tripId}/plan`}>
+          <span className="prompt__body">
+            <span className="prompt__title">{t('trip_plan.title')}</span>
+            <span className="prompt__hint">
+              {count('trip_plan.waiting', timeline.unscheduledPlaces.length)}
+            </span>
+          </span>
+          <Icon name="forward" size={18} />
+        </Link>
+      )}
+
       {nothingAtAll && <p className="empty">{t('timeline.empty')}</p>}
 
       {timeline.days.map((day) => (
@@ -118,10 +136,10 @@ export function TripDetail() {
             <span className="day__number">{t('timeline.day', { n: day.number })}</span>
             <span className="day__date">{formatDayKey(day.key)}</span>
             {day.stop && <span className="day__stop">{day.stop.name}</span>}
+            <OptimizeDay bundle={data} day={day} tripId={tripId} />
           </h2>
 
           <DayNoteEditor tripId={tripId} day={day.key} note={notesByDay.get(day.key)} />
-          <OptimizeDay bundle={data} day={day} tripId={tripId} />
           {day.entries.length === 0 ? (
             <p className="day__empty">{t('timeline.emptyDay')}</p>
           ) : (
