@@ -96,6 +96,36 @@ _WIKIDATA_TIMEOUT = 25.0
 #: service's limits.
 _WIKIDATA_BATCH = 300
 
+#: Below this many results, ask again without the Wikidata requirement.
+#:
+#: Measured on a 5 km box, places the narrow query returns against places
+#: it returns without `["wikidata"]`:
+#:
+#:   Tokyo      711 -> (not needed)      Marrakech   13 ->  107
+#:   Kyoto       60 -> (not needed)      Bariloche    2 ->   95
+#:   Lisbon      60 -> (not needed)      Nairobi      0 ->  645
+#:   Lima        60 -> (not needed)      Kathmandu    0 -> 1160
+#:
+#: The tag is added by the kind of mapper who links things to Wikidata,
+#: which is a good description of where OSM is richly curated and a bad
+#: description of where a person might go. Requiring it did not make the
+#: suggestions shorter in Nairobi; it made them empty.
+#:
+#: The wider query is slower — 3 to 17 seconds where it runs — and is only
+#: ever run where the narrow one failed, which is to say in the smaller
+#: places where it is also cheaper. In a city where the narrow query works
+#: nothing extra is asked for at all.
+_THIN = 20
+
+#: The longest this may take, whatever happens inside it.
+#:
+#: Measured: a narrow query that works is 1-7 seconds, a wider one that
+#: works is 3-17, and the pathological case — thin, then refused by every
+#: instance — ran to eighty-five. Thirty covers every measured success
+#: with room to spare and cuts the failures off while a person is still
+#: willing to wait.
+_DEADLINE = 30.0
+
 #: What counts as somewhere you might go. Three decisions are load-bearing,
 #: and all three were measured rather than guessed on a 5 km box over
 #: central Tokyo:
@@ -303,35 +333,82 @@ async def around(
     four thousand meant ranking an arbitrary slice — and Senso-ji was not
     in it.
     """
-    query = _QUERY.replace("{area}", _bbox(lat, lon, radius_km))
+    area = _bbox(lat, lon, radius_km)
+    found: list[Suggestion] = []
 
-    async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT) as client:
-        payload = await _overpass(client, query)
-    if payload is None:
-        return []
+    # One ceiling over the whole thing, not a timeout per request.
+    #
+    # There are up to four asks in here — two instances for each of two
+    # queries — and each may retry, so the per-request timeouts multiply.
+    # Measured, at Bariloche, where the narrow query comes back thin and
+    # the wider one is refused as well: eighty-five seconds, and then
+    # nothing. Whatever has arrived by the deadline is a better answer
+    # than a screen still saying "cerco cosa vedere" a minute and a half
+    # later, and the caller is told which cities came back empty.
+    try:
+        async with asyncio.timeout(_DEADLINE):
+            async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT) as client:
+                payload = await _overpass(client, _QUERY.replace("{area}", area))
+                found = parse(payload) if payload else []
 
-    found = parse(payload)
-    qids = [place.wikidata for place in found if place.wikidata]
-    if qids:
-        async with httpx.AsyncClient(timeout=_WIKIDATA_TIMEOUT) as client:
-            counts = await fame(client, qids)
-        found = [
-            Suggestion(**{**place.__dict__, "fame": counts.get(place.wikidata or "", 0)})
-            for place in found
-        ]
+                # Ask again without the Wikidata requirement when the
+                # first ask came back thin. See `_THIN` for why this is
+                # not most cities.
+                if len(found) < _THIN:
+                    wider = await _overpass(
+                        client, _QUERY.replace('["wikidata"]', "").replace("{area}", area)
+                    )
+                    if wider is not None:
+                        seen = {place.osm_id for place in found}
+                        found = found + [
+                            place for place in parse(wider) if place.osm_id not in seen
+                        ]
 
-    return rank(found)[:limit]
+            qids = [place.wikidata for place in found if place.wikidata]
+            if qids:
+                async with httpx.AsyncClient(timeout=_WIKIDATA_TIMEOUT) as client:
+                    counts = await fame(client, qids)
+                found = [
+                    Suggestion(**{**place.__dict__, "fame": counts.get(place.wikidata or "", 0)})
+                    for place in found
+                ]
+    except TimeoutError:
+        # Deliberately not re-raised. Places without their fame scores
+        # still rank by nearness, and half an answer is worth having.
+        pass
+
+    return rank(found, (lat, lon))[:limit]
 
 
-def rank(places: list[Suggestion]) -> list[Suggestion]:
-    """Best known first, and alphabetical among the unknown.
+def rank(places: list[Suggestion], centre: tuple[float, float] | None = None) -> list[Suggestion]:
+    """Best known first, then nearest to where you are staying.
 
-    The second half matters more than it looks: most entries have no
-    Wikidata link at all, so without a tiebreak the order below the famous
-    ones is whatever Overpass happened to emit, which changes between
-    calls and makes the list feel random.
+    The second half matters more than it looks, and it used to be
+    alphabetical. That was survivable while every entry had a Wikidata
+    link and so a real score; it stopped being survivable when the wider
+    query came in, because a city that needs the wider query has *no*
+    scores at all. Kathmandu returns eleven hundred places that way, and
+    an alphabetical sort trimmed to sixty is sixty small stupas beginning
+    with A.
+
+    Nearest-first is not a measure of interest and does not pretend to be.
+    It is the least arbitrary order available without asking someone: you
+    are sleeping at the centre of this circle, so the near thing is more
+    likely to be the thing you would walk to. The list is ordered
+    properly, by a model on the phone, one step later.
     """
-    return sorted(places, key=lambda place: (-place.fame, place.name.casefold()))
+    if centre is None:
+        return sorted(places, key=lambda place: (-place.fame, place.name.casefold()))
+    lat, lon = centre
+    scale = cos(radians(lat))
+    return sorted(
+        places,
+        key=lambda place: (
+            -place.fame,
+            (place.lat - lat) ** 2 + ((place.lon - lon) * scale) ** 2,
+            place.name.casefold(),
+        ),
+    )
 
 
 __all__ = ["Suggestion", "around", "fame", "parse", "rank"]

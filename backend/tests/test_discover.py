@@ -6,6 +6,10 @@ one thing that matters operationally: Overpass is a volunteer service and
 falls over regularly, and none of that may reach the screen as an error.
 """
 
+import asyncio
+import time
+from urllib.parse import unquote_plus
+
 import httpx
 import pytest
 
@@ -127,6 +131,26 @@ class TestTheBoundingBox:
 
     def test_it_does_not_divide_by_zero_at_the_pole(self) -> None:
         assert discover._bbox(90.0, 0.0, 10.0)
+
+
+async def _no_fame(client: httpx.AsyncClient, ids: list[str]) -> dict[str, int]:
+    """Wikidata is a separate service and a separate question."""
+    return {}
+
+
+#: Captured before anything replaces the name: `_transport` stands in for
+#: `httpx.AsyncClient`, and building one through the patched name would
+#: call itself.
+_REAL_CLIENT = httpx.AsyncClient
+
+
+def _transport(handler):
+    """An `httpx.AsyncClient` that answers from `handler`, whoever builds it."""
+
+    def build(*args: object, **kwargs: object) -> httpx.AsyncClient:
+        return _REAL_CLIENT(transport=httpx.MockTransport(handler))
+
+    return build
 
 
 def _client(handler) -> httpx.AsyncClient:
@@ -352,3 +376,213 @@ class TestTellingATempleFromAShrine:
             {"elements": [node(name="Artizon Museum", tourism="museum", building="yes")]}
         )
         assert found[0].category == PlaceCategory.MUSEUM
+
+
+class TestAskingAgainWhereWikidataDoesNotReach:
+    """The whole reason an itinerary could not be made outside Europe.
+
+    The narrow query asks only for objects carrying a `wikidata` tag,
+    because that tag is what makes a place rankable. Measured on a 5 km
+    box: Tokyo 711 such objects, Marrakech 13, Bariloche 2, Nairobi and
+    Kathmandu none at all — against 107, 95, 645 and 1160 without the
+    requirement. The places are there; the curation is not.
+    """
+
+    @staticmethod
+    def _payload(count: int, *, wikidata: bool, first_id: int = 1) -> dict:
+        return {
+            "elements": [
+                {
+                    "type": "node",
+                    "id": first_id + i,
+                    "lat": 35.0 + i / 1000,
+                    "lon": 139.0 + i / 1000,
+                    "tags": {
+                        "name": f"Place {first_id + i}",
+                        "tourism": "attraction",
+                        **({"wikidata": f"Q{first_id + i}"} if wikidata else {}),
+                    },
+                }
+                for i in range(count)
+            ]
+        }
+
+    @pytest.mark.anyio
+    async def test_a_thin_answer_is_asked_again_without_the_requirement(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        asked: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            # Form-encoded on the wire, so the tag reads as %22wikidata%22.
+            query = unquote_plus(request.content.decode())
+            asked.append(query)
+            if "wikidata" in query:
+                return httpx.Response(200, json=self._payload(2, wikidata=True))
+            return httpx.Response(200, json=self._payload(40, wikidata=False, first_id=100))
+
+        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(httpx, "AsyncClient", _transport(handler))
+        found = await discover.around(-41.13, -71.31, 5.0)
+
+        assert len(asked) == 2
+        assert '["wikidata"]' in asked[0]
+        assert '["wikidata"]' not in asked[1]
+        # Both halves, and the two rankable ones kept.
+        assert len(found) == 42
+
+    @pytest.mark.anyio
+    async def test_a_city_that_answers_richly_is_asked_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Nothing extra is asked of a service run on donations when the
+        # first answer was good enough.
+        asked: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            asked.append(unquote_plus(request.content.decode()))
+            return httpx.Response(200, json=self._payload(60, wikidata=True))
+
+        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(httpx, "AsyncClient", _transport(handler))
+        await discover.around(35.69, 139.70, 5.0)
+        assert len(asked) == 1
+
+    @pytest.mark.anyio
+    async def test_the_wider_answer_does_not_bring_back_what_was_already_found(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The wider query is the narrow one minus a filter, so everything
+        # the first ask returned comes back in the second.
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "wikidata" in unquote_plus(request.content.decode()):
+                return httpx.Response(200, json=self._payload(2, wikidata=True))
+            return httpx.Response(200, json=self._payload(30, wikidata=False))
+
+        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(httpx, "AsyncClient", _transport(handler))
+        found = await discover.around(-41.13, -71.31, 5.0)
+
+        assert len(found) == 30
+        assert len({place.osm_id for place in found}) == 30
+
+
+class TestTheOrderThatComesOut:
+    @pytest.mark.anyio
+    async def test_the_answer_is_ordered_from_where_you_are_staying(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`around` knows the centre; `rank` only knows it if told.
+
+        Written because sabotaging the centre out of that call changed no
+        test at all: the ordering was proved in isolation and never on the
+        way through. Named so the alphabet would give the wrong answer.
+        """
+        payload = {
+            "elements": [
+                {
+                    "type": "node",
+                    "id": 1,
+                    "lat": 35.40,
+                    "lon": 139.40,
+                    "tags": {"name": "Aquarium far away", "tourism": "attraction"},
+                },
+                {
+                    "type": "node",
+                    "id": 2,
+                    "lat": 35.001,
+                    "lon": 139.001,
+                    "tags": {"name": "Zoo round the corner", "tourism": "attraction"},
+                },
+            ]
+        }
+
+        monkeypatch.setattr(discover, "fame", _no_fame)
+        monkeypatch.setattr(
+            httpx, "AsyncClient", _transport(lambda _: httpx.Response(200, json=payload))
+        )
+        found = await discover.around(35.0, 139.0, 5.0)
+
+        assert [place.name for place in found] == [
+            "Zoo round the corner",
+            "Aquarium far away",
+        ]
+
+
+class TestTheCeiling:
+    @pytest.mark.anyio
+    async def test_it_gives_back_what_it_has_rather_than_running_on(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Measured at Bariloche before this existed: eighty-five seconds,
+        and then nothing. There are up to four asks in here and each may
+        retry, so the per-request timeouts multiply."""
+
+        async def slow(*args: object, **kwargs: object) -> dict | None:
+            await asyncio.sleep(5)
+            return None
+
+        monkeypatch.setattr(discover, "_DEADLINE", 0.05)
+        monkeypatch.setattr(discover, "_overpass", slow)
+        started = time.monotonic()
+        assert await discover.around(35.69, 139.70, 5.0) == []
+        assert time.monotonic() - started < 2
+
+
+class TestOrderingWhereNothingIsRankable:
+    def test_the_famous_come_first_and_then_the_near(self) -> None:
+        """A city that needed the wider query has no fame scores at all, so
+        the tiebreak is the whole order. Alphabetical made Kathmandu's
+        eleven hundred places into sixty small stupas beginning with A."""
+        centre = (35.0, 139.0)
+        far_famous = discover.Suggestion(
+            name="Zoo",
+            lat=35.4,
+            lon=139.4,
+            category=PlaceCategory.SIGHT,
+            fame=30,
+            wikidata="Q1",
+            osm_id="n/1",
+        )
+        near_unknown = discover.Suggestion(
+            name="Zebra crossing",
+            lat=35.001,
+            lon=139.001,
+            category=PlaceCategory.SIGHT,
+            fame=0,
+            wikidata=None,
+            osm_id="n/2",
+        )
+        far_unknown = discover.Suggestion(
+            name="Abbey",
+            lat=35.4,
+            lon=139.4,
+            category=PlaceCategory.SIGHT,
+            fame=0,
+            wikidata=None,
+            osm_id="n/3",
+        )
+
+        ordered = discover.rank([far_unknown, near_unknown, far_famous], centre)
+        assert [place.osm_id for place in ordered] == ["n/1", "n/2", "n/3"]
+
+    def test_without_a_centre_it_falls_back_to_the_alphabet(self) -> None:
+        a = discover.Suggestion(
+            name="Abbey",
+            lat=1.0,
+            lon=1.0,
+            category=PlaceCategory.SIGHT,
+            fame=0,
+            wikidata=None,
+            osm_id="n/1",
+        )
+        z = discover.Suggestion(
+            name="Zoo",
+            lat=0.0,
+            lon=0.0,
+            category=PlaceCategory.SIGHT,
+            fame=0,
+            wikidata=None,
+            osm_id="n/2",
+        )
+        assert [p.osm_id for p in discover.rank([z, a])] == ["n/1", "n/2"]
