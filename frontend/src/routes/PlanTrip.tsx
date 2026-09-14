@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
+import type { DayTheme } from '../api/types'
+
 import { useDiscover, useSchedulePlaces, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
 import { ModelDay } from '../components/ModelDay'
@@ -36,8 +38,16 @@ export function PlanTrip() {
   /** Cities whose days are empty and that cannot be looked around. */
   const [blind, setBlind] = useState<string[]>([])
   const [working, setWorking] = useState(false)
-  /** What the model made of each place, when it has been asked. */
-  const [prefer, setPrefer] = useState<ReadonlyMap<string, number>>(new Map())
+  /**
+   * What the model made of each place, kept per kind of day.
+   *
+   * Per theme and not one map for the trip: the model is asked about a
+   * kind of day, so its answer about a day of shopping says nothing
+   * about the museums day — and using it there was what this did.
+   */
+  const [prefer, setPrefer] = useState<ReadonlyMap<DayTheme, ReadonlyMap<string, number>>>(
+    new Map(),
+  )
   /** The cities being asked about, so the wait has a name on it. */
   const [looking, setLooking] = useState<string[]>([])
   /** Cities we asked about and got nothing back for. */
@@ -50,25 +60,31 @@ export function PlanTrip() {
   const data = bundle.data
 
   /**
-   * The first themed day, and the city it is in.
+   * Every kind of day this trip has, once each, with a city to name.
    *
-   * One is enough to ask about: the model is scoring places against a
-   * kind of day, and a trip whose shopping days are in two cities is
-   * better served by asking twice than by asking about neither.
+   * One question per kind, not one for the trip: a shopping day and a
+   * museums day are two different questions, and asking only the first
+   * was giving the second an answer to something it had not asked.
    */
-  const themedDay = data.day_notes.find((note) => note.theme)
-  const themed = themedDay
-    ? {
-        theme: themedDay.theme!,
-        city:
-          data.stops.find(
-            (stop) =>
-              stop.arrive_date &&
-              stop.arrive_date <= themedDay.day &&
-              (stop.depart_date ?? stop.arrive_date) >= themedDay.day,
-          )?.name ?? null,
-      }
-    : null
+  const themesAsked = [
+    ...new Map(
+      data.day_notes
+        .filter((note) => note.theme)
+        .map((note) => [
+          note.theme!,
+          {
+            theme: note.theme!,
+            city:
+              data.stops.find(
+                (stop) =>
+                  stop.arrive_date &&
+                  stop.arrive_date <= note.day &&
+                  (stop.depart_date ?? stop.arrive_date) >= note.day,
+              )?.name ?? null,
+          },
+        ]),
+    ).values(),
+  ]
   const names = new Map(data.places.map((place) => [place.id, place.name]))
   const stopNames = new Map(data.stops.map((stop) => [stop.id, stop.name]))
 
@@ -272,14 +288,18 @@ export function PlanTrip() {
             {/* Only where the day has been given a character: without one
                 there is nothing to ask the model to prefer, and a button
                 that does nothing in particular is worse than no button. */}
-            {themed && (
+            {themesAsked.length > 0 && <p className="muted small">{t('model.intro')}</p>}
+            {themesAsked.map((asked) => (
               <ModelDay
+                key={asked.theme}
                 places={data.places}
-                theme={themed.theme}
-                city={themed.city}
-                onScores={setPrefer}
+                theme={asked.theme}
+                city={asked.city}
+                onScores={(scores) =>
+                  setPrefer((before) => new Map(before).set(asked.theme, scores))
+                }
               />
-            )}
+            ))}
 
             <button className="button" onClick={() => void compute()} disabled={working}>
               {working ? t('trip_plan.looking') : t('trip_plan.compute')}

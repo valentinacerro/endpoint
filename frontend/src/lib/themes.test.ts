@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Place, Stop, TripBundle } from '../api/types'
+import type { DayTheme, Place, Stop, TripBundle } from '../api/types'
 
 import { planTrip } from './planTrip'
 
@@ -198,8 +198,8 @@ describe('what a model is allowed to move', () => {
       dayEnd: '13:00',
     }
     const bundle = oneDay(two, 'shopping')
-    const withB = planTrip(bundle, { ...oneSlot, prefer: new Map([['shop-b', 5]]) })
-    const withA = planTrip(bundle, { ...oneSlot, prefer: new Map([['shop-a', 5]]) })
+    const withB = planTrip(bundle, { ...oneSlot, prefer: new Map([['shopping', new Map([['shop-b', 5]])]]) })
+    const withA = planTrip(bundle, { ...oneSlot, prefer: new Map([['shopping', new Map([['shop-a', 5]])]]) })
 
     expect(withB.writes.map((w) => w.placeId)).toEqual(['shop-b'])
     expect(withA.writes.map((w) => w.placeId)).toEqual(['shop-a'])
@@ -218,9 +218,28 @@ describe('what a model is allowed to move', () => {
     const plan = planTrip(oneDay(withMust, 'shopping'), {
       now: BEFORE,
       onlyDays: ['2026-04-11'],
-      prefer: new Map(['s1', 's2', 's3', 's4', 's5'].map((id) => [id, 5])),
+      prefer: new Map([['shopping', new Map(['s1', 's2', 's3', 's4', 's5'].map((id) => [id, 5]))]]),
     })
     expect(plan.writes.map((w) => w.placeId)).toContain('temple-must')
+  })
+
+  it('does not let one kind of day answer for another', () => {
+    // The model is asked about a *kind* of day. Its answer to "which of
+    // these belong in a day of shopping" says nothing about the museums
+    // day, and applying it there was what this used to do.
+    const two = [
+      place({ id: 'museum-a', category: 'museum', ...at(0) }),
+      place({ id: 'museum-b', category: 'museum', ...at(0) }),
+    ]
+    const shortDay = { now: BEFORE, onlyDays: ['2026-04-11'], dayStart: '09:00', dayEnd: '13:00' }
+    const asked: ReadonlyMap<DayTheme, ReadonlyMap<string, number>> = new Map([
+      ['shopping', new Map([['museum-b', 5]])],
+    ])
+
+    const plan = planTrip(oneDay(two, 'museums'), { ...shortDay, prefer: asked })
+    // The shopping answer is not consulted, so the museums day falls back
+    // to the order it had: the first of two equals.
+    expect(plan.writes.map((w) => w.placeId)).toEqual(['museum-a'])
   })
 
   it('changes nothing at all when no model has run', () => {

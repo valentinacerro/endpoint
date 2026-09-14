@@ -144,8 +144,16 @@ export interface PlanTripOptions {
   replan?: 'keep' | 'day'
   dayStart?: string
   dayEnd?: string
-  /** What a model made of each place, 0–5, by id. A tiebreak only. */
-  prefer?: ReadonlyMap<string, number>
+  /**
+   * What a model made of each place, 0–5, by id — kept per theme.
+   *
+   * Per theme and not one map for the trip, which is what it was and was
+   * wrong: the model is asked about a *kind of day*, so the answer to
+   * "which of these belong in a day of shopping" was being used to order
+   * the museums day as well. A score means nothing away from the question
+   * it answered.
+   */
+  prefer?: ReadonlyMap<DayTheme, ReadonlyMap<string, number>>
 }
 
 // --- Days ---------------------------------------------------------------
@@ -479,7 +487,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
         startPoint: slot.centre,
         known,
         theme: slot.theme,
-        prefer: options.prefer,
+        prefer: slot.theme ? options.prefer?.get(slot.theme) : undefined,
       })
       plans.set(slot.key, plan)
 
@@ -521,7 +529,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
             startPoint: slot.centre,
             known,
             theme: slot.theme,
-            prefer: options.prefer,
+            prefer: slot.theme ? options.prefer?.get(slot.theme) : undefined,
           },
         )
         offered.set(candidate.id, [...(offered.get(candidate.id) ?? []), slot.key])

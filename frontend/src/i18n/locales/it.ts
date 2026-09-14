@@ -36,11 +36,11 @@ export const it = {
   'tabs.money': 'Spese',
   'tabs.more': 'Altro',
 
-  'model.ask': 'Fatti aiutare dal modello sul telefono',
+  'model.intro': 'Il modello sul telefono può dire quali luoghi stanno bene insieme in una giornata di un certo tipo. Non aggiunge né toglie posti: dà solo un parere, e decidi tu ricalcolando.',
   'model.working': 'Ci sto lavorando…',
   'model.thinking': 'Sto leggendo la lista…',
   'model.downloading': 'Scarico il modello, {percent}% — solo la prima volta',
-  'model.rated': 'Ha detto la sua su {count} luoghi. Ricalcola il piano per vederne l’effetto.',
+  'model.ratedFor': 'Ha detto la sua su {count} luoghi per le giornate «{theme}». Ricalcola il piano per vederne l’effetto.',
   'model.saidNothing': 'Non ha saputo dire niente di utile. Il piano resta com’era.',
   'model.failed': 'Il modello non ha risposto. Il piano resta com’era.',
   'more.mapHint': 'I luoghi del viaggio, numerati per giorno.',

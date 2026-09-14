@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import type { DayTheme, Place } from '../api/types'
 import { t } from '../i18n'
+import { dayThemeLabel } from '../i18n/labels'
 import { MAX_CANDIDATES, promptFor, scoresById } from '../lib/dayModel'
 import { ask, canRun, type Progress } from '../lib/webllm'
 
@@ -69,8 +70,12 @@ export function ModelDay({
 
   return (
     <div className="stack stack--tight">
+      {/* The theme alone. Several of these sit together under one
+          heading, and "Chiedi al modello: giornata «All'aperto»" is forty
+          characters — wider than a 320px screen has to give a button, and
+          the same forty characters three times over. */}
       <button className="button button--quiet" onClick={() => void run()} disabled={progress !== null}>
-        {progress === null ? t('model.ask') : t('model.working')}
+        {progress === null ? dayThemeLabel(theme) : t('model.working')}
       </button>
 
       {progress !== null && (
@@ -83,7 +88,9 @@ export function ModelDay({
 
       {said !== null && (
         <p className="hint">
-          {said === 0 ? t('model.saidNothing') : t('model.rated', { count: said })}
+          {said === 0
+            ? t('model.saidNothing')
+            : t('model.ratedFor', { count: said, theme: dayThemeLabel(theme) })}
         </p>
       )}
 
