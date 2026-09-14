@@ -197,6 +197,7 @@ export const en: Record<TranslationKey, string> = {
   'booking.words.activity.title': 'What',
   'booking.words.activity.start': 'Starts',
   'booking.words.activity.end': 'Ends',
+  'stops.tzFrom': '{place}’s zone, set with the city. Change it if it is wrong — it decides which day this stop’s bookings land on.',
   'timeline.day': 'Day {n}',
   'timeline.hasDocuments': 'Has documents',
   'timeline.emptyDay': 'Nothing planned.',

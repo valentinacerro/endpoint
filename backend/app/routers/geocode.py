@@ -17,6 +17,12 @@ class HitOut(BaseModel):
     where: str | None
     address: str | None
     category: PlaceCategory
+    #: ISO 3166-1 alpha-2, when the source says.
+    country: str | None
+    #: The IANA zone, when the country and position are enough to say it.
+    #: Null rather than a guess — a stop's zone decides which day its
+    #: bookings land on, and a wrong one is invisible.
+    tz: str | None
 
 
 @router.get("/search", response_model=list[HitOut])

@@ -25,6 +25,7 @@ import httpx
 from app.enums import PlaceCategory
 from app.errors import AppError
 from app.services.agent import HEADERS
+from app.services.zonetab import zone_for
 
 _BASE = "https://photon.komoot.io/api/"
 _TIMEOUT_SECONDS = 6.0
@@ -48,6 +49,13 @@ class Hit:
     where: str | None
     address: str | None
     category: PlaceCategory
+    #: ISO 3166-1 alpha-2, when the source says. Carried because a stop
+    #: needs a country and, through it, a time zone.
+    country: str | None = None
+    #: The IANA zone this place is in, when the country and position are
+    #: enough to say. None rather than a guess: a wrong zone silently
+    #: moves every booking of that stop to the wrong day.
+    tz: str | None = None
 
 
 #: OpenStreetMap's classification, mapped onto ours where it is certain.
@@ -136,12 +144,17 @@ def _hit(feature: dict) -> Hit | None:
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return None
 
+    country = props.get("countrycode")
+    country = str(country).upper() if country else None
+
     return Hit(
         name=str(name),
         lat=lat,
         lon=lon,
         where=_where(props),
         address=_address(props),
+        country=country,
+        tz=zone_for(country, lat, lon),
         category=categorise(props.get("osm_key"), props.get("osm_value")),
     )
 

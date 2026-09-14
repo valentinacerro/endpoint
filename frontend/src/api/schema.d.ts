@@ -1204,6 +1204,10 @@ export interface components {
             /** Address */
             address: string | null;
             category: components["schemas"]["PlaceCategory"];
+            /** Country */
+            country: string | null;
+            /** Tz */
+            tz: string | null;
         };
         /** ImportSummary */
         ImportSummary: {

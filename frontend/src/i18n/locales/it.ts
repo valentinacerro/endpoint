@@ -199,6 +199,7 @@ export const it = {
   'booking.words.activity.title': 'Cosa',
   'booking.words.activity.start': 'Inizio',
   'booking.words.activity.end': 'Fine',
+  'stops.tzFrom': 'Fuso di {place}, scelto con la città. Cambialo se non è giusto — decide su che giorno cadono le prenotazioni di questa tappa.',
   'timeline.day': 'Giorno {n}',
   'timeline.hasDocuments': 'Ha dei documenti',
   'timeline.emptyDay': 'Niente in programma.',

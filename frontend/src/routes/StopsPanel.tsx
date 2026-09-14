@@ -27,6 +27,8 @@ function AddStop({ tripId, defaultZone, onDone }: {
   // A stop has had lat/lon in the table since the first migration and
   // nothing ever wrote them. Everything that reasons about which city a
   // place belongs to needs a city to measure from.
+  /** The place whose choice set the zone, so the screen can say so. */
+  const [tzFrom, setTzFrom] = useState<string | null>(null)
   const [point, setPoint] = useState<{ lat: number; lon: number } | null>(null)
   const [tz, setTz] = useState(defaultZone)
   const [country, setCountry] = useState('')
@@ -61,10 +63,20 @@ function AddStop({ tripId, defaultZone, onDone }: {
             onText={(typed) => {
               setName(typed)
               setPoint(null)
+              setTzFrom(null)
             }}
             onPick={(hit) => {
               setName(hit.name)
               setPoint({ lat: hit.lat, lon: hit.lon })
+              // The whole reason this was the worst trap in the app:
+              // picking Tokyo used to leave the zone reading Europe/Rome,
+              // and a stop's zone decides which day its bookings land on.
+              // Nothing complained; the itinerary was simply a day out.
+              if (hit.country) setCountry(hit.country)
+              if (hit.tz) {
+                setTz(hit.tz)
+                setTzFrom(hit.name)
+              }
             }}
           />
         </div>
@@ -95,7 +107,9 @@ function AddStop({ tripId, defaultZone, onDone }: {
           <option key={zone} value={zone} />
         ))}
       </datalist>
-      <p className="hint">{t('stops.tzHint')}</p>
+      <p className="hint">
+        {tzFrom ? t('stops.tzFrom', { place: tzFrom }) : t('stops.tzHint')}
+      </p>
 
       <div className="row">
         <label className="field field--grow">
