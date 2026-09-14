@@ -23,6 +23,8 @@ from dataclasses import dataclass
 import httpx
 
 from app.enums import PlaceCategory
+from app.errors import AppError
+from app.services.agent import HEADERS
 
 _BASE = "https://photon.komoot.io/api/"
 _TIMEOUT_SECONDS = 6.0
@@ -163,14 +165,20 @@ async def ask(
         params["lat"], params["lon"] = near
 
     try:
-        response = await client.get(_BASE, params=params)
+        response = await client.get(_BASE, params=params, headers=HEADERS)
         response.raise_for_status()
         return parse(response.json())
-    except (httpx.HTTPError, ValueError):
-        # An empty list, not an error: a search box that fails loudly
-        # while you are still typing is worse than one that finds
-        # nothing for a moment.
-        return []
+    except (httpx.HTTPError, ValueError) as exc:
+        # NOT an empty list. That is what this used to do, and it meant
+        # the screen said "no place by that name" for Tokyo — because the
+        # service was answering 403, not because Tokyo is hard to find.
+        # A search that finds nothing and a search that could not run are
+        # different facts and the reader has to be told which.
+        raise AppError(
+            "lookup_unavailable",
+            "The place lookup is not answering",
+            status_code=503,
+        ) from exc
 
 
 async def search(query: str, near: tuple[float, float] | None = None) -> list[Hit]:

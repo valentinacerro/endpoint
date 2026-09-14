@@ -262,6 +262,7 @@ export const en: Record<TranslationKey, string> = {
   'map.needsNetwork': 'The map needs the network: its tiles cannot be saved offline.',
 
   'lookup.searching': 'Searching…',
+  'lookup.unavailable': 'The place lookup is not answering. Write the name and add the position later.',
   'lookup.nothing': 'No place by that name. You can write it anyway and add the position later.',
   'lookup.located': 'Position found: it will show on the map and in the day planner.',
   'lookup.noPosition': 'No position: it will not show on the map. Pick a suggestion, or paste a Maps link.',

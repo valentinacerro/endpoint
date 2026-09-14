@@ -107,9 +107,19 @@ export function PlaceSearch({ label, near, onPick, onText, initial = '', autoFoc
         </ul>
       )}
 
-      {open && settled.trim().length >= 3 && !hits.isFetching && suggestions.length === 0 && (
-        <p className="muted small">{t('lookup.nothing')}</p>
+      {/* Two different facts, and for a long time both read as the first
+          one. A dependency started refusing anonymous clients and the box
+          said "no place by that name" for Tokyo — with nothing anywhere
+          saying the lookup was down. */}
+      {open && settled.trim().length >= 3 && !hits.isFetching && hits.isError && (
+        <p className="hint">{t('lookup.unavailable')}</p>
       )}
+
+      {open &&
+        settled.trim().length >= 3 &&
+        !hits.isFetching &&
+        !hits.isError &&
+        suggestions.length === 0 && <p className="muted small">{t('lookup.nothing')}</p>}
     </div>
   )
 }

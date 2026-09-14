@@ -169,3 +169,63 @@ class TestPlacingByName:
         assert place.name == "Xyzzyq Plugh"
         assert place.lat is None
         assert place.position is None
+
+
+class TestTrimmingAMapsName:
+    """A share from Maps puts the whole postal address into the name."""
+
+    def test_it_offers_the_part_before_the_first_comma_as_well(self) -> None:
+        from app.services.maps import searchable
+
+        name = "Chao Chao Gyoza - Shijo Kawaramachi, 312-1 Junpucho, Shimogyo Ward, Kyoto, Japan"
+        assert searchable(name) == [name, "Chao Chao Gyoza - Shijo Kawaramachi"]
+
+    def test_a_plain_name_is_tried_once(self) -> None:
+        from app.services.maps import searchable
+
+        assert searchable("Senso-ji") == ["Senso-ji"]
+
+    def test_a_name_that_starts_with_a_comma_is_not_trimmed_to_nothing(self) -> None:
+        from app.services.maps import searchable
+
+        assert searchable(", 2 Chome-3-1 Asakusa, Tokyo") == [", 2 Chome-3-1 Asakusa, Tokyo"]
+
+    @pytest.mark.anyio
+    async def test_the_trimmed_name_is_tried_when_the_whole_one_finds_nothing(
+        self, monkeypatch
+    ) -> None:
+        from app.services import geocode
+
+        asked: list[str] = []
+
+        async def fake_search(query, near=None):
+            asked.append(query)
+            if "," in query:
+                return []
+            return [geocode.Hit("Gyoza Chao Chao", 35.0, 135.77, "Kyoto", None, "food")]
+
+        monkeypatch.setattr(geocode, "search", fake_search)
+        place = await resolve(
+            "https://www.google.com/maps/search/?api=1&query="
+            "Chao+Chao+Gyoza,+312-1+Junpucho,+Kyoto"
+        )
+        assert len(asked) == 2
+        assert asked[1] == "Chao Chao Gyoza"
+        assert place.position == "geocoded"
+        assert place.lat == pytest.approx(35.0)
+
+    @pytest.mark.anyio
+    async def test_the_whole_name_wins_when_it_works(self, monkeypatch) -> None:
+        from app.services import geocode
+
+        asked: list[str] = []
+
+        async def fake_search(query, near=None):
+            asked.append(query)
+            return [
+                geocode.Hit("Shibuya Scramble Crossing", 35.6595, 139.7006, "Tokyo", None, "sight")
+            ]
+
+        monkeypatch.setattr(geocode, "search", fake_search)
+        await resolve("https://www.google.com/maps/search/?api=1&query=Shibuya+Crossing,+Tokyo")
+        assert asked == ["Shibuya Crossing, Tokyo"]

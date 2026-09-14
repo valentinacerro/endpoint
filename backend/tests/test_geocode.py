@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.enums import PlaceCategory
+from app.errors import AppError
 from app.services import geocode
 
 
@@ -145,23 +146,64 @@ class TestSearching:
         assert "lat" not in seen
 
     @pytest.mark.anyio
-    async def test_a_failure_is_an_empty_list_not_an_error(self) -> None:
-        """A search box that throws while you are still typing is worse
-        than one that finds nothing for a moment."""
+    async def test_a_service_failure_is_not_reported_as_finding_nothing(self) -> None:
+        """The distinction this file exists for.
+
+        These two used to assert an empty list, on the reasoning that a
+        search box which throws while you are still typing is worse than
+        one that finds nothing for a moment. That was wrong in a way it
+        took a dead dependency to show: Photon began answering 403 to an
+        anonymous client, and the screen said "no place by that name" for
+        Tokyo. Nothing anywhere said the lookup was down — not the UI, not
+        a log, not a test. Finding nothing and being unable to look are
+        different facts and the caller has to be able to tell them apart.
+        """
 
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(503, text="busy")
 
         async with _client(handler) as http:
-            assert await geocode.ask(http, "senso-ji") == []
+            with pytest.raises(AppError) as raised:
+                await geocode.ask(http, "senso-ji")
+        assert raised.value.code == "lookup_unavailable"
+        assert raised.value.status_code == 503
 
     @pytest.mark.anyio
-    async def test_nonsense_in_the_body_is_not_an_error(self) -> None:
+    async def test_a_body_that_is_not_json_is_a_failure_too(self) -> None:
+        # What a blocked or overloaded service actually sends: an HTML
+        # error page with a 200 on it.
         def handler(request: httpx.Request) -> httpx.Response:
-            return httpx.Response(200, content=b"not json")
+            return httpx.Response(200, content=b"<html>403 Forbidden</html>")
 
         async with _client(handler) as http:
-            assert await geocode.ask(http, "senso-ji") == []
+            with pytest.raises(AppError):
+                await geocode.ask(http, "senso-ji")
+
+    @pytest.mark.anyio
+    async def test_a_real_answer_with_no_matches_is_still_an_empty_list(self) -> None:
+        # The other half: the service answered, and there is genuinely no
+        # such place. That must NOT look like a failure.
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"features": []})
+
+        async with _client(handler) as http:
+            assert await geocode.ask(http, "xyzzyq plugh") == []
+
+    @pytest.mark.anyio
+    async def test_it_says_who_is_calling(self) -> None:
+        # Not politeness for its own sake. Photon blocks httpx's default
+        # agent, and the failure mode is every search silently returning
+        # nothing — which is how this was found, from a screenshot.
+        seen: list[str | None] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request.headers.get("user-agent"))
+            return httpx.Response(200, json={"features": []})
+
+        async with _client(handler) as http:
+            await geocode.ask(http, "senso-ji")
+        assert seen[0] and "endpoint" in seen[0]
+        assert "httpx" not in seen[0]
 
 
 def _client(handler) -> httpx.AsyncClient:

@@ -264,6 +264,7 @@ export const it = {
   'map.needsNetwork': 'La mappa ha bisogno della rete: le sue tessere non si possono salvare offline.',
 
   'lookup.searching': 'Cerco…',
+  'lookup.unavailable': 'La ricerca dei luoghi non risponde. Scrivi il nome e aggiungi la posizione più tardi.',
   'lookup.nothing': 'Nessun posto con questo nome. Puoi scriverlo lo stesso e aggiungere la posizione dopo.',
   'lookup.located': 'Posizione trovata: comparirà sulla mappa e nel calcolo della giornata.',
   'lookup.noPosition': 'Senza posizione: non comparirà sulla mappa. Scegli un suggerimento, oppure incolla un link di Maps.',
