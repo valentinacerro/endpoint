@@ -238,3 +238,60 @@ class TestTheEndpoint:
     def test_coordinates_outside_the_world_are_refused(self, client: TestClient) -> None:
         response = client.get("/api/geo/search", params={"q": "senso", "lat": 200, "lon": 0})
         assert response.status_code == 422
+
+
+class TestSearchableForms:
+    """A share from Maps writes the whole postal address into the name,
+    and a geocoder handed eighty characters with a postcode and a floor
+    number in them matches nothing."""
+
+    def test_it_offers_the_part_before_the_first_comma_as_well(self) -> None:
+        name = "Chao Chao Gyoza - Shijo Kawaramachi, 312-1 Junpucho, Shimogyo Ward, Kyoto, Japan"
+        assert geocode.searchable(name) == [name, "Chao Chao Gyoza - Shijo Kawaramachi"]
+
+    def test_a_plain_name_is_tried_once(self) -> None:
+        assert geocode.searchable("Senso-ji") == ["Senso-ji"]
+
+    def test_a_name_that_starts_with_a_comma_is_not_trimmed_to_nothing(self) -> None:
+        only_address = ", 2 Chome-3-1 Asakusa, Tokyo"
+        assert geocode.searchable(only_address) == [only_address]
+
+    def test_the_whole_name_comes_first(self) -> None:
+        # It is the better query when it happens to work.
+        assert geocode.searchable("Shibuya Crossing, Tokyo")[0] == "Shibuya Crossing, Tokyo"
+
+
+class TestLocating:
+    @pytest.mark.anyio
+    async def test_it_falls_back_to_the_trimmed_name(self, monkeypatch) -> None:
+        asked: list[str] = []
+
+        async def fake_search(query, near=None):
+            asked.append(query)
+            if "," in query:
+                return []
+            return [geocode.Hit("Gyoza Chao Chao", 35.0, 135.77, "Kyoto", None, "food")]
+
+        monkeypatch.setattr(geocode, "search", fake_search)
+        hit = await geocode.locate("Chao Chao Gyoza, 312-1 Junpucho, Kyoto")
+        assert asked == ["Chao Chao Gyoza, 312-1 Junpucho, Kyoto", "Chao Chao Gyoza"]
+        assert hit is not None and hit.lat == pytest.approx(35.0)
+
+    @pytest.mark.anyio
+    async def test_a_name_nobody_knows_is_none_rather_than_an_error(self, monkeypatch) -> None:
+        async def nothing(query, near=None):
+            return []
+
+        monkeypatch.setattr(geocode, "search", nothing)
+        assert await geocode.locate("Xyzzyq Plugh") is None
+
+    @pytest.mark.anyio
+    async def test_the_lookup_being_down_still_raises(self, monkeypatch) -> None:
+        # The distinction the whole change is about: unknown and
+        # unavailable must not arrive as the same answer.
+        async def broken(query, near=None):
+            raise AppError("lookup_unavailable", "down", status_code=503)
+
+        monkeypatch.setattr(geocode, "search", broken)
+        with pytest.raises(AppError):
+            await geocode.locate("Senso-ji")

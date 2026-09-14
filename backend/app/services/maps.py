@@ -128,25 +128,6 @@ def parse_maps_url(url: str) -> MapsPlace:
     )
 
 
-def searchable(name: str) -> list[str]:
-    """The name to look up, then the shorter one worth trying after it.
-
-    A share from Maps puts the whole postal address into the name —
-    "Chao Chao Gyoza - Shijo Kawaramachi, 312-1 Junpucho, Shimogyo Ward,
-    Kyoto, 600-8021, Japan" — and a geocoder handed eighty characters
-    containing a postcode and a floor number matches nothing. Everything
-    before the first comma is the part a human would type, and it is what
-    actually resolves: of four real examples from a trip, one matched
-    whole and all four matched trimmed.
-
-    Both are tried, in that order, because the full string is the better
-    query when it happens to work.
-    """
-    whole = name.strip()
-    head = whole.split(",")[0].strip()
-    return [whole] if head == whole or len(head) < 3 else [whole, head]
-
-
 async def _placed_by_name(place: MapsPlace, near: tuple[float, float] | None) -> MapsPlace:
     """Give a place that has only a name its coordinates, by asking the geocoder.
 
@@ -160,20 +141,15 @@ async def _placed_by_name(place: MapsPlace, near: tuple[float, float] | None) ->
     """
     if place.lat is not None or not place.name:
         return place
-    hits: list[geocode.Hit] = []
-    for query in searchable(place.name):
-        try:
-            hits = await geocode.search(query, near)
-        except AppError:
-            # The lookup being down is not a reason to refuse the link.
-            # The place is saved with its name and no position, which is
-            # exactly what happened before this fallback existed.
-            return place
-        if hits:
-            break
-    if not hits:
+    try:
+        hit = await geocode.locate(place.name, near)
+    except AppError:
+        # The lookup being down is not a reason to refuse the link. The
+        # place is saved with its name and no position, which is exactly
+        # what happened before this fallback existed.
         return place
-    hit = hits[0]
+    if hit is None:
+        return place
     return MapsPlace(name=place.name, lat=hit.lat, lon=hit.lon, url=place.url, position="geocoded")
 
 

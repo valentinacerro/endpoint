@@ -191,3 +191,37 @@ async def search(query: str, near: tuple[float, float] | None = None) -> list[Hi
     """
     async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as client:
         return await ask(client, query, near)
+
+
+def searchable(name: str) -> list[str]:
+    """The name to look up, then the shorter one worth trying after it.
+
+    A share from Maps puts the whole postal address into the name —
+    "Chao Chao Gyoza - Shijo Kawaramachi, 312-1 Junpucho, Shimogyo Ward,
+    Kyoto, 600-8021, Japan" — and a geocoder handed eighty characters
+    containing a postcode and a floor number matches nothing. Everything
+    before the first comma is the part a human would type, and it is what
+    actually resolves: of four real examples from a trip, one matched
+    whole and all four matched trimmed.
+
+    Both are tried, in that order, because the full string is the better
+    query when it happens to work.
+    """
+    whole = name.strip()
+    head = whole.split(",")[0].strip()
+    return [whole] if head == whole or len(head) < 3 else [whole, head]
+
+
+async def locate(name: str, near: tuple[float, float] | None = None) -> Hit | None:
+    """The best single guess at where a saved place is.
+
+    For putting a position on something that already has a name — a place
+    imported from a link that carried no coordinates, or typed by hand.
+    Returns None when the name is genuinely unknown, and raises when the
+    lookup itself is unavailable, so a caller can tell the two apart.
+    """
+    for query in searchable(name):
+        hits = await search(query, near)
+        if hits:
+            return hits[0]
+    return None

@@ -7,6 +7,7 @@ import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { inferStops, tripCentre } from '../lib/stops'
 import { ImportPlaces } from '../components/ImportPlaces'
+import { LocatePlaces } from '../components/LocatePlaces'
 import { SuggestPlaces } from '../components/SuggestPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
@@ -208,6 +209,8 @@ export function PlacesPanel() {
       <main className="page stack">
 
       {places.length === 0 && !adding && <p className="empty">{t('places.none')}</p>}
+
+      <LocatePlaces tripId={tripId} places={places} near={near} />
 
       <ul className="docs">
         {places.map((place) => (

@@ -1677,6 +1677,10 @@ a.entry__content:hover .entry__title {
    unlike a card of content: it is an invitation, so it leans on the
    accent and reads as something to press. */
 .prompt {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;

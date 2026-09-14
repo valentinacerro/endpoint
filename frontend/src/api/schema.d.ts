@@ -344,6 +344,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/geo/locate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Locate Place
+         * @description Where a place with this name is, if it can be found.
+         *
+         *     For putting a position on something already saved. Null means the
+         *     name is unknown; a 503 means the lookup is not answering, and those
+         *     two are not the same thing.
+         */
+        get: operations["locate_place_api_geo_locate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/geo/discover": {
         parameters: {
             query?: never;
@@ -2670,6 +2694,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HitOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    locate_place_api_geo_locate_get: {
+        parameters: {
+            query: {
+                name: string;
+                lat?: number | null;
+                lon?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HitOut"] | null;
                 };
             };
             /** @description Validation Error */

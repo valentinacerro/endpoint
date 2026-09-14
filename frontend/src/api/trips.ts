@@ -396,6 +396,29 @@ export function useSuggestions(near: { lat: number; lon: number } | null, radius
   })
 }
 
+/**
+ * Where a saved place is, by its name.
+ *
+ * For repairing a list rather than for typing: it tries the whole name
+ * and then the part before the first comma, because a share from Maps
+ * writes the entire postal address into the name.
+ */
+export function useLocatePlace() {
+  return useMutation<
+    PlaceHit | null,
+    ApiError,
+    { name: string; near: { lat: number; lon: number } | null }
+  >({
+    mutationFn: ({ name, near }) =>
+      apiFetch<PlaceHit | null>(
+        `/api/geo/locate?${new URLSearchParams({
+          name,
+          ...(near ? { lat: String(near.lat), lon: String(near.lon) } : {}),
+        })}`,
+      ),
+  })
+}
+
 export function useLookupPlace() {
   return useMutation<PlaceHit[], ApiError, { query: string }>({
     mutationFn: ({ query }) =>

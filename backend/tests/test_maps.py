@@ -174,22 +174,6 @@ class TestPlacingByName:
 class TestTrimmingAMapsName:
     """A share from Maps puts the whole postal address into the name."""
 
-    def test_it_offers_the_part_before_the_first_comma_as_well(self) -> None:
-        from app.services.maps import searchable
-
-        name = "Chao Chao Gyoza - Shijo Kawaramachi, 312-1 Junpucho, Shimogyo Ward, Kyoto, Japan"
-        assert searchable(name) == [name, "Chao Chao Gyoza - Shijo Kawaramachi"]
-
-    def test_a_plain_name_is_tried_once(self) -> None:
-        from app.services.maps import searchable
-
-        assert searchable("Senso-ji") == ["Senso-ji"]
-
-    def test_a_name_that_starts_with_a_comma_is_not_trimmed_to_nothing(self) -> None:
-        from app.services.maps import searchable
-
-        assert searchable(", 2 Chome-3-1 Asakusa, Tokyo") == [", 2 Chome-3-1 Asakusa, Tokyo"]
-
     @pytest.mark.anyio
     async def test_the_trimmed_name_is_tried_when_the_whole_one_finds_nothing(
         self, monkeypatch

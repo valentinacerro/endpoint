@@ -52,6 +52,26 @@ class SuggestionOut(BaseModel):
     osm_id: str
 
 
+@router.get("/locate", response_model=HitOut | None)
+# Same shape of work as a search, and used in a loop when repairing a
+# list, so the client spaces the calls out and this keeps them honest.
+@limiter.limit("60/minute")
+async def locate_place(
+    request: Request,
+    name: Annotated[str, Query(min_length=2, max_length=200)],
+    lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
+    lon: Annotated[float | None, Query(ge=-180, le=180)] = None,
+) -> geocode.Hit | None:
+    """Where a place with this name is, if it can be found.
+
+    For putting a position on something already saved. Null means the
+    name is unknown; a 503 means the lookup is not answering, and those
+    two are not the same thing.
+    """
+    near = (lat, lon) if lat is not None and lon is not None else None
+    return await geocode.locate(name.strip(), near)
+
+
 @router.get("/discover", response_model=list[SuggestionOut])
 # Lower than the search box's: each call is a heavy query against a
 # volunteer service, and nothing on a screen should fire it more than
