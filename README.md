@@ -182,7 +182,8 @@ nearby, printing, the diary, the memory map, and Italian/English.
 | --- | --- |
 | Reading the trip — itinerary, bookings, places, stops, search, nearby, packing, diary, print, and any document you pinned | **Yes**, from the cached bundle |
 | Expenses, packing list, diary, memory points | **Yes** — queued and replayed when there is a network again |
-| Bookings, stops, places (applying a plan included), day notes, document uploads, creating or editing a trip | **No**, and they say so rather than failing quietly |
+| Changing or deleting a place — moving it to another day, taking it off one, shortening a visit — and a day's note | **Yes**, same queue |
+| Bookings, stops, adding a new place, applying a whole plan, document uploads, creating or editing a trip | **No**, and they say so rather than failing quietly |
 | Place search, resolving a Maps link, the forecast, exchange rates, the Takeout import, map tiles | **No** — each one is a call to somebody else's service |
 
 Queued writes are addressed by an id the client chose and sent with `PUT`, so

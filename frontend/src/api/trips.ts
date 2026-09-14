@@ -168,16 +168,85 @@ export function useCreatePlace(tripId: string) {
   )
 }
 
+/**
+ * Change a place, queueing the change when there is no network.
+ *
+ * This is the write you make while travelling: move a temple to Thursday,
+ * take it off a day that filled up, shorten a visit standing outside it.
+ * It used to fail outright underground, in an app whose whole claim is
+ * that it works there.
+ *
+ * A PATCH naming the fields it sets is already safe to replay — sending
+ * it twice leaves the same place — so this needed no new endpoint, only
+ * the queue that was already carrying expenses and the packing list.
+ *
+ * The queue key is per place, so dragging one across three days in a
+ * tunnel sends one write carrying where it ended up, not three.
+ */
 export function useUpdatePlace(tripId: string) {
-  return useTripMutation(tripId, ({ id, ...body }: PlaceUpdate & { id: string }) =>
-    apiFetch<Place>(`/api/trips/${tripId}/places/${id}`, { method: 'PATCH', body }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<
+    Place,
+    ApiError,
+    PlaceUpdate & { id: string },
+    { previous: TripBundle | undefined }
+  >({
+    mutationFn: async ({ id, ...body }) => {
+      const url = `/api/trips/${tripId}/places/${id}`
+      try {
+        return await apiFetch<Place>(url, { method: 'PATCH', body })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `place:${id}`, method: 'PATCH', url, body })
+        const existing = snapshotBundle(queryClient, tripId)?.places.find(
+          (place) => place.id === id,
+        )
+        return { ...existing, ...body, id } as Place
+      }
+    },
+    onMutate: async ({ id, ...body }) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchPlaces(queryClient, tripId, (places) =>
+        places.map((place) =>
+          place.id === id
+            ? ({ ...place, ...body, updated_at: new Date().toISOString() } as Place)
+            : place,
+        ),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    onSuccess: (place) =>
+      patchPlaces(queryClient, tripId, (places) =>
+        places.map((entry) => (entry.id === place.id ? place : entry)),
+      ),
+  })
 }
 
+/** Deleting by id is safe to repeat: the second one finds nothing to do. */
 export function useDeletePlace(tripId: string) {
-  return useTripMutation(tripId, (placeId: string) =>
-    apiFetch<void>(`/api/trips/${tripId}/places/${placeId}`, { method: 'DELETE' }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string, { previous: TripBundle | undefined }>({
+    mutationFn: async (placeId) => {
+      const url = `/api/trips/${tripId}/places/${placeId}`
+      try {
+        await apiFetch<void>(url, { method: 'DELETE' })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `place:${placeId}`, method: 'DELETE', url })
+      }
+    },
+    onMutate: async (placeId) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchPlaces(queryClient, tripId, (places) =>
+        places.filter((place) => place.id !== placeId),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
 }
 
 // --- Google Maps links ---
@@ -486,6 +555,26 @@ function patchChecklist(
   )
 }
 
+function patchPlaces(
+  queryClient: QueryClient,
+  tripId: string,
+  change: (places: Place[]) => Place[],
+) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle ? { ...bundle, places: change(bundle.places) } : bundle,
+  )
+}
+
+function patchDayNotes(
+  queryClient: QueryClient,
+  tripId: string,
+  change: (notes: DayNote[]) => DayNote[],
+) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle ? { ...bundle, day_notes: change(bundle.day_notes) } : bundle,
+  )
+}
+
 /** The bundle as it stands, so a failed write can be put back. */
 function snapshotBundle(queryClient: QueryClient, tripId: string) {
   return queryClient.getQueryData<TripBundle>(keys.bundle(tripId))
@@ -721,21 +810,67 @@ export function useDeleteDiaryEntry(tripId: string) {
 
 // --- Day notes ---
 
+/**
+ * The note for a day, queued when there is no network.
+ *
+ * PUT addressed by date: there is at most one note per day, so the client
+ * already knows the address and repeating the call is harmless. That was
+ * true from the start and the queue simply was not wired to it — which
+ * meant "chiuso il lunedì", written on a train, was lost.
+ */
 export function useSetDayNote(tripId: string) {
-  return useTripMutation(tripId, ({ day, note }: { day: string; note: string }) =>
-    // PUT addressed by date: there is at most one note per day, so the
-    // client already knows the address and repeating the call is harmless.
-    apiFetch<DayNote>(`/api/trips/${tripId}/days/${day}/note`, {
-      method: 'PUT',
-      body: { note },
-    }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<
+    DayNote,
+    ApiError,
+    { day: string; note: string },
+    { previous: TripBundle | undefined }
+  >({
+    mutationFn: async ({ day, note }) => {
+      const url = `/api/trips/${tripId}/days/${day}/note`
+      try {
+        return await apiFetch<DayNote>(url, { method: 'PUT', body: { note } })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `day-note:${day}`, method: 'PUT', url, body: { note } })
+        const now = new Date().toISOString()
+        return { id: day, trip_id: tripId, day, note, created_at: now, updated_at: now } as DayNote
+      }
+    },
+    onMutate: async ({ day, note }) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      const now = new Date().toISOString()
+      patchDayNotes(queryClient, tripId, (notes) => [
+        ...notes.filter((entry) => entry.day !== day),
+        { id: day, trip_id: tripId, day, note, created_at: now, updated_at: now } as DayNote,
+      ])
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
 }
 
 export function useClearDayNote(tripId: string) {
-  return useTripMutation(tripId, (day: string) =>
-    apiFetch<void>(`/api/trips/${tripId}/days/${day}/note`, { method: 'DELETE' }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string, { previous: TripBundle | undefined }>({
+    mutationFn: async (day) => {
+      const url = `/api/trips/${tripId}/days/${day}/note`
+      try {
+        await apiFetch<void>(url, { method: 'DELETE' })
+      } catch (error) {
+        if (!shouldKeep(error)) throw error
+        await enqueue({ key: `day-note:${day}`, method: 'DELETE', url })
+      }
+    },
+    onMutate: async (day) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchDayNotes(queryClient, tripId, (notes) => notes.filter((entry) => entry.day !== day))
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
 }
 
 // --- Attachments ---
