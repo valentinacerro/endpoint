@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup api web preview tunnel seed types test test-pg test-web lint fmt migrate revision password build
+.PHONY: help setup api web preview tunnel seed types check test test-pg test-web lint fmt migrate revision password build
 
 help: ## Show this list
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -47,6 +47,12 @@ test-web: ## Run the frontend suite under both timezones
 lint: ## Check style, formatting, types, and that CSS classes agree
 	cd backend && uv run ruff check . && uv run ruff format --check .
 	cd frontend && npm run lint && npx tsc -b --noEmit && npm run check:classes
+
+check: ## Everything that must pass before a commit, in one exit code
+	@$(MAKE) lint
+	@$(MAKE) test
+	@$(MAKE) test-web
+	@echo "✓ lint, backend and frontend all green"
 
 fmt: ## Fix style and formatting
 	cd backend && uv run ruff check --fix . && uv run ruff format .

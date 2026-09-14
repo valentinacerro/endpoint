@@ -206,8 +206,7 @@ class TestTrimmingAMapsName:
 
         monkeypatch.setattr(geocode, "search", fake_search)
         place = await resolve(
-            "https://www.google.com/maps/search/?api=1&query="
-            "Chao+Chao+Gyoza,+312-1+Junpucho,+Kyoto"
+            "https://www.google.com/maps/search/?api=1&query=Chao+Chao+Gyoza,+312-1+Junpucho,+Kyoto"
         )
         assert len(asked) == 2
         assert asked[1] == "Chao Chao Gyoza"
