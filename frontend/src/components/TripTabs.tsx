@@ -12,10 +12,25 @@ interface Tab {
   end?: boolean
 }
 
+/**
+ * Five destinations, and they are things you do rather than tables.
+ *
+ * The bar used to be four tables — itinerary, places, map, spending —
+ * and a drawer holding twelve things, of which the first was "Organizza
+ * il viaggio" and the second "Tappe": the app's only reason to exist and
+ * its prerequisite, both behind a tab called "Altro". The things you
+ * *look at* had a tab each and the things you *do* were all in the
+ * drawer.
+ *
+ * Bookings take the place the map had. A map is a way of looking at
+ * places, so it sits on the places screen and on the itinerary's bar,
+ * where there is something to look at; what you have booked is a
+ * standing question with nowhere to ask it.
+ */
 const TABS: Tab[] = [
-  { to: '', label: 'tabs.itinerary', icon: 'list', end: true },
+  { to: '', label: 'tabs.trip', icon: 'list', end: true },
   { to: '/places', label: 'tabs.places', icon: 'pin' },
-  { to: '/map', label: 'tabs.map', icon: 'map' },
+  { to: '/bookings', label: 'tabs.bookings', icon: 'flight' },
   { to: '/expenses', label: 'tabs.money', icon: 'money' },
   { to: '/more', label: 'tabs.more', icon: 'more' },
 ]

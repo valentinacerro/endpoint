@@ -15,15 +15,19 @@ export function TripMore() {
   const { tripId } = useParams<{ tripId: string }>()
   const bundle = useTripBundle(tripId)
 
-  // Grouped, because twelve rows of equal weight is a wall you read from
-  // the top every time. The headings are the question you arrived with:
-  // am I getting ready, am I travelling, or am I looking back?
+  // Grouped, because rows of equal weight are a wall you read from the
+  // top every time. The headings are the question you arrived with: am I
+  // getting ready, am I travelling, or am I looking back?
+  //
+  // Two rows left this screen and are not coming back. "Organizza il
+  // viaggio" was row one and is now a button on the trip itself; "Tappe"
+  // was row two and is now the line of cities at the top of it. A drawer
+  // is the right home for the things you need occasionally, and the wrong
+  // home for the only two things the app cannot work without.
   const groups = [
     {
       title: t('more.group.planning'),
       rows: [
-        { to: `/trips/${tripId}/plan`, label: t('trip_plan.title'), hint: t('more.planHint') },
-        { to: `/trips/${tripId}/stops`, label: t('stops.title'), hint: t('more.stopsHint') },
         { to: `/trips/${tripId}/packing`, label: t('packing.title'), hint: t('more.packingHint') },
         { to: `/trips/${tripId}/edit`, label: t('trip.edit'), hint: t('more.editHint') },
       ],
@@ -31,9 +35,9 @@ export function TripMore() {
     {
       title: t('more.group.travelling'),
       rows: [
+        { to: `/trips/${tripId}/map`, label: t('tabs.map'), hint: t('more.mapHint') },
         { to: `/trips/${tripId}/nearby`, label: t('nearby.title'), hint: t('more.nearbyHint') },
         { to: `/trips/${tripId}/weather`, label: t('weather.title'), hint: t('more.weatherHint') },
-        { to: `/trips/${tripId}/search`, label: t('search.title'), hint: t('more.searchHint') },
         { to: `/trips/${tripId}/offline`, label: t('offline.title'), hint: t('more.offlineHint') },
       ],
     },

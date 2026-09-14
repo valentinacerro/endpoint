@@ -14,7 +14,6 @@ import { SchedulePlace } from '../components/SchedulePlace'
 import { TimelineEntry } from '../components/TimelineEntry'
 import { AppBar } from '../components/AppBar'
 import { Icon } from '../components/Icon'
-import { Fab } from '../components/Fab'
 import { count, t } from '../i18n'
 import { BOOKING_KIND_ICON, bookingKindLabel } from '../i18n/labels'
 import {
@@ -117,20 +116,45 @@ export function TripDetail() {
 
       <FirstSteps bundle={data} tripId={tripId} />
 
-      {/* The one thing the whole planner exists for, said once and at the
-          top. It used to be row one of twelve behind a tab called "More",
-          which is where a feature goes to be never found. */}
-      {timeline.unscheduledPlaces.length > 0 && (
-        <Link className="card prompt" to={`/trips/${tripId}/plan`}>
-          <span className="prompt__body">
-            <span className="prompt__title">{t('trip_plan.title')}</span>
-            <span className="prompt__hint">
-              {count('trip_plan.waiting', timeline.unscheduledPlaces.length)}
+      {/* The spine of the trip: the cities and when you are in them.
+          Everything else hangs off these — which day belongs to which
+          city, which time zone a booking lands in, where to look for
+          places. It was a screen called "Tappe", row two of twelve behind
+          a tab called "Altro". */}
+      <Link className="spine" to={`/trips/${tripId}/stops`}>
+        {data.stops.length === 0 ? (
+          <span className="spine__empty">{t('spine.none')}</span>
+        ) : (
+          data.stops.map((stop) => (
+            <span key={stop.id} className="spine__stop">
+              <b>{stop.name}</b>
+              {stop.arrive_date && (
+                <span className="muted">
+                  {' '}
+                  {formatCalendarDate(stop.arrive_date)}
+                  {stop.depart_date && ` → ${formatCalendarDate(stop.depart_date)}`}
+                </span>
+              )}
             </span>
-          </span>
-          <Icon name="forward" size={18} />
-        </Link>
-      )}
+          ))
+        )}
+        <Icon name="forward" size={15} />
+      </Link>
+
+      {/* The one thing the whole planner exists for, and it is a button
+          rather than a hint that appears when the conditions are right.
+          It used to be row one of twelve behind a tab called "Altro",
+          and on this screen it showed up only once you already had
+          places waiting — so the person with nothing, who needs it most,
+          was the one person never offered it. */}
+      <Link className="button button--wide" to={`/trips/${tripId}/plan`}>
+        <span>{t('trip_plan.title')}</span>
+        <small>
+          {timeline.unscheduledPlaces.length > 0
+            ? count('trip_plan.waiting', timeline.unscheduledPlaces.length)
+            : t('trip_plan.willLook')}
+        </small>
+      </Link>
 
       {/* Not while the first steps are up: "add a booking" is not the next
           thing to do, and saying so directly under a numbered list that
@@ -220,7 +244,10 @@ export function TripDetail() {
         </section>
       )}
       </main>
-      {!adding && <Fab onClick={() => setAdding(true)} label={t('timeline.addBooking')} />}
+      {/* No floating button. The round green circle on this screen added
+          a *booking*, which is the control a person reaches for when they
+          want an itinerary made — and got a form asking for a flight
+          number. Bookings have a tab of their own now. */}
     </>
   )
 }

@@ -110,8 +110,11 @@ test.describe.serial('the first evening', () => {
     await page.getByRole('link', { name: 'Tutti i viaggi' }).first().click()
     await page.getByRole('link', { name: /Tokyo/ }).first().click()
 
-    await page.getByRole('link', { name: /^altro$/i }).click()
-    await page.getByRole('link', { name: /tappe/i }).click()
+    // Through the line of cities at the top of the trip, which is where
+    // the stops live now. They used to be row two of twelve behind
+    // "Altro" — the prerequisite for everything, filed under other.
+    await page.locator('.spine').click()
+    await expect(page).toHaveURL(/\/stops$/)
 
     await expect(page.getByText('Asia/Tokyo')).toBeVisible()
   })

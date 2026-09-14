@@ -177,9 +177,9 @@ describe('t', () => {
   })
 
   it('follows the chosen language', () => {
-    expect(t('tabs.itinerary')).toBe('Itinerario')
+    expect(t('tabs.trip')).toBe('Viaggio')
     setLocale('en')
-    expect(t('tabs.itinerary')).toBe('Itinerary')
+    expect(t('tabs.trip')).toBe('Trip')
   })
 })
 

@@ -59,6 +59,7 @@ test('every screen fits a 320px phone', async ({ page }) => {
     ['trips', '/trips'],
     ['itinerary', `/trips/${tripId}`],
     ['places', `/trips/${tripId}/places`],
+    ['bookings', `/trips/${tripId}/bookings`],
     ['money', `/trips/${tripId}/expenses`],
     ['more', `/trips/${tripId}/more`],
     ['plan', `/trips/${tripId}/plan`],
