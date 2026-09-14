@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup api web preview tunnel seed types check test test-pg test-web lint fmt migrate revision password build
+.PHONY: help setup api web preview tunnel seed types check test test-pg-local test-pg test-web lint fmt migrate revision password build
 
 help: ## Show this list
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -40,6 +40,9 @@ test-pg: ## Same suite on real Postgres:  make test-pg TEST_DATABASE_URL=postgre
 	@test -n "$(TEST_DATABASE_URL)" || \
 		{ echo "Usage: make test-pg TEST_DATABASE_URL=postgresql+psycopg://user:pw@host/db"; exit 1; }
 	cd backend && TEST_DATABASE_URL="$(TEST_DATABASE_URL)" uv run pytest
+
+test-pg-local: ## Same suite on a throwaway PostgreSQL — no Docker, nothing installed
+	python3 scripts/pg_suite.py
 
 test-web: ## Run the frontend suite under both timezones
 	cd frontend && npm run test:tz
