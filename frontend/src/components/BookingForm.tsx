@@ -3,7 +3,8 @@ import { useState, type FormEvent } from 'react'
 import { useCreateBooking, useUpdateBooking } from '../api/trips'
 import { BOOKING_KINDS, type Booking, type BookingKind, type Stop } from '../api/types'
 import { t } from '../i18n'
-import { bookingKindLabel } from '../i18n/labels'
+import { BOOKING_KIND_ICON, bookingKindLabel, bookingWords } from '../i18n/labels'
+import { Icon } from './Icon'
 import { PlaceSearch } from './PlaceSearch'
 import { instantToZonedInput, shortZoneName, zonedInputToInstant } from '../lib/datetime'
 
@@ -80,6 +81,9 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
   const located = stops.find((stop) => stop.lat !== null && stop.lon !== null)
   const near = located ? { lat: located.lat as number, lon: located.lon as number } : null
 
+  // "Start" and "End" are what the database calls them. A hotel has a
+  // check-in; a flight departs. The fields were never the problem.
+  const words = bookingWords(kind)
   const isTravel = TRAVEL_KINDS.has(kind)
   const isPlace = PLACE_KINDS.has(kind)
 
@@ -155,24 +159,30 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
 
   return (
     <form className="card stack" onSubmit={onSubmit}>
-      <div className="row">
-        <label className="field">
-          <span className="field__label">{t('booking.field.kind')}</span>
-          <select
-            className="field__input"
-            value={kind}
-            onChange={(event) => setKind(event.target.value as BookingKind)}
-          >
-            {BOOKING_KINDS.map((option) => (
-              <option key={option} value={option}>
-                {bookingKindLabel(option)}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* Shown as a row rather than hidden in a dropdown: this one choice
+          decides what every other field is called, so watching the form
+          change under it is the explanation. */}
+      <fieldset className="field kinds">
+        <legend className="field__label">{t('booking.field.kind')}</legend>
+        <div className="chips">
+          {BOOKING_KINDS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`chip ${option === kind ? 'chip--on' : ''}`}
+              aria-pressed={option === kind}
+              onClick={() => setKind(option)}
+            >
+              <Icon name={BOOKING_KIND_ICON[option]} size={14} />
+              {bookingKindLabel(option)}
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
+      <div className="row">
         <label className="field field--grow">
-          <span className="field__label">{t('booking.field.title')}</span>
+          <span className="field__label">{t(words.title)}</span>
           <input
             className="field__input"
             value={title}
@@ -185,7 +195,7 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
 
       <div className="row">
         <label className="field field--grow">
-          <span className="field__label">{t('booking.field.start')}</span>
+          <span className="field__label">{t(words.start)}</span>
           <input
             className="field__input"
             type="datetime-local"
@@ -198,7 +208,7 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
 
       <div className="row">
         <label className="field field--grow">
-          <span className="field__label">{t('booking.field.end')}</span>
+          <span className="field__label">{t(words.end)}</span>
           <input
             className="field__input"
             type="datetime-local"

@@ -186,3 +186,62 @@ export const PLACE_CATEGORY_ICON: Record<PlaceCategory, IconName> = {
   experience: 'ticket',
   other: 'pin',
 }
+
+
+/**
+ * What a booking's fields are called, for the kind it actually is.
+ *
+ * "Start" and "End" are what a database calls them. A hotel has a
+ * check-in and a check-out; a flight departs and lands; a restaurant just
+ * has a time. Asking every kind the same abstract question is how a form
+ * with nine fields becomes unreadable — the fields were never the
+ * problem, the words on them were.
+ */
+export interface BookingWords {
+  title: TranslationKey
+  start: TranslationKey
+  end: TranslationKey
+}
+
+const TRAVEL_WORDS: BookingWords = {
+  title: 'booking.words.travel.title',
+  start: 'booking.words.travel.start',
+  end: 'booking.words.travel.end',
+}
+
+const BY_KIND: Partial<Record<BookingKind, BookingWords>> = {
+  flight: TRAVEL_WORDS,
+  train: TRAVEL_WORDS,
+  bus: TRAVEL_WORDS,
+  ferry: TRAVEL_WORDS,
+  hotel: {
+    title: 'booking.words.hotel.title',
+    start: 'booking.words.hotel.start',
+    end: 'booking.words.hotel.end',
+  },
+  car_rental: {
+    title: 'booking.words.car.title',
+    start: 'booking.words.car.start',
+    end: 'booking.words.car.end',
+  },
+  restaurant: {
+    title: 'booking.words.restaurant.title',
+    start: 'booking.words.restaurant.start',
+    end: 'booking.words.restaurant.end',
+  },
+  activity: {
+    title: 'booking.words.activity.title',
+    start: 'booking.words.activity.start',
+    end: 'booking.words.activity.end',
+  },
+}
+
+const PLAIN: BookingWords = {
+  title: 'booking.field.title',
+  start: 'booking.field.start',
+  end: 'booking.field.end',
+}
+
+export function bookingWords(kind: BookingKind): BookingWords {
+  return BY_KIND[kind] ?? PLAIN
+}

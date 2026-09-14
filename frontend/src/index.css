@@ -2129,6 +2129,13 @@ a.entry__content:hover .entry__title {
   text-decoration: line-through;
 }
 
+/* The picker that changes the rest of the form. */
+.kinds {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
