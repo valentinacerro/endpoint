@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class DayNote(Base, UuidPk, Timestamps):
-    """A note attached to one day of a trip.
+    """What you have said about one day of a trip.
 
     "Giornata libera", "comprare il JR Pass alla stazione", "chiuso il
     lunedì" — the things that belong to a day rather than to any booking on
@@ -33,7 +33,14 @@ class DayNote(Base, UuidPk, Timestamps):
         ForeignKey("trip.id", ondelete="CASCADE"), index=True
     )
     day: Mapped[dt.date] = mapped_column(Date)
-    note: Mapped[str] = mapped_column(Text)
+    note: Mapped[str] = mapped_column(Text, default="")
+    #: What kind of day you want this to be, if you have said.
+    #:
+    #: Here rather than in a table of its own: a note and a theme are both
+    #: things you have said about one day, they are addressed the same way
+    #: — by date, one per day — and two tables keyed identically is a join
+    #: nobody wanted.
+    theme: Mapped[str | None] = mapped_column(Text)
 
     trip: Mapped[Trip] = relationship(back_populates="day_notes")
 

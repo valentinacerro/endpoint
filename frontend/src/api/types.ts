@@ -81,6 +81,7 @@ export type PlaceCategory = Place['category']
 export type Priority = Place['priority']
 export type WeatherExposure = Place['weather_exposure']
 export type AttachmentKind = Attachment['kind']
+export type DayTheme = NonNullable<DayNote['theme']>
 
 /** Every booking kind, in the order the picker should offer them. */
 export const BOOKING_KINDS = [

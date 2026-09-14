@@ -5,6 +5,7 @@ import { useTripBundle, useUpdatePlace } from '../api/trips'
 import type { Place } from '../api/types'
 import { BookingForm } from '../components/BookingForm'
 import { DayNoteEditor } from '../components/DayNoteEditor'
+import { DayThemePicker } from '../components/DayTheme'
 import { EmptyDay } from '../components/EmptyDay'
 import { OfflineReminder } from '../components/OfflineReminder'
 import { OptimizeDay } from '../components/OptimizeDay'
@@ -195,6 +196,11 @@ export function TripDetail() {
           {(day.entries.length > 0 || notesByDay.get(day.key)) && (
             <DayNoteEditor tripId={tripId} day={day.key} note={notesByDay.get(day.key)} />
           )}
+          {/* Said before the day is planned, because it decides what goes
+              in it. Under the heading and above the entries: it is a
+              property of the day, like its city. */}
+          <DayThemePicker tripId={tripId} day={day.key} note={notesByDay.get(day.key)} />
+
           {day.entries.length === 0 ? (
             notesByDay.get(day.key) ? (
               <p className="day__empty">{t('timeline.emptyDay')}</p>

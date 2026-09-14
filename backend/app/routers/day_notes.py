@@ -31,10 +31,11 @@ def set_note(trip_id: uuid.UUID, day: dt.date, payload: DayNoteWrite, db: DbSess
     existing = _find(db, trip_id, day)
     if existing:
         existing.note = payload.note
+        existing.theme = payload.theme
         db.commit()
         return existing
 
-    note = DayNote(trip_id=trip_id, day=day, note=payload.note)
+    note = DayNote(trip_id=trip_id, day=day, note=payload.note, theme=payload.theme)
     db.add(note)
     db.commit()
     return note

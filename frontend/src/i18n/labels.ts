@@ -15,6 +15,7 @@ import type {
   PlaceCategory,
   Priority,
   TripStatus,
+  DayTheme,
   WeatherExposure,
 } from '../api/types'
 import type { IconName } from '../components/Icon'
@@ -244,4 +245,18 @@ const PLAIN: BookingWords = {
 
 export function bookingWords(kind: BookingKind): BookingWords {
   return BY_KIND[kind] ?? PLAIN
+}
+
+
+/** What kind of day each theme makes. */
+const DAY_THEME_LABEL = {
+  sights: 'theme.sights',
+  museums: 'theme.museums',
+  shopping: 'theme.shopping',
+  food: 'theme.food',
+  outdoors: 'theme.outdoors',
+} as const satisfies Record<DayTheme, TranslationKey>
+
+export function dayThemeLabel(theme: DayTheme): string {
+  return t(DAY_THEME_LABEL[theme])
 }

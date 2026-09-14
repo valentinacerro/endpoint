@@ -66,11 +66,51 @@ def test_clearing_a_note(client: TestClient) -> None:
     assert missing.json()["error"]["code"] == "day_note_not_found"
 
 
-def test_an_empty_note_is_refused(client: TestClient) -> None:
-    """Clearing is a DELETE. An empty string would leave a blank row that
-    renders as a mysterious gap in the day."""
+def test_a_day_that_says_nothing_at_all_is_refused(client: TestClient) -> None:
+    """Clearing is a DELETE. A row with neither a note nor a theme is a
+    blank that renders as a mysterious gap in the day."""
     trip_id = _trip(client)
     response = client.put(f"/api/trips/{trip_id}/days/2026-04-13/note", json={"note": ""})
+    assert response.status_code == 422
+
+
+def test_a_theme_alone_is_enough_to_be_worth_a_row(client: TestClient) -> None:
+    # "Magari mi va di farmi la strada dei negozi" is a thing to say about
+    # a day without writing a sentence about it.
+    trip_id = _trip(client)
+    response = client.put(
+        f"/api/trips/{trip_id}/days/2026-04-13/note", json={"note": "", "theme": "shopping"}
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["theme"] == "shopping"
+    assert response.json()["note"] == ""
+
+
+def test_setting_a_theme_carries_the_note_with_it(client: TestClient) -> None:
+    """A whole-object write: the client holds both and sends both.
+
+    Sending only the theme would wipe a note written ten minutes earlier,
+    which is the kind of loss nobody connects to the control they pressed.
+    """
+    trip_id = _trip(client)
+    url = f"/api/trips/{trip_id}/days/2026-04-13/note"
+    client.put(url, json={"note": "chiuso il lunedì"})
+
+    kept = client.put(url, json={"note": "chiuso il lunedì", "theme": "museums"}).json()
+    assert kept["note"] == "chiuso il lunedì"
+    assert kept["theme"] == "museums"
+
+    # And a later write with no theme takes it off again, because the body
+    # is the whole day and not a patch.
+    cleared = client.put(url, json={"note": "chiuso il lunedì"})
+    assert cleared.json()["theme"] is None
+
+
+def test_an_invented_theme_is_refused(client: TestClient) -> None:
+    trip_id = _trip(client)
+    response = client.put(
+        f"/api/trips/{trip_id}/days/2026-04-13/note", json={"note": "", "theme": "sci"}
+    )
     assert response.status_code == 422
 
 

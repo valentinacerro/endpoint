@@ -168,6 +168,48 @@ class StorageBackend(StrEnum):
     S3 = "s3"
 
 
+class DayTheme(StrEnum):
+    """What kind of day this is meant to be.
+
+    "Magari mi va di farmi la strada dei negozi, o una giornata musei."
+    Without this the planner has exactly one idea of a good day — the
+    nearest well-known things, whatever they are — so a fortnight comes
+    out as fourteen days of the same shape, and the day you wanted to
+    spend in shops has a shrine in the middle of it.
+
+    Deliberately about *what kind of place*, not about pace. How long you
+    want to spend somewhere is already `visit_minutes`, and a second
+    setting that also meant "slower" would be two dials for one thing.
+    """
+
+    SIGHTS = "sights"
+    MUSEUMS = "museums"
+    SHOPPING = "shopping"
+    FOOD = "food"
+    OUTDOORS = "outdoors"
+
+
+#: Which place categories a day of each kind is made of.
+#:
+#: A theme lifts these to the front of the queue; it does not exclude the
+#: rest. A shopping day in a city with four shops should still be a day
+#: rather than four shops and seven empty hours, and a temple on the way
+#: between two of them costs nothing.
+THEME_CATEGORIES: dict[DayTheme, set[PlaceCategory]] = {
+    DayTheme.SIGHTS: {PlaceCategory.SIGHT, PlaceCategory.VIEWPOINT, PlaceCategory.EXPERIENCE},
+    DayTheme.MUSEUMS: {PlaceCategory.MUSEUM},
+    DayTheme.SHOPPING: {PlaceCategory.SHOPPING},
+    DayTheme.FOOD: {PlaceCategory.FOOD},
+    DayTheme.OUTDOORS: {
+        PlaceCategory.PARK,
+        PlaceCategory.GARDEN,
+        PlaceCategory.VIEWPOINT,
+        PlaceCategory.TEMPLE,
+        PlaceCategory.SHRINE,
+    },
+}
+
+
 def values(enum_cls: type[StrEnum]) -> list[str]:
     """Every value of an enum, for the CheckConstraints in the models."""
     return [member.value for member in enum_cls]

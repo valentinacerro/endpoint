@@ -23,6 +23,7 @@ import type {
   ChecklistItem,
   ChecklistItemWrite,
   DayNote,
+  DayTheme,
   DiaryEntry,
   Expense,
   ExpenseWrite,
@@ -1259,13 +1260,18 @@ export function useSetDayNote(tripId: string) {
   return useMutation<
     DayNote,
     ApiError,
-    { day: string; note: string },
+    // The whole day, not a patch of it. The server stores one row per
+    // day holding a note and a theme, so sending only one of them would
+    // wipe the other — which is the kind of loss nobody connects to the
+    // control they pressed.
+    { day: string; note: string; theme?: DayTheme | null },
     { previous: TripBundle | undefined }
   >({
-    mutationFn: async ({ day, note }) => {
+    mutationFn: async ({ day, note, theme = null }) => {
       const url = `/api/trips/${tripId}/days/${day}/note`
+      const body = { note, theme }
       try {
-        return await apiFetch<DayNote>(url, { method: 'PUT', body: { note } })
+        return await apiFetch<DayNote>(url, { method: 'PUT', body })
       } catch (error) {
         if (!shouldKeep(error)) throw error
         const known = snapshotBundle(queryClient, tripId)?.day_notes
@@ -1273,20 +1279,24 @@ export function useSetDayNote(tripId: string) {
           key: `day-note:${day}`,
           method: 'PUT',
           url,
-          body: { note },
+          body,
           creates: !known?.some((entry) => entry.day === day),
         })
         const now = new Date().toISOString()
-        return { id: day, trip_id: tripId, day, note, created_at: now, updated_at: now } as DayNote
+        return {
+          id: day, trip_id: tripId, day, note, theme, created_at: now, updated_at: now,
+        } as DayNote
       }
     },
-    onMutate: async ({ day, note }) => {
+    onMutate: async ({ day, note, theme = null }) => {
       await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
       const previous = snapshotBundle(queryClient, tripId)
       const now = new Date().toISOString()
       patchDayNotes(queryClient, tripId, (notes) => [
         ...notes.filter((entry) => entry.day !== day),
-        { id: day, trip_id: tripId, day, note, created_at: now, updated_at: now } as DayNote,
+        {
+          id: day, trip_id: tripId, day, note, theme, created_at: now, updated_at: now,
+        } as DayNote,
       ])
       return { previous }
     },

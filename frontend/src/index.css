@@ -2784,3 +2784,14 @@ a.entry__content:hover .entry__title {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* --- What kind of day this is --- */
+/* Wrapped, not scrolled. A scrolling row fits on one line and hides two
+   of the five off the right edge with nothing to say they are there — and
+   at 320px, measured, it is exactly the last two that go. A second line
+   costs less than an invisible option. */
+.themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

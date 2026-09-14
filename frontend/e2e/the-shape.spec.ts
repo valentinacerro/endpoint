@@ -148,3 +148,57 @@ test('a saved place keeps what it is and what it looks like', async ({ page }) =
   await expect(row.getByText('tempio buddhista del 1681 a Bunkyō, Tokyo')).toBeVisible()
   await expect(row.locator('.doc__photo')).toBeVisible()
 })
+
+test('a day can be told what kind of day it is', async ({ page }) => {
+  // "Per ogni giorno dovremmo fare una piccola profilazione." Without it
+  // the planner has one idea of a good day, so a fortnight comes out as
+  // fourteen days of the same shape.
+  const tripId = await seedTrip(page.request)
+  await page.goto(`/trips/${tripId}`)
+
+  const day = page.locator('.day').first()
+  await expect(day.getByRole('button', { name: 'Negozi' })).toBeVisible()
+  await day.getByRole('button', { name: 'Negozi' }).click()
+  await expect(day.getByRole('button', { name: 'Negozi' })).toHaveAttribute('aria-pressed', 'true')
+
+  // It reaches the server, under the day it was pressed on.
+  await expect
+    .poll(async () => {
+      const bundle = await page.request.get(`/api/trips/${tripId}/bundle`).then((r) => r.json())
+      return bundle.day_notes.map((note: { theme: string | null }) => note.theme)
+    })
+    .toEqual(['shopping'])
+
+  // And pressing it again takes it off, because "no theme" is an answer.
+  // The row goes with it: a day that says nothing needs no row, and the
+  // server refuses to store one — clearing is a DELETE.
+  await day.getByRole('button', { name: 'Negozi' }).click()
+  await expect
+    .poll(async () => {
+      const bundle = await page.request.get(`/api/trips/${tripId}/bundle`).then((r) => r.json())
+      return bundle.day_notes.length
+    })
+    .toBe(0)
+})
+
+test('choosing a theme does not throw away the note under it', async ({ page }) => {
+  // One row per day holds both, so a write that sent only the theme would
+  // wipe a sentence written ten minutes earlier.
+  const tripId = await seedTrip(page.request)
+  const bundle = await page.request.get(`/api/trips/${tripId}/bundle`).then((r) => r.json())
+  const day = bundle.stops[0].arrive_date
+  await page.request.put(`/api/trips/${tripId}/days/${day}/note`, {
+    data: { note: 'chiuso il lunedì' },
+  })
+
+  await page.goto(`/trips/${tripId}`)
+  await page.locator('.day', { hasText: 'chiuso il lunedì' }).getByRole('button', { name: 'Musei' }).click()
+
+  await expect
+    .poll(async () => {
+      const after = await page.request.get(`/api/trips/${tripId}/bundle`).then((r) => r.json())
+      const note = after.day_notes.find((n: { day: string }) => n.day === day)
+      return [note?.note, note?.theme]
+    })
+    .toEqual(['chiuso il lunedì', 'museums'])
+})

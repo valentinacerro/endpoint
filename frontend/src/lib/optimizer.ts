@@ -20,7 +20,9 @@ import {
   zonedInputToInstant,
   type CalendarDate,
 } from './datetime'
+import type { DayTheme, PlaceCategory } from '../api/types'
 import { travelMinutes, type Known, type Point } from './geo'
+import { THEME_CATEGORIES } from './themes'
 
 export type Priority = 'must_see' | 'high' | 'normal' | 'low'
 
@@ -66,6 +68,8 @@ export interface Candidate {
   priority: Priority
   openingHours: OpeningHours
   label: string
+  /** What kind of place it is, so a themed day can prefer its own kind. */
+  category?: PlaceCategory
 }
 
 export interface PlanOptions {
@@ -74,6 +78,13 @@ export interface PlanOptions {
   /** When you are willing to start and to stop, on the local clock. */
   dayStart?: string
   dayEnd?: string
+  /**
+   * What kind of day you asked for, if you asked.
+   *
+   * Absent means mixed, which is the honest name for "you have not said"
+   * and not a sixth theme anybody chose.
+   */
+  theme?: DayTheme | null
   /**
    * Where the day begins, when it is known better than by guessing.
    *
@@ -297,12 +308,19 @@ export function localMinutes(instant: string, day: CalendarDate, zone: string): 
  * first. Anything that will not fit is returned with a reason rather than
  * silently discarded.
  */
+/** Where a candidate sits in the queue, once the day's theme is known. */
+function rankFor(candidate: Candidate, theme?: DayTheme | null): number {
+  const base = PRIORITY_ORDER[candidate.priority]
+  if (!theme || !candidate.category) return base
+  return THEME_CATEGORIES[theme].includes(candidate.category) ? base - 1 : base
+}
+
 export function planDay(
   anchors: Anchor[],
   candidates: Candidate[],
   options: PlanOptions,
 ): DayPlan {
-  const { day, zone, dayStart = '09:00', dayEnd = '21:00', known } = options
+  const { day, zone, dayStart = '09:00', dayEnd = '21:00', known, theme } = options
   const openAt = minutesOfDay(dayStart)
   const closeAt = minutesOfDay(dayEnd)
 
@@ -315,10 +333,21 @@ export function planDay(
       to: anchor.endAt ? localMinutes(anchor.endAt, day, zone) : localMinutes(anchor.startAt, day, zone),
     }))
 
-  // Highest priority first, so that when the day overflows it is the
-  // optional things that fall off rather than whatever happened to be last.
+  /**
+   * Highest priority first, so that when the day overflows it is the
+   * optional things that fall off rather than whatever happened to be
+   * last — and, on a themed day, the ones that are not what the day is
+   * for before the ones that are.
+   *
+   * A theme sorts, it does not filter. A shopping day in a city with
+   * four shops should still be a day rather than four shops and seven
+   * empty hours, and a shrine passed between two of them costs nothing.
+   * It is worth exactly one step of priority: enough that a normal shop
+   * beats a normal temple, not enough that it beats somewhere you marked
+   * as unmissable.
+   */
   const wanted = [...candidates].sort(
-    (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority],
+    (a, b) => rankFor(a, theme) - rankFor(b, theme),
   )
 
   const startPoint = options.startPoint ?? fixed.find((anchor) => anchor.point)?.point ?? null
@@ -376,9 +405,11 @@ export function planDay(
   const dropped: DroppedVisit[] = []
   let travel = 0
 
-  const byPriority = ordered
-    .slice()
-    .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
+  // This is the sort that decides who survives when the day overflows —
+  // the one above only decides the route. The theme has to be in both, or
+  // it works by the stability of this one, which is luck rather than
+  // design: sabotaging the weight above changed nothing here.
+  const byPriority = ordered.slice().sort((a, b) => rankFor(a, theme) - rankFor(b, theme))
 
   for (const candidate of byPriority) {
     const openness = opennessOn(candidate.openingHours, day)

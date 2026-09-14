@@ -1144,6 +1144,7 @@ export interface components {
             day: string;
             /** Note */
             note: string;
+            theme: components["schemas"]["DayTheme"] | null;
             /**
              * Created At
              * Format: date-time
@@ -1158,11 +1159,35 @@ export interface components {
         /**
          * DayNoteWrite
          * @description The body of a write; the day itself comes from the URL.
+         *
+         *     A whole-object write, so a day with a theme and no note sends an empty
+         *     one. That is what keeps setting a theme from wiping a note written
+         *     ten minutes earlier, and the client has both in hand anyway.
          */
         DayNoteWrite: {
-            /** Note */
+            /**
+             * Note
+             * @default
+             */
             note: string;
+            theme?: components["schemas"]["DayTheme"] | null;
         };
+        /**
+         * DayTheme
+         * @description What kind of day this is meant to be.
+         *
+         *     "Magari mi va di farmi la strada dei negozi, o una giornata musei."
+         *     Without this the planner has exactly one idea of a good day — the
+         *     nearest well-known things, whatever they are — so a fortnight comes
+         *     out as fourteen days of the same shape, and the day you wanted to
+         *     spend in shops has a shrine in the middle of it.
+         *
+         *     Deliberately about *what kind of place*, not about pace. How long you
+         *     want to spend somewhere is already `visit_minutes`, and a second
+         *     setting that also meant "slower" would be two dials for one thing.
+         * @enum {string}
+         */
+        DayTheme: "sights" | "museums" | "shopping" | "food" | "outdoors";
         /** DayWeatherOut */
         DayWeatherOut: {
             /**

@@ -15,7 +15,7 @@
  * just as much — saying precisely what it could not place and why.
  */
 
-import type { Booking, Place, Stop, TripBundle } from '../api/types'
+import type { Booking, DayTheme, Place, Stop, TripBundle } from '../api/types'
 
 import {
   dayKeyInZone,
@@ -159,6 +159,8 @@ interface Slot {
   refused: DayRefusal | null
   assumption: SlotAssumption | null
   centre: Point | null
+  /** What kind of day you asked for. Null means you have not said. */
+  theme: DayTheme | null
 }
 
 function pointOf(thing: { lat: number | null; lon: number | null }): Point | null {
@@ -268,6 +270,7 @@ function buildSlot(
     zone,
     anchors,
     centre: stop ? (centres.get(stop.id) ?? null) : null,
+    theme: bundle.day_notes.find((note) => note.day === day)?.theme ?? null,
   }
   const refuse = (refused: DayRefusal): Slot => ({
     ...base,
@@ -363,6 +366,8 @@ function candidateOf(place: Place): Candidate {
     priority: place.priority,
     openingHours: (place.opening_hours ?? {}) as OpeningHours,
     label: place.name,
+    // Carried so a themed day can prefer its own kind of place.
+    category: place.category,
   }
 }
 
@@ -471,6 +476,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
         dayEnd: fromMinutes(slot.closeAt),
         startPoint: slot.centre,
         known,
+        theme: slot.theme,
       })
       plans.set(slot.key, plan)
 
@@ -511,6 +517,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
             dayEnd: fromMinutes(slot.closeAt),
             startPoint: slot.centre,
             known,
+            theme: slot.theme,
           },
         )
         offered.set(candidate.id, [...(offered.get(candidate.id) ?? []), slot.key])
