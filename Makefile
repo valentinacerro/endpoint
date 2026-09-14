@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup api web preview tunnel seed types check test test-pg-local test-pg test-web lint fmt migrate revision password build
+.PHONY: help setup api web preview tunnel seed types check test test-pg-local test-pg test-e2e test-web lint fmt migrate revision password build
 
 help: ## Show this list
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -44,6 +44,9 @@ test-pg: ## Same suite on real Postgres:  make test-pg TEST_DATABASE_URL=postgre
 test-pg-local: ## Same suite on a throwaway PostgreSQL — no Docker, nothing installed
 	python3 scripts/pg_suite.py
 
+test-e2e: ## Walk the real app in a real browser — builds first, own database
+	cd frontend && npx playwright test
+
 test-web: ## Run the frontend suite under both timezones
 	cd frontend && npm run test:tz
 
@@ -51,7 +54,7 @@ lint: ## Check style, formatting, types, and that CSS classes agree
 	cd backend && uv run ruff check . && uv run ruff format --check .
 	cd frontend && npm run lint && npx tsc -b --noEmit && npm run check:classes
 
-check: ## Everything that must pass before a commit, in one exit code
+check: ## Everything that must pass before a commit, in one exit code — not e2e, which needs a browser
 	@$(MAKE) lint
 	@$(MAKE) test
 	@$(MAKE) test-web
