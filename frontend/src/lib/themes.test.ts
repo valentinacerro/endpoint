@@ -173,3 +173,65 @@ describe('a day of the kind you asked for', () => {
     expect(scheduled('shopping', withMust).has('temple-must')).toBe(true)
   })
 })
+
+describe('what a model is allowed to move', () => {
+  it('breaks a tie inside the day it was asked about', () => {
+    // Two shops, one day, room for one of them: the theme cannot choose
+    // between them and the model can.
+    // Two places, identical in every way the planner can see — same
+    // kind, same priority, same point, same length — and room for one.
+    // Anything else in the list and the test measures geometry: with a
+    // short window the nearer place fits and the further one does not,
+    // whatever anybody thinks of either.
+    const two = [
+      place({ id: 'shop-a', category: 'shopping', ...at(0) }),
+      place({ id: 'shop-b', category: 'shopping', ...at(0) }),
+    ]
+    // A day with room for one three-hour visit. With room for four the
+    // theme gets both shops in on its own and the model's opinion cannot
+    // be observed doing anything — which is what the first version of
+    // this test measured.
+    const oneSlot = {
+      now: BEFORE,
+      onlyDays: ['2026-04-11'],
+      dayStart: '09:00',
+      dayEnd: '13:00',
+    }
+    const bundle = oneDay(two, 'shopping')
+    const withB = planTrip(bundle, { ...oneSlot, prefer: new Map([['shop-b', 5]]) })
+    const withA = planTrip(bundle, { ...oneSlot, prefer: new Map([['shop-a', 5]]) })
+
+    expect(withB.writes.map((w) => w.placeId)).toEqual(['shop-b'])
+    expect(withA.writes.map((w) => w.placeId)).toEqual(['shop-a'])
+  })
+
+  it('cannot overrule what you marked unmissable, whatever it thinks', () => {
+    // Divided by a hundred on purpose: it moves places within a band and
+    // never lifts one over you. A program that has never been there does
+    // not get to drop the thing you came for.
+    const withMust = [
+      place({ id: 'temple-must', category: 'temple', priority: 'must_see', ...at(0) }),
+      ...['s1', 's2', 's3', 's4', 's5'].map((id, n) =>
+        place({ id, category: 'shopping', ...at(n + 1) }),
+      ),
+    ]
+    const plan = planTrip(oneDay(withMust, 'shopping'), {
+      now: BEFORE,
+      onlyDays: ['2026-04-11'],
+      prefer: new Map(['s1', 's2', 's3', 's4', 's5'].map((id) => [id, 5])),
+    })
+    expect(plan.writes.map((w) => w.placeId)).toContain('temple-must')
+  })
+
+  it('changes nothing at all when no model has run', () => {
+    // The itinerary is reproducible and offline: the planner does not
+    // need it, does not wait for it, and works identically without it.
+    const withNone = planTrip(oneDay(MIXED, 'shopping'), { now: BEFORE, onlyDays: ['2026-04-11'] })
+    const withEmpty = planTrip(oneDay(MIXED, 'shopping'), {
+      now: BEFORE,
+      onlyDays: ['2026-04-11'],
+      prefer: new Map(),
+    })
+    expect(withEmpty.writes).toEqual(withNone.writes)
+  })
+})

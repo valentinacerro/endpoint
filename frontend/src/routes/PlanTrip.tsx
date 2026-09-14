@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 
 import { useDiscover, useSchedulePlaces, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
+import { ModelDay } from '../components/ModelDay'
 import { PlaceCard } from '../components/PlaceCard'
 import { count, t } from '../i18n'
 import { formatDayKey, formatDuration, formatTimeInZone } from '../lib/datetime'
@@ -35,6 +36,8 @@ export function PlanTrip() {
   /** Cities whose days are empty and that cannot be looked around. */
   const [blind, setBlind] = useState<string[]>([])
   const [working, setWorking] = useState(false)
+  /** What the model made of each place, when it has been asked. */
+  const [prefer, setPrefer] = useState<ReadonlyMap<string, number>>(new Map())
   /** The cities being asked about, so the wait has a name on it. */
   const [looking, setLooking] = useState<string[]>([])
   /** Cities we asked about and got nothing back for. */
@@ -45,6 +48,27 @@ export function PlanTrip() {
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
 
   const data = bundle.data
+
+  /**
+   * The first themed day, and the city it is in.
+   *
+   * One is enough to ask about: the model is scoring places against a
+   * kind of day, and a trip whose shopping days are in two cities is
+   * better served by asking twice than by asking about neither.
+   */
+  const themedDay = data.day_notes.find((note) => note.theme)
+  const themed = themedDay
+    ? {
+        theme: themedDay.theme!,
+        city:
+          data.stops.find(
+            (stop) =>
+              stop.arrive_date &&
+              stop.arrive_date <= themedDay.day &&
+              (stop.depart_date ?? stop.arrive_date) >= themedDay.day,
+          )?.name ?? null,
+      }
+    : null
   const names = new Map(data.places.map((place) => [place.id, place.name]))
   const stopNames = new Map(data.stops.map((stop) => [stop.id, stop.name]))
 
@@ -73,7 +97,7 @@ export function PlanTrip() {
     try {
       // On a button, never in a render: this walks every place and every
       // day and calls the day planner once per day.
-      const first = planTrip(data)
+      const first = planTrip(data, { prefer })
       const gaps = gapsIn(data, first)
       setBlind(unsearchable(first))
 
@@ -126,12 +150,12 @@ export function PlanTrip() {
 
       setEmptyHanded(silent)
       setProposed(found)
-      setPlan(planTrip(bundleWith(data, found)))
+      setPlan(planTrip(bundleWith(data, found), { prefer }))
     } catch {
       // Looking around needs the network; ordering what you already have
       // does not. Fall back to the plan that can be made offline rather
       // than to nothing.
-      const offline = planTrip(data)
+      const offline = planTrip(data, { prefer })
       setPlan(offline)
       setBlind(unsearchable(offline))
       setFailed(true)
@@ -199,7 +223,7 @@ export function PlanTrip() {
   function drop(placeId: string) {
     const kept = proposed.filter((item) => item.place.id !== placeId)
     setProposed(kept)
-    setPlan(planTrip(bundleWith(data, kept)))
+    setPlan(planTrip(bundleWith(data, kept), { prefer }))
   }
 
   function describe(item: Unplaced): string {
@@ -245,6 +269,18 @@ export function PlanTrip() {
                 {t('trip_plan.lookFailed')}
               </p>
             )}
+            {/* Only where the day has been given a character: without one
+                there is nothing to ask the model to prefer, and a button
+                that does nothing in particular is worse than no button. */}
+            {themed && (
+              <ModelDay
+                places={data.places}
+                theme={themed.theme}
+                city={themed.city}
+                onScores={setPrefer}
+              />
+            )}
+
             <button className="button" onClick={() => void compute()} disabled={working}>
               {working ? t('trip_plan.looking') : t('trip_plan.compute')}
             </button>

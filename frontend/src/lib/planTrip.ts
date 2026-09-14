@@ -144,6 +144,8 @@ export interface PlanTripOptions {
   replan?: 'keep' | 'day'
   dayStart?: string
   dayEnd?: string
+  /** What a model made of each place, 0–5, by id. A tiebreak only. */
+  prefer?: ReadonlyMap<string, number>
 }
 
 // --- Days ---------------------------------------------------------------
@@ -477,6 +479,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
         startPoint: slot.centre,
         known,
         theme: slot.theme,
+        prefer: options.prefer,
       })
       plans.set(slot.key, plan)
 
@@ -518,6 +521,7 @@ export function planTrip(bundle: TripBundle, options: PlanTripOptions = {}): Tri
             startPoint: slot.centre,
             known,
             theme: slot.theme,
+            prefer: options.prefer,
           },
         )
         offered.set(candidate.id, [...(offered.get(candidate.id) ?? []), slot.key])

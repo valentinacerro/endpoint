@@ -86,6 +86,14 @@ export interface PlanOptions {
    */
   theme?: DayTheme | null
   /**
+   * What a model made of each place, 0–5, by id.
+   *
+   * A tiebreak and nothing more. The planner does not need it, does not
+   * wait for it, and works identically without it — which is what keeps
+   * the itinerary reproducible and offline.
+   */
+  prefer?: ReadonlyMap<string, number>
+  /**
    * Where the day begins, when it is known better than by guessing.
    *
    * Defaults to the first anchor that has coordinates. A trip planner
@@ -308,11 +316,25 @@ export function localMinutes(instant: string, day: CalendarDate, zone: string): 
  * first. Anything that will not fit is returned with a reason rather than
  * silently discarded.
  */
-/** Where a candidate sits in the queue, once the day's theme is known. */
-function rankFor(candidate: Candidate, theme?: DayTheme | null): number {
+/**
+ * Where a candidate sits in the queue, once the day is described.
+ *
+ * Three things, in decreasing weight: what you marked it, whether it is
+ * the kind of place this day is for, and — only as a tiebreak — what the
+ * model made of it. The model's contribution is divided by a hundred on
+ * purpose: it moves places *within* a band and can never lift one over
+ * something you said was unmissable, which is the difference between a
+ * suggestion and being overruled by a program that has never been there.
+ */
+function rankFor(
+  candidate: Candidate,
+  theme?: DayTheme | null,
+  prefer?: ReadonlyMap<string, number>,
+): number {
   const base = PRIORITY_ORDER[candidate.priority]
-  if (!theme || !candidate.category) return base
-  return THEME_CATEGORIES[theme].includes(candidate.category) ? base - 1 : base
+  const themed =
+    theme && candidate.category && THEME_CATEGORIES[theme].includes(candidate.category) ? 1 : 0
+  return base - themed - (prefer?.get(candidate.id) ?? 0) / 100
 }
 
 export function planDay(
@@ -320,7 +342,7 @@ export function planDay(
   candidates: Candidate[],
   options: PlanOptions,
 ): DayPlan {
-  const { day, zone, dayStart = '09:00', dayEnd = '21:00', known, theme } = options
+  const { day, zone, dayStart = '09:00', dayEnd = '21:00', known, theme, prefer } = options
   const openAt = minutesOfDay(dayStart)
   const closeAt = minutesOfDay(dayEnd)
 
@@ -347,7 +369,7 @@ export function planDay(
    * as unmissable.
    */
   const wanted = [...candidates].sort(
-    (a, b) => rankFor(a, theme) - rankFor(b, theme),
+    (a, b) => rankFor(a, theme, prefer) - rankFor(b, theme, prefer),
   )
 
   const startPoint = options.startPoint ?? fixed.find((anchor) => anchor.point)?.point ?? null
@@ -409,7 +431,9 @@ export function planDay(
   // the one above only decides the route. The theme has to be in both, or
   // it works by the stability of this one, which is luck rather than
   // design: sabotaging the weight above changed nothing here.
-  const byPriority = ordered.slice().sort((a, b) => rankFor(a, theme) - rankFor(b, theme))
+  const byPriority = ordered
+    .slice()
+    .sort((a, b) => rankFor(a, theme, prefer) - rankFor(b, theme, prefer))
 
   for (const candidate of byPriority) {
     const openness = opennessOn(candidate.openingHours, day)

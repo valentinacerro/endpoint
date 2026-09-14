@@ -34,6 +34,13 @@ export const en: Record<TranslationKey, string> = {
   'tabs.money': 'Spending',
   'tabs.more': 'More',
 
+  'model.ask': 'Let the model on this phone help',
+  'model.working': 'Working on it…',
+  'model.thinking': 'Reading the list…',
+  'model.downloading': 'Downloading the model, {percent}% — first time only',
+  'model.rated': 'It had a view on {count} places. Work out the plan again to see it.',
+  'model.saidNothing': 'It could not say anything useful. The plan stays as it was.',
+  'model.failed': 'The model did not answer. The plan stays as it was.',
   'more.mapHint': 'The trip’s places, numbered by day.',
   'more.offlineHint': 'What is really on your phone',
   'more.editHint': 'Dates, currency, budget',

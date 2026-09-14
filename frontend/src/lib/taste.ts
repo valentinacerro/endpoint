@@ -16,19 +16,31 @@
  * nothing at all, and all three have to mean "leave the order alone".
  */
 
-import type { Suggestion } from '../api/types'
+import type { PlaceCategory, Suggestion } from '../api/types'
 import { placeCategoryLabel } from '../i18n/labels'
+
+/**
+ * The least a thing needs to be ranked.
+ *
+ * A `Suggestion` and a saved `Place` both satisfy it, which is the point:
+ * the same machinery ranks what you might collect and what you already
+ * have, and neither caller has to know about the other.
+ */
+export interface Rankable {
+  name: string
+  category: PlaceCategory
+}
 
 /** Above this, the prompt stops fitting comfortably in a small model. */
 export const MAX_CANDIDATES = 40
 
-export interface Scored {
-  suggestion: Suggestion
+export interface Scored<T = Suggestion> {
+  suggestion: T
   /** 0–5, or null when the model said nothing about it. */
   score: number | null
 }
 
-export function buildPrompt(candidates: readonly Suggestion[], description: string): string {
+export function buildPrompt(candidates: readonly Rankable[], description: string): string {
   const list = candidates
     .map((item, index) => `${index}. ${item.name} (${placeCategoryLabel(item.category)})`)
     .join('\n')
@@ -91,10 +103,10 @@ export function parseScores(reply: string): Map<number, number> {
  * order it arrived, so a partial answer degrades into a partial
  * improvement rather than a shuffle.
  */
-export function applyScores(
-  candidates: readonly Suggestion[],
+export function applyScores<T>(
+  candidates: readonly T[],
   scores: ReadonlyMap<number, number>,
-): Scored[] {
+): Scored<T>[] {
   const scored = candidates.map((suggestion, index) => ({
     suggestion,
     score: scores.has(index) ? (scores.get(index) as number) : null,
