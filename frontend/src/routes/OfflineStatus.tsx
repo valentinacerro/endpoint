@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon'
 import { count, t } from '../i18n'
 import { formatSyncTime } from '../lib/datetime'
 import { formatBytes } from '../lib/images'
+import { isWaiting } from '../lib/optimistic'
 import {
   pinAll,
   pinnedUrls,
@@ -43,7 +44,9 @@ export function OfflineStatus() {
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
 
-  const attachments = bundle.data.attachments
+  // A document still in the write queue is on this phone already and at
+  // no address the server would answer, so it belongs in neither count.
+  const attachments = bundle.data.attachments.filter((item) => !isWaiting(item))
   const urls = attachments.map((item) => attachmentUrl(tripId, item.id))
   const missing = pinned ? urls.filter((url) => !pinned.has(url)) : []
   const ready = urls.length - missing.length

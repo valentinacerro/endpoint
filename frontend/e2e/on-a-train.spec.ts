@@ -187,6 +187,35 @@ test.describe.serial('a document with no network', () => {
     await expect(page.getByText(/in attesa di rete/i)).toBeHidden()
     await expect(page.getByRole('button', { name: /salva offline/i })).toBeVisible()
   })
+
+  test('is not counted among the documents to save until it is on the server', async ({
+    page,
+    context,
+  }) => {
+    // The offline screen exists to get every document onto the phone
+    // before departure. A document still in the write queue is on the
+    // phone already, and at no address the server would answer, so
+    // offering to download it would be offering to download nothing.
+    await signIn(page)
+    const tripId = await seedTrip(page.request)
+    const bookings = await page.request
+      .get(`/api/trips/${tripId}/bookings`)
+      .then((r) => r.json())
+    const hotel = bookings.find((booking: { kind: string }) => booking.kind === 'hotel')
+
+    await page.goto(`/trips/${tripId}/offline`)
+    await expect(page.getByText(/documenti/i).first()).toBeVisible()
+    const before = await page.locator('.doc').count()
+
+    await page.goto(`/trips/${tripId}/bookings/${hotel.id}`)
+    await expect(page.getByRole('button', { name: /allega documento/i })).toBeVisible()
+    await context.setOffline(true)
+    await page.setInputFiles('input[type=file]', VOUCHER)
+    await expect(page.getByText(/in attesa di rete/i)).toBeVisible()
+
+    await page.goto(`/trips/${tripId}/offline`)
+    expect(await page.locator('.doc').count()).toBe(before)
+  })
 })
 
 test.describe.serial('a trip started with no network', () => {

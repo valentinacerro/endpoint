@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { BookingCreate, PlaceCreate, Stop } from '../api/types'
 
-import { guessBooking, guessPlace, guessStop } from './optimistic'
+import { guessBooking, guessPlace, guessStop, isWaiting, waitingAttachment } from './optimistic'
 
 /**
  * The row drawn for a write the server has not seen.
@@ -99,5 +99,33 @@ describe('a booking recorded with no network', () => {
   it('keeps what the form said over that default', () => {
     const guessed = guessBooking('t', 'b', booking({ details: { room: 'twin' } }))
     expect(guessed.details).toEqual({ room: 'twin' })
+  })
+})
+
+
+describe('a document still in the queue', () => {
+  const voucher = () =>
+    new File([new Uint8Array([1, 2, 3])], 'voucher.pdf', { type: 'application/pdf' })
+
+  it('is told apart from one the server has', () => {
+    // Three screens ask this, and the id is the only thing that can
+    // answer: the server's is a uuid, so a prefix no uuid can carry is
+    // what marks a stand-in.
+    expect(isWaiting(waitingAttachment('t', voucher(), {}))).toBe(true)
+    expect(isWaiting({ id: '0197c2a1-8c3d-7f5e-9a21-4d6b8e0f1a2c' } as never)).toBe(false)
+  })
+
+  it('carries what a row needs to be drawn, and claims nothing else', () => {
+    const waiting = waitingAttachment('t', voucher(), { booking_id: 'b1', kind: 'voucher' })
+    expect(waiting.filename).toBe('voucher.pdf')
+    expect(waiting.byte_size).toBe(3)
+    expect(waiting.booking_id).toBe('b1')
+    expect(waiting.kind).toBe('voucher')
+    // Attached to the booking, so not loose on the trip.
+    expect(waiting.trip_id).toBeNull()
+  })
+
+  it('belongs to the trip when it is attached to nothing else', () => {
+    expect(waitingAttachment('t', voucher(), {}).trip_id).toBe('t')
   })
 })

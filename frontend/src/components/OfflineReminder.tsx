@@ -5,6 +5,7 @@ import { attachmentUrl } from '../api/trips'
 import type { TripBundle } from '../api/types'
 import { count, t } from '../i18n'
 import { daysUntil } from '../lib/datetime'
+import { isWaiting } from '../lib/optimistic'
 import { pinnedUrls } from '../offline/attachmentCache'
 
 /** How early to start nagging. */
@@ -26,14 +27,17 @@ export function OfflineReminder({ bundle, tripId }: { bundle: TripBundle; tripId
   const inWindow = days !== null && days >= 0 && days <= WINDOW_DAYS
 
   useEffect(() => {
-    if (!inWindow || bundle.attachments.length === 0) return
+    // Documents still in the write queue are not counted: they are on the
+    // phone already — that is the only reason they exist — and nagging to
+    // save one would be nagging to download something the server has
+    // never been given.
+    const stored = bundle.attachments.filter((item) => !isWaiting(item))
+    if (!inWindow || stored.length === 0) return
     let cancelled = false
 
     void pinnedUrls().then((pinned) => {
       if (cancelled) return
-      const absent = bundle.attachments.filter(
-        (item) => !pinned.has(attachmentUrl(tripId, item.id)),
-      )
+      const absent = stored.filter((item) => !pinned.has(attachmentUrl(tripId, item.id)))
       setMissing(absent.length)
     })
 

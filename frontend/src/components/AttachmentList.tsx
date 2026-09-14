@@ -4,6 +4,7 @@ import { attachmentUrl, useDeleteAttachment, useUploadAttachment } from '../api/
 import type { Attachment } from '../api/types'
 import { t } from '../i18n'
 import { formatBytes, prepareForUpload } from '../lib/images'
+import { isWaiting } from '../lib/optimistic'
 import { isPinned, pin, unpin } from '../offline/attachmentCache'
 import { DocumentViewer } from './DocumentViewer'
 import { Icon } from './Icon'
@@ -53,11 +54,6 @@ function OfflineToggle({ url }: { url: string }) {
       {pinned ? t('document.savedOffline') : t('document.saveOffline')}
     </button>
   )
-}
-
-/** A document still in the queue, standing in for one the server has. */
-export function isWaiting(attachment: Attachment): boolean {
-  return attachment.id.startsWith('pending:')
 }
 
 interface Props {

@@ -9,7 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
-import { guessBooking, guessPlace, guessStop } from '../lib/optimistic'
+import { guessBooking, guessPlace, guessStop, waitingAttachment } from '../lib/optimistic'
 import { enqueue, payloadOf, type QueuedWrite } from '../offline/outbox'
 import { shouldKeep } from '../offline/useOutbox'
 
@@ -1273,40 +1273,6 @@ export function useUploadAttachment(tripId: string) {
   })
 }
 
-/**
- * A document that is on the phone but not yet on the server.
- *
- * Its id is deliberately not a uuid: the id is the server's to give, and
- * `pending:` is what tells the list to show the file without a link to
- * bytes nobody can fetch yet. The same trick the diary already uses.
- */
-function waitingAttachment(
-  tripId: string,
-  file: File,
-  fields: Record<string, string>,
-): Attachment {
-  const now = new Date().toISOString()
-  return {
-    id: `pending:${now}:${file.name}`,
-    trip_id: fields.booking_id || fields.stop_id ? null : tripId,
-    stop_id: fields.stop_id ?? null,
-    booking_id: fields.booking_id ?? null,
-    kind: fields.kind ?? 'other',
-    filename: file.name,
-    // The server decides this from the bytes, never from the browser's
-    // claim, so this is only what the list needs to draw a row.
-    content_type: file.type,
-    byte_size: file.size,
-    // Neither is known here, and nothing on the phone reads either: the
-    // digest is computed by the server from the bytes it receives, and
-    // where the file lives is its decision too. They are here because the
-    // row has to have the shape of a row.
-    sha256: '',
-    storage: 'db',
-    created_at: now,
-    updated_at: now,
-  } as Attachment
-}
 
 export function useDeleteAttachment(tripId: string) {
   return useTripMutation(tripId, (attachmentId: string) =>
