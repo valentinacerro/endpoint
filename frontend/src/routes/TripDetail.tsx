@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 
 import { useTripBundle, useUpdatePlace } from '../api/trips'
 import type { Place } from '../api/types'
@@ -28,6 +28,7 @@ import { attachmentsOf, buildTimeline, nextBooking } from '../lib/itinerary'
 export function TripDetail() {
   const { tripId } = useParams<{ tripId: string }>()
   const bundle = useTripBundle(tripId)
+  const applied = (useLocation().state as { applied?: number } | null)?.applied ?? null
   const [adding, setAdding] = useState(false)
   const updatePlace = useUpdatePlace(tripId ?? '')
 
@@ -87,6 +88,15 @@ export function TripDetail() {
         }
       />
       <main className="page stack">
+      {/* Said here, where the result is, rather than on the screen you
+          pressed the button on. The planner used to report back to
+          itself: the preview vanished and a line appeared under the
+          button saying how many visits it had applied — which is a
+          receipt handed over on the way out of a room you are leaving. */}
+      {applied !== null && (
+        <p className="hint" role="status">{count('trip_plan.applied', applied)}</p>
+      )}
+
       <OfflineReminder bundle={data} tripId={tripId} />
 
       {next?.start_at && (

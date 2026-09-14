@@ -282,9 +282,18 @@ test.describe.serial('a plan applied with no network', () => {
 
     // No error, and a count: the plan was queued and the screen was told
     // what it would have been told by the server.
+    //
+    // Then the itinerary itself, still with the network off. Online the
+    // re-read after applying papers over anything the optimistic patch
+    // forgot; offline there is no re-read, so this is the only place that
+    // can prove the places the plan brought with it actually arrive on
+    // the screen rather than having their times applied to rows nobody
+    // ever added.
     await expect(page.getByText(/il server l’ha rifiutato/i)).toBeHidden()
     await expect(page.getByText(/applicat[ae] .* visit[ae]\.|applicata una visita\./i)).toBeVisible()
     await expect(page.getByText(/modific(a|he) da inviare/i).first()).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/trips/${tripId}$`))
+    await expect(page.locator('.day').first()).toBeVisible()
 
     await context.setOffline(false)
     await page.reload()
@@ -297,5 +306,79 @@ test.describe.serial('a plan applied with no network', () => {
     // And every one of them carries the zone its day is in, never the
     // phone's — the trap that put bookings on the wrong day.
     for (const place of scheduled) expect(place.planned_tz).toBe('Asia/Tokyo')
+  })
+})
+
+test.describe.serial('a plan made on wifi and applied in a tunnel', () => {
+  test('the places it found are on the itinerary before the server has them', async ({
+    page,
+    context,
+  }) => {
+    // The only sequence in which this can be seen, and a real one: the
+    // search needs a network, so the plan is computed at the hotel; the
+    // applying happens on the train. Online, the re-read after applying
+    // hides anything the optimistic patch forgets. Here there is no
+    // re-read, and the places the plan is carrying exist nowhere but in
+    // the request sitting in the queue.
+    await page.route('**/api/geo/discover**', (route) =>
+      route.fulfill({
+        json: [
+          { name: 'Sensō-ji', lat: 35.7148, lon: 139.7967, category: 'temple', fame: 90, wikidata: 'Q206144', osm_id: 'w/1' },
+          { name: 'Ueno Park', lat: 35.7141, lon: 139.7744, category: 'park', fame: 70, wikidata: null, osm_id: 'w/2' },
+          { name: 'Meiji Jingū', lat: 35.6764, lon: 139.6993, category: 'shrine', fame: 85, wikidata: 'Q383981', osm_id: 'w/3' },
+        ],
+      }),
+    )
+
+    const day = (offset: number) => {
+      const d = new Date()
+      d.setDate(d.getDate() + offset)
+      return d.toISOString().slice(0, 10)
+    }
+    const trip = await (
+      await page.request.post('/api/trips', {
+        data: { title: 'Niente in valigia', start_date: day(30), end_date: day(33),
+                primary_tz: 'Europe/Rome', primary_currency: 'EUR', status: 'planned' },
+      })
+    ).json()
+    await page.request.post(`/api/trips/${trip.id}/stops`, {
+      data: { name: 'Tokyo', tz: 'Asia/Tokyo', country_code: 'JP', lat: 35.6896, lon: 139.7006,
+              arrive_date: day(30), depart_date: day(33) },
+    })
+
+    await page.goto(`/trips/${trip.id}/plan`)
+    const compute = page.getByRole('button', { name: 'Calcola il piano' })
+    await expect(compute).toBeVisible()
+    await compute.click()
+
+    const apply = page.getByRole('button', { name: /^applica$/i })
+    await expect(apply).toBeVisible()
+
+    // Into the tunnel, between working it out and agreeing to it.
+    await context.setOffline(true)
+    await apply.click()
+
+    await expect(page).toHaveURL(new RegExp(`/trips/${trip.id}$`))
+    // Under a numbered day, not in the pile at the bottom. A place added
+    // under an id the times were not applied to still appears on this
+    // screen — among the things with no day, which uses the same markup
+    // and looks like success until you read the heading.
+    await expect(
+      page.locator('.day', { has: page.locator('.day__date') }).filter({ hasText: 'Sensō-ji' }),
+    ).toHaveCount(1)
+    await expect(page.getByText(/modific(a|he) da inviare/i).first()).toBeVisible()
+    // Not on the server yet, and the app is not pretending otherwise.
+    expect(await page.request.get(`/api/trips/${trip.id}/places`).then((r) => r.json())).toEqual([])
+
+    await context.setOffline(false)
+    await page.reload()
+
+    await expect
+      .poll(
+        async () =>
+          (await page.request.get(`/api/trips/${trip.id}/places`).then((r) => r.json())).length,
+        { timeout: 20_000 },
+      )
+      .toBe(3)
   })
 })

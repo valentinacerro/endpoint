@@ -679,6 +679,27 @@ export function useSchedulePlaces(tripId: string) {
       const previous = snapshotBundle(queryClient, tripId)
       const moved = new Map(body.scheduled.map((entry) => [entry.id, entry]))
       const cleared = new Set(body.cleared ?? [])
+
+      // The places the plan is bringing with it have to go in first, or
+      // the itinerary you land on afterwards is the one you left: the
+      // times would be applied to rows that are not in the cache, and the
+      // screen would show nothing new. They used to arrive through
+      // `useCreatePlace`, which patched the cache on the way past.
+      if (body.created?.length) {
+        // Cannot currently fire: the planner only ever proposes places
+        // `onlyNew` has already filtered against your list, and a failed
+        // apply puts the whole bundle back. Kept because "insert these
+        // rows" without checking for them is the kind of line that is
+        // right until the day something else calls this.
+        const known = new Set(previous?.places.map((place) => place.id))
+        patchPlaces(queryClient, tripId, (places) => [
+          ...places,
+          ...body
+            .created!.filter((entry) => !known.has(entry.id))
+            .map(({ id, ...rest }) => guessPlace(tripId, id, rest)),
+        ])
+      }
+
       patchPlaces(queryClient, tripId, (places) =>
         places.map((place) => {
           const to = moved.get(place.id)
@@ -693,6 +714,12 @@ export function useSchedulePlaces(tripId: string) {
       return { previous }
     },
     onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    // Re-read once it has landed: the server decides a created place's
+    // exposure and timestamps, and the guess above is only good enough to
+    // draw with. Offline this fails and the guess stays, which is right.
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.bundle(tripId) })
+    },
   })
 }
 

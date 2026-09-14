@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 
 import { useDiscover, useSchedulePlaces, useTripBundle } from '../api/trips'
 import { AppBar } from '../components/AppBar'
@@ -23,6 +23,7 @@ import { planTrip, type TripPlan, type Unplaced } from '../lib/planTrip'
  */
 export function PlanTrip() {
   const { tripId } = useParams<{ tripId: string }>()
+  const navigate = useNavigate()
   const bundle = useTripBundle(tripId)
   const apply = useSchedulePlaces(tripId ?? '')
 
@@ -39,7 +40,6 @@ export function PlanTrip() {
   /** Cities we asked about and got nothing back for. */
   const [emptyHanded, setEmptyHanded] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
-  const [done, setDone] = useState<number | null>(null)
 
   if (bundle.isPending) return <main className="page">{t('common.loading')}</main>
   if (!bundle.data || !tripId) return <main className="page">{t('common.error')}</main>
@@ -66,7 +66,6 @@ export function PlanTrip() {
    */
   async function compute() {
     setFailed(false)
-    setDone(null)
     setProposed([])
     setEmptyHanded([])
     setLooking([])
@@ -170,9 +169,16 @@ export function PlanTrip() {
           planned_tz: write.zone,
         })),
       })
-      setDone(result.scheduled)
-      setPlan(null)
+      // Straight to the itinerary, because that is where the answer is.
+      //
+      // It used to stay here: the preview vanished, a small line appeared
+      // saying how many visits had been applied, and you were left on a
+      // screen with a button on it. The app had done the whole job and
+      // shown you none of it — "quando clicco applica non succede
+      // niente" is exactly what that looks like, and it was right.
       setProposed([])
+      setPlan(null)
+      navigate(`/trips/${tripId}`, { state: { applied: result.scheduled } })
     } catch {
       // A plan made with no network is queued rather than lost, so
       // reaching here means the server refused it on its merits. The
@@ -232,7 +238,6 @@ export function PlanTrip() {
         {plan === null ? (
           <>
             <p className="muted small">{t('trip_plan.intro')}</p>
-            {done !== null && <p className="hint">{count('trip_plan.applied', done)}</p>}
             {failed && (
               <p className="field__error" role="alert">
                 {t('trip_plan.lookFailed')}

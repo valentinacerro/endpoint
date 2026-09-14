@@ -78,6 +78,15 @@ test('one button turns an empty trip into an itinerary', async ({ page }) => {
 
   await page.getByRole('button', { name: /^applica$/i }).click()
 
+  // What the *screen* does, not only what the server stored. Every test
+  // here checked the database and none checked the app, so pressing
+  // Applica could leave you exactly where you were — preview gone, a
+  // small line under a button — and the run stayed green.
+  await expect(page).toHaveURL(new RegExp(`/trips/${tripId}$`))
+  await expect(page.getByText(/applicat[ae] .*visit/i)).toBeVisible()
+  // And the days now have something on them.
+  await expect(page.getByText('Sensō-ji').first()).toBeVisible()
+
   // Counted exactly, not "more than none". `toBeGreaterThan(0)` was what
   // this said before, and it passed happily while nineteen of twenty
   // places were still being saved one request at a time — the run went
