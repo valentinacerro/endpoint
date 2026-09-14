@@ -55,6 +55,12 @@ export default defineConfig({
         // the precache the PDF viewer works online and silently fails in
         // airplane mode — which is the only time it really has to work.
         globPatterns: ['**/*.{js,mjs,css,html,svg,png,woff2}'],
+        // The language model's runtime is six megabytes and most sessions
+        // never ask for it. Precaching it would mean every install paying
+        // for a feature that is optional by design — and the weights it
+        // then fetches are hundreds more, which the browser caches on its
+        // own once you have chosen to download them.
+        globIgnores: ['**/web-llm-*.js'],
         navigateFallback: '/index.html',
         // The service worker owns the app shell; the app owns the data.
         // Without this exclusion a failed API call would return the home
@@ -65,6 +71,16 @@ export default defineConfig({
     }),
   ],
   build: {
+    rollupOptions: {
+      output: {
+        // Named, so the service worker can recognise it above. Left to
+        // the hash it would be `lib-<hash>.js` and any exclusion would be
+        // a guess that breaks on the next build. Rolldown wants a
+        // function here rather than the map rollup took.
+        manualChunks: (id: string) =>
+          id.includes('@mlc-ai/web-llm') ? 'web-llm' : undefined,
+      },
+    },
     // The compiled PWA is served by FastAPI: same origin, first-party
     // cookies, no CORS.
     outDir: '../backend/app/static',

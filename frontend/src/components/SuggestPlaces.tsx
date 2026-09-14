@@ -1,11 +1,12 @@
 import { useState } from 'react'
 
 import { useCreatePlace, useSuggestions } from '../api/trips'
-import type { Place, PlaceCategory } from '../api/types'
+import type { Place, PlaceCategory, Suggestion } from '../api/types'
 import { count, t } from '../i18n'
 import { placeCategoryLabel } from '../i18n/labels'
 import { byTaste, categoriesIn, onlyNew } from '../lib/suggest'
 import { Icon } from './Icon'
+import { TasteSort } from './TasteSort'
 
 /**
  * Places to see, for a trip that arrived with none.
@@ -48,7 +49,9 @@ export function SuggestPlaces({
   const [failed, setFailed] = useState(false)
 
   const available = onlyNew(found.data ?? [], places)
-  const fresh = byTaste(available, wanted)
+  /** Set by the model when it has been asked; it only ever permutes. */
+  const [reordered, setReordered] = useState<Suggestion[] | null>(null)
+  const fresh = reordered ?? byTaste(available, wanted)
   // Ticked on first sight, then left alone: re-deriving this on every
   // render would undo every tap.
   const ticked = chosen ?? new Set(fresh.slice(0, PRESELECTED).map((item) => item.osm_id))
@@ -57,6 +60,7 @@ export function SuggestPlaces({
     const next = new Set(wanted)
     if (!next.delete(category)) next.add(category)
     setWanted(next)
+    setReordered(null)
     // The pre-ticked eight are the first eight of the new order, so the
     // choice has to be recomputed rather than carried across.
     setChosen(null)
@@ -144,6 +148,14 @@ export function SuggestPlaces({
           ))}
         </div>
       </fieldset>
+
+      <TasteSort
+        candidates={byTaste(available, wanted)}
+        onReorder={(order) => {
+          setReordered(order)
+          setChosen(null)
+        }}
+      />
 
       <ul className="pack">
         {fresh.map((item) => {
