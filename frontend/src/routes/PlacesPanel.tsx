@@ -8,6 +8,7 @@ import { PlaceSearch } from '../components/PlaceSearch'
 import { inferStops, tripCentre } from '../lib/stops'
 import { ImportPlaces } from '../components/ImportPlaces'
 import { LocatePlaces } from '../components/LocatePlaces'
+import { Nothing, NothingLink } from '../components/Nothing'
 import { SuggestPlaces } from '../components/SuggestPlaces'
 import { MapsLink } from '../components/MapsLink'
 import { AppBar } from '../components/AppBar'
@@ -208,7 +209,21 @@ export function PlacesPanel() {
       />
       <main className="page stack">
 
-      {places.length === 0 && !adding && <p className="empty">{t('places.none')}</p>}
+      {places.length === 0 && !adding && !suggesting && !pasting && !importing && (
+        <Nothing
+          title={t('places.none')}
+          hint={locatedStop ? t('places.noneHint') : t('places.noneUnlocated')}
+          action={
+            locatedStop ? (
+              <button className="button button--small" onClick={() => setSuggesting(true)}>
+                {t('suggest.find')}
+              </button>
+            ) : (
+              <NothingLink to={`/trips/${tripId}/stops`} label={t('places.goToStops')} />
+            )
+          }
+        />
+      )}
 
       <LocatePlaces tripId={tripId} places={places} near={near} />
 

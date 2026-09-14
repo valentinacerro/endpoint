@@ -5,6 +5,7 @@ import { useTripBundle } from '../api/trips'
 import type { BookingKind, Place } from '../api/types'
 import { TripMap, type MapPin } from '../components/TripMap'
 import { AppBar } from '../components/AppBar'
+import { Nothing, NothingLink } from '../components/Nothing'
 import { count, t } from '../i18n'
 import { formatDayKey } from '../lib/datetime'
 import { buildTimeline, type Day, type PlacedEntry } from '../lib/itinerary'
@@ -113,6 +114,9 @@ export function MapView() {
   const waiting = timeline.unscheduledPlaces
   const showWaiting = selected === null || selected === WAITING
   const shown = selected && selected !== WAITING ? days.filter((day) => day.key === selected) : days
+  // Two different empties: nothing collected at all, or things collected
+  // that have no position. They need different advice.
+  const anyPlaces = bundle.data.places.length > 0
   const { pins, missing } = pinsFor(
     selected === WAITING ? [] : shown,
     showWaiting ? waiting : [],
@@ -155,7 +159,21 @@ export function MapView() {
         </nav>
       )}
 
-      <TripMap pins={pins} />
+      <TripMap
+        pins={pins}
+        empty={
+          <Nothing
+            title={t('map.nothingToShow')}
+            hint={anyPlaces ? t('map.noPositions') : t('map.noPlaces')}
+            action={
+              <NothingLink
+                to={`/trips/${tripId}/places`}
+                label={anyPlaces ? t('map.goFindPositions') : t('map.goAddPlaces')}
+              />
+            }
+          />
+        }
+      />
 
       {/* Said plainly rather than left as grey squares: everything else in
           this app works offline, and this one screen does not. */}

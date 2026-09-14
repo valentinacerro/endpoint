@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 import { t } from '../i18n'
 
@@ -47,7 +47,7 @@ const KIND_COLOUR: Record<MapPin['kind'], string> = {
  * Tiles do need the network. Everything else in this app works in airplane
  * mode; this screen does not, and says so rather than showing grey squares.
  */
-export function TripMap({ pins }: { pins: MapPin[] }) {
+export function TripMap({ pins, empty }: { pins: MapPin[]; empty?: ReactNode }) {
   const container = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export function TripMap({ pins }: { pins: MapPin[] }) {
   }, [pins])
 
   if (pins.length === 0) {
-    return <p className="empty">{t('map.nothingToShow')}</p>
+    return empty ?? <p className="empty">{t('map.nothingToShow')}</p>
   }
 
   return <div ref={container} className="map" />

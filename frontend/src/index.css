@@ -434,6 +434,43 @@ select.field__input {
   padding: 16px var(--gap) calc(96px + env(safe-area-inset-bottom));
 }
 
+/* An empty state with a door in it. `.empty` remains for the handful of
+   places where there is genuinely nothing to offer. */
+.nothing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 20px;
+  text-align: center;
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.nothing__title {
+  margin: 0;
+  font-size: var(--type-compact);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nothing__hint {
+  margin: 0;
+  max-width: 40ch;
+  font-size: var(--type-small);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.nothing__action {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .empty {
   padding: 28px 20px;
   text-align: center;

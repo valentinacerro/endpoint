@@ -11,6 +11,7 @@ import type { Stop } from '../api/types'
 import { AppBar } from '../components/AppBar'
 import { Icon } from '../components/Icon'
 import { LocateStops } from '../components/LocateStops'
+import { Nothing } from '../components/Nothing'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { t } from '../i18n'
 import { formatCalendarDate } from '../lib/datetime'
@@ -172,7 +173,17 @@ export function StopsPanel() {
       />
       <main className="page stack">
 
-      {stops.length === 0 && !adding && <p className="empty">{t('stops.none')}</p>}
+      {stops.length === 0 && !adding && (
+        <Nothing
+          title={t('stops.none')}
+          hint={t('stops.noneHint')}
+          action={
+            <button className="button button--small" onClick={() => setAdding(true)}>
+              {t('stops.add')}
+            </button>
+          }
+        />
+      )}
 
       <LocateStops tripId={tripId} stops={stops} />
 
