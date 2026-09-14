@@ -35,6 +35,10 @@ export function PlanTrip() {
   /** Cities whose days are empty and that cannot be looked around. */
   const [blind, setBlind] = useState<string[]>([])
   const [working, setWorking] = useState(false)
+  /** The cities being asked about, so the wait has a name on it. */
+  const [looking, setLooking] = useState<string[]>([])
+  /** Cities we asked about and got nothing back for. */
+  const [emptyHanded, setEmptyHanded] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
   const [done, setDone] = useState<number | null>(null)
 
@@ -65,6 +69,8 @@ export function PlanTrip() {
     setFailed(false)
     setDone(null)
     setProposed([])
+    setEmptyHanded([])
+    setLooking([])
     setWorking(true)
     try {
       // On a button, never in a render: this walks every place and every
@@ -78,11 +84,33 @@ export function PlanTrip() {
         return
       }
 
+      setLooking(gaps.map((gap) => gap.stopName))
+
+      /**
+       * All the cities at once, not one after another.
+       *
+       * They were sequential, which is the worst possible shape against
+       * Overpass: it queues consecutive queries from one caller, so the
+       * second city waited behind the first and sometimes was refused for
+       * being too soon. Measured, a fortnight in two cities could sit on
+       * "cerco cosa vedere…" for over a minute. Two or three at once is
+       * one city's wait, and is not a load worth apologising for.
+       *
+       * `allSettled`, because a city Overpass will not answer for must not
+       * take the others down with it: what came back is still a better
+       * plan than none, and the screen says which cities came back empty.
+       */
+      const answers = await Promise.allSettled(gaps.map((gap) => discover(gap.centre)))
+
       const found: Proposed[] = []
-      for (const gap of gaps) {
-        // One city at a time. Each is an Overpass query against a service
-        // run on donations, and a fortnight is at most a handful of them.
-        const around = await discover(gap.centre)
+      const silent: string[] = []
+      gaps.forEach((gap, index) => {
+        const answer = answers[index]
+        const around = answer.status === 'fulfilled' ? answer.value : []
+        if (around.length === 0) {
+          silent.push(gap.stopName)
+          return
+        }
         found.push(
           ...proposeFor(
             tripId!,
@@ -96,8 +124,9 @@ export function PlanTrip() {
             () => crypto.randomUUID(),
           ),
         )
-      }
+      })
 
+      setEmptyHanded(silent)
       setProposed(found)
       setPlan(planTrip(bundleWith(data, found)))
     } catch {
@@ -212,6 +241,15 @@ export function PlanTrip() {
             <button className="button" onClick={() => void compute()} disabled={working}>
               {working ? t('trip_plan.looking') : t('trip_plan.compute')}
             </button>
+            {/* Named, and honest about the wait. Overpass is a free service
+                run on donations and can take the better part of half a
+                minute; a button that says nothing for that long reads as
+                broken rather than busy. */}
+            {looking.length > 0 && (
+              <p className="hint">
+                {t('trip_plan.lookingIn', { cities: looking.join(', ') })}
+              </p>
+            )}
           </>
         ) : (
           <>
@@ -255,6 +293,12 @@ export function PlanTrip() {
 
             {blind.length > 0 && (
               <p className="hint">{t('trip_plan.blind', { cities: blind.join(', ') })}</p>
+            )}
+
+            {emptyHanded.length > 0 && (
+              <p className="hint">
+                {t('trip_plan.foundNothing', { cities: emptyHanded.join(', ') })}
+              </p>
             )}
 
             {plan.kept.length > 0 && (

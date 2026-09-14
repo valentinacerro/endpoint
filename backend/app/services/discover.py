@@ -36,6 +36,7 @@ and a bad afternoon for Overpass is not a broken feature.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from math import cos, radians
 
@@ -45,11 +46,31 @@ from app.enums import PlaceCategory
 from app.services.geocode import categorise
 
 #: Tried in order. The main instance is the most complete and the most
-#: loaded; the mirrors exist for exactly this reason.
+#: loaded; the second exists for exactly this reason.
+#:
+#: This list used to hold two more, and they were worse than nothing.
+#: Measured, every instance below, with a trivial query, a generous
+#: timeout, both user agents and both methods:
+#:
+#:   overpass-api.de        1-7s when it answers, 504 under load
+#:   maps.mail.ru           ~9s, answers for Tokyo and for Bern
+#:   overpass.kumi.systems  times out, every time, every way
+#:   overpass.private.coffee  times out, every time, every way
+#:   overpass.openstreetmap.ru  does not connect
+#:   overpass.osm.ch        0.3s — and no data outside Switzerland
+#:
+#: The two that timed out were in this tuple, so whenever the main
+#: instance was busy a search spent sixty seconds failing and then said it
+#: had found nothing. That is the whole of why "cerco cosa vedere…" could
+#: sit there for a minute and a quarter.
+#:
+#: `overpass.osm.ch` is deliberately NOT here despite being the fastest of
+#: the lot. It answers 200 with an empty list for anywhere outside
+#: Switzerland, which this code cannot tell from "there is nothing in
+#: Tokyo" — a mirror that lies quietly is worse than one that fails.
 _OVERPASS = (
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 )
 #: The query service, not the entity API: asking `wbgetentities` for
 #: claims costs about 130 MB for a city's worth of ids, and one SPARQL
@@ -61,7 +82,13 @@ _WIKIDATA = "https://query.wikidata.org/sparql"
 #: are answered with 403.
 _USER_AGENT = "endpoint/1.0 (personal travel planner; https://github.com/valentinacerro/endpoint)"
 
-_OVERPASS_TIMEOUT = 30.0
+#: Long enough for the `[timeout:25]` the query itself declares, and no
+#: longer: past that the server has given up and we are waiting on a
+#: socket nobody is going to write to.
+_OVERPASS_TIMEOUT = 27.0
+#: Between the two asks of a busy instance. Short: it is a queue, not an
+#: outage.
+_RETRY_PAUSE = 1.0
 _WIKIDATA_TIMEOUT = 25.0
 
 #: How many ids go into one SPARQL `VALUES` clause. Large enough that a
@@ -193,16 +220,26 @@ async def _overpass(client: httpx.AsyncClient, query: str) -> dict | None:
     Quietly because the caller has a cache and a screen to draw: a
     suggestion list that fails to appear is a disappointment, and one that
     raises is a broken button.
+
+    A 5xx is asked again once before moving on. Measured against the main
+    instance: 504, 504, then 200 in 1.1 seconds. Its overload is measured
+    in seconds, so one more ask is worth more than one more mirror.
     """
     for url in _OVERPASS:
-        try:
-            response = await client.post(
-                url, data={"data": query}, headers={"User-Agent": _USER_AGENT}
-            )
-            if response.status_code == 200:
-                return response.json()
-        except (httpx.HTTPError, ValueError):
-            continue
+        for attempt in (1, 2):
+            try:
+                response = await client.post(
+                    url, data={"data": query}, headers={"User-Agent": _USER_AGENT}
+                )
+                if response.status_code == 200:
+                    return response.json()
+                # 4xx is about the query and will be 4xx again; only a
+                # server that is merely busy is worth asking twice.
+                if response.status_code < 500 or attempt == 2:
+                    break
+                await asyncio.sleep(_RETRY_PAUSE)
+            except (httpx.HTTPError, ValueError):
+                break
     return None
 
 

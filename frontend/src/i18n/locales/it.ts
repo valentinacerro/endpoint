@@ -638,6 +638,10 @@ export const it = {
     'Distribuisce sui giorni i luoghi che hai salvato, ognuno nella città in cui dormi quel giorno. Se restano giorni vuoti — o se non hai ancora salvato niente — va a vedere cosa c’è in quelle città e te lo propone. Ti mostra prima cosa verrebbe fuori: non cambia niente finché non confermi, e non tocca quello che hai già sistemato a mano.',
   'trip_plan.compute': 'Calcola il piano',
   'trip_plan.looking': 'Cerco cosa vedere…',
+  'trip_plan.lookingIn':
+    'Sto chiedendo a OpenStreetMap cosa c’è a {cities}. È un servizio gratuito e può metterci qualche decina di secondi.',
+  'trip_plan.foundNothing':
+    'A {cities} non ho ricevuto risposta: il servizio era occupato. Riprova fra un minuto, oppure aggiungi i luoghi a mano.',
   'trip_plan.lookFailed':
     'Non sono riuscito a cercare posti nuovi: per quello serve la rete. Intanto ho ordinato quelli che hai già.',
   'trip_plan.proposed_one': 'Un posto non ce l’avevi: l’ho trovato io, a {cities}.',

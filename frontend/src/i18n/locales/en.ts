@@ -649,6 +649,10 @@ export const en: Record<TranslationKey, string> = {
     'Spreads the places you saved across the days, each in the city you are sleeping in that day. If days are left empty — or if you have not saved anything yet — it goes and sees what is in those cities and proposes it. It shows you what it would look like first: nothing changes until you confirm, and it leaves alone anything you arranged by hand.',
   'trip_plan.compute': 'Work out a plan',
   'trip_plan.looking': 'Looking for things to see…',
+  'trip_plan.lookingIn':
+    'Asking OpenStreetMap what is in {cities}. It is a free service and can take a few tens of seconds.',
+  'trip_plan.foundNothing':
+    'Nothing came back for {cities}: the service was busy. Try again in a minute, or add places by hand.',
   'trip_plan.lookFailed':
     'I could not go looking for new places: that needs the network. I have ordered the ones you already have.',
   'trip_plan.proposed_one': 'One place you did not have: I found it, in {cities}.',

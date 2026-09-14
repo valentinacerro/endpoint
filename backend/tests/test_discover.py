@@ -138,7 +138,13 @@ class TestWhenTheServiceIsDown:
     written. None of that may reach the screen as an error."""
 
     @pytest.mark.anyio
-    async def test_it_tries_the_next_mirror(self) -> None:
+    async def test_a_busy_instance_is_asked_again_before_being_given_up_on(self) -> None:
+        """Measured: 504, 504, then 200 in 1.1 seconds.
+
+        Overload here is a queue and not an outage, so the same instance a
+        second later is a better bet than a different one — and the list of
+        different ones is short, because most of the mirrors are dead.
+        """
         asked: list[str] = []
 
         def handler(request: httpx.Request) -> httpx.Response:
@@ -150,8 +156,49 @@ class TestWhenTheServiceIsDown:
         async with _client(handler) as client:
             payload = await discover._overpass(client, "query")
         assert payload == {"elements": []}
-        assert len(asked) == 2
-        assert asked[0] != asked[1]
+        assert asked == [asked[0], asked[0]]
+
+    @pytest.mark.anyio
+    async def test_an_instance_that_stays_busy_hands_over_to_the_next(self) -> None:
+        asked: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            asked.append(str(request.url))
+            if str(request.url) == discover._OVERPASS[0]:
+                return httpx.Response(504, text="busy")
+            return httpx.Response(200, json={"elements": []})
+
+        async with _client(handler) as client:
+            payload = await discover._overpass(client, "query")
+        assert payload == {"elements": []}
+        # Twice to the first, then on to the second.
+        assert asked == [discover._OVERPASS[0], discover._OVERPASS[0], discover._OVERPASS[1]]
+
+    @pytest.mark.anyio
+    async def test_a_refused_query_is_not_asked_twice(self) -> None:
+        """A 400 is about the query and will be a 400 again.
+
+        Asking a second time would double the load we put on a service run
+        on donations, to be told the same thing.
+        """
+        asked: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            asked.append(str(request.url))
+            return httpx.Response(400, text="bad query")
+
+        async with _client(handler) as client:
+            assert await discover._overpass(client, "query") is None
+        assert asked == list(discover._OVERPASS)
+
+    def test_no_mirror_answers_only_for_one_country(self) -> None:
+        """`overpass.osm.ch` is the fastest instance measured and is not here.
+
+        It answers 200 with an empty list for anywhere outside Switzerland,
+        which this code cannot tell apart from "there is nothing in Tokyo".
+        A mirror that fails is recoverable; one that lies quietly is not.
+        """
+        assert not any("osm.ch" in url for url in discover._OVERPASS)
 
     @pytest.mark.anyio
     async def test_every_mirror_failing_is_silence_rather_than_an_error(self) -> None:

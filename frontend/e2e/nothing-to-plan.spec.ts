@@ -115,3 +115,89 @@ test('a place dropped from the proposals is never saved', async ({ page }) => {
     .map((p: { name: string }) => p.name)
   expect(names).not.toContain('Sensō-ji')
 })
+
+test('it says which city it is asking about, and does not sit there mute', async ({ page }) => {
+  // Overpass is free, run on donations, and measured at anything from one
+  // second to the better part of a minute. A button that says nothing for
+  // that long reads as broken; this is the difference between busy and
+  // broken.
+  let release: () => void = () => {}
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/geo/discover**', async (route) => {
+    await held
+    await route.fulfill({ json: AROUND_TOKYO })
+  })
+
+  const tripId = await bareTrip(page)
+  await page.goto(`/trips/${tripId}/plan`)
+  await page.getByRole('button', { name: 'Calcola il piano' }).click()
+
+  await expect(page.getByText(/sto chiedendo a openstreetmap.*tokyo/i)).toBeVisible()
+  release()
+  await expect(page.getByText(/li ho trovati io, a Tokyo/i)).toBeVisible()
+  // And stops saying it: the whole panel is replaced by the preview, so a
+  // message about a wait that is over cannot linger.
+  await expect(page.getByText(/sto chiedendo a openstreetmap/i)).toBeHidden()
+})
+
+test('a city the service will not answer for does not take the others down', async ({ page }) => {
+  // One instance answering and one refusing is the ordinary state of the
+  // world. What came back is still a better plan than none — and the
+  // screen has to say which city it drew a blank on, or those days are
+  // quietly left empty with no reason given.
+  await page.route('**/api/geo/discover**', (route) => {
+    const lat = Number(new URL(route.request().url()).searchParams.get('lat'))
+    // Kyoto is at 34.99, Tokyo at 35.69. Kyoto's request *fails* rather
+    // than coming back empty, because that is what an Overpass instance
+    // refusing looks like from here — and it is the case that decides
+    // whether one city's bad luck takes the whole search with it.
+    if (lat < 35.2) {
+      return route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'lookup_unavailable', message: 'busy' } }),
+      })
+    }
+    return route.fulfill({ json: AROUND_TOKYO })
+  })
+
+  const day = (offset: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() + offset)
+    return d.toISOString().slice(0, 10)
+  }
+  const trip = await (
+    await page.request.post('/api/trips', {
+      data: {
+        title: 'Giappone due città',
+        start_date: day(30),
+        end_date: day(35),
+        primary_tz: 'Europe/Rome',
+        primary_currency: 'EUR',
+        status: 'planned',
+      },
+    })
+  ).json()
+  // Both with dates, or the second city is given no days, produces no gap
+  // and is never asked about — which is how the first version of this
+  // test passed while exercising one city.
+  for (const [name, lat, lon, from, to] of [
+    ['Tokyo', 35.6896, 139.7006, day(30), day(32)],
+    ['Kyoto', 34.9858, 135.7588, day(32), day(35)],
+  ] as const) {
+    await page.request.post(`/api/trips/${trip.id}/stops`, {
+      data: { name, tz: 'Asia/Tokyo', country_code: 'JP', lat, lon, arrive_date: from, depart_date: to },
+    })
+  }
+
+  await page.goto(`/trips/${trip.id}/plan`)
+  await page.getByRole('button', { name: 'Calcola il piano' }).click()
+
+  // Tokyo's answer survived Kyoto's silence.
+  await expect(page.getByText(/li ho trovati io/i)).toBeVisible()
+  await expect(page.getByText('Sensō-ji')).toBeVisible()
+  // And Kyoto's silence is named rather than swallowed.
+  await expect(page.getByText(/a Kyoto non ho ricevuto risposta/i)).toBeVisible()
+})
