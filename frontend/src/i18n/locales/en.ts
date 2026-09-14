@@ -125,6 +125,7 @@ export const en: Record<TranslationKey, string> = {
   'today.diaryHint': 'What you wrote, day by day.',
   'today.memoriesHint': 'The photos, where you took them.',
   'suggest.title': 'What to see around {stop}',
+  'suggest.taste': 'What are you here for? (optional)',
   'suggest.explain': 'From OpenStreetMap, ordered by how much has been written about each. Untick whatever does not appeal.',
   'suggest.looking': 'Looking for what is around {stop}…',
   'suggest.slow': 'This can take ten seconds or so: it is a free, volunteer-run service.',

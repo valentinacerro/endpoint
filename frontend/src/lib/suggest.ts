@@ -8,7 +8,7 @@
  * metres away.
  */
 
-import type { Place, Suggestion } from '../api/types'
+import type { Place, PlaceCategory, Suggestion } from '../api/types'
 import { haversineKm } from './geo'
 
 /**
@@ -41,4 +41,42 @@ export function onlyNew(
   return suggestions.filter(
     (suggestion) => !places.some((place) => isTheSamePlace(place, suggestion)),
   )
+}
+
+
+/**
+ * The suggestions, ordered by what you said you care about.
+ *
+ * The ranking underneath is how much has been written about a place,
+ * which measures fame and not taste: it puts the Skytree and the National
+ * Museum on top, which are right and are also what any guidebook would
+ * have told you. It has no way of knowing you would rather eat than look
+ * at things.
+ *
+ * So: a partition, not a weighting. The kinds you ticked come first, in
+ * their own order of fame, and everything else follows in its own. A
+ * weighted score would need numbers nobody can defend — is a famous
+ * temple worth more than an obscure market to someone who ticked
+ * "food"? — and would leave you unable to predict what the button does.
+ * This way the rule is one sentence long and you can see it worked.
+ *
+ * Ticking nothing means caring about everything, and that falls out of
+ * the partition rather than being handled: nothing matches an empty set,
+ * so the first half is empty and the order is untouched. There was an
+ * early return for it until sabotaging it changed no answer.
+ */
+export function byTaste(
+  suggestions: readonly Suggestion[],
+  wanted: ReadonlySet<PlaceCategory>,
+): Suggestion[] {
+  const mine = suggestions.filter((item) => wanted.has(item.category))
+  const rest = suggestions.filter((item) => !wanted.has(item.category))
+  return [...mine, ...rest]
+}
+
+/** The kinds actually present, so the picker offers nothing empty. */
+export function categoriesIn(suggestions: readonly Suggestion[]): PlaceCategory[] {
+  const seen = new Set<PlaceCategory>()
+  for (const item of suggestions) seen.add(item.category)
+  return [...seen]
 }

@@ -127,6 +127,7 @@ export const it = {
   'today.diaryHint': 'Quello che hai scritto giorno per giorno.',
   'today.memoriesHint': 'Le foto, dove le hai scattate.',
   'suggest.title': 'Cosa vedere intorno a {stop}',
+  'suggest.taste': 'Cosa ti interessa? (facoltativo)',
   'suggest.explain': 'Da OpenStreetMap, in ordine di quanto se ne è scritto. Togli la spunta a quello che non ti interessa.',
   'suggest.looking': 'Cerco cosa c’è intorno a {stop}…',
   'suggest.slow': 'Può volerci una decina di secondi: è un servizio gratuito e volontario.',

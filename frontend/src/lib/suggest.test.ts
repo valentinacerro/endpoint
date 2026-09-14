@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Place, Suggestion } from '../api/types'
-import { isTheSamePlace, onlyNew } from './suggest'
+import { byTaste, categoriesIn, isTheSamePlace, onlyNew } from './suggest'
 
 const suggestion = (over: Partial<Suggestion> = {}): Suggestion =>
   ({
@@ -73,5 +73,58 @@ describe('filtering the list', () => {
 
   it('returns everything when you have nothing', () => {
     expect(onlyNew([suggestion()], [])).toHaveLength(1)
+  })
+})
+
+const named = (name: string, category: string, fame: number): Suggestion =>
+  ({
+    name,
+    lat: 35.7,
+    lon: 139.8,
+    category,
+    fame,
+    wikidata: null,
+    osm_id: name,
+  }) as Suggestion
+
+describe('ordering by what you said you care about', () => {
+  const list = [
+    named('Tokyo Skytree', 'sight', 72),
+    named('Tokyo National Museum', 'museum', 52),
+    named('Sensō-ji', 'temple', 31),
+    named('Tsukiji Market', 'shopping', 4),
+    named('A ramen counter', 'food', 0),
+  ]
+
+  it('leaves the order alone when nothing is ticked', () => {
+    // An empty answer means "everything", which is also what the button
+    // did before there was anything to tick.
+    expect(byTaste(list, new Set()).map((s) => s.name)).toEqual(list.map((s) => s.name))
+  })
+
+  it('brings the kinds you want to the front, obscure ones included', () => {
+    // The whole point: a ramen counter nobody has written about beats the
+    // Skytree, if eating is what you came for.
+    const order = byTaste(list, new Set(['food', 'shopping'] as never)).map((s) => s.name)
+    expect(order.slice(0, 2)).toEqual(['Tsukiji Market', 'A ramen counter'])
+  })
+
+  it('keeps fame as the order within each half', () => {
+    const order = byTaste(list, new Set(['museum', 'temple'] as never)).map((s) => s.name)
+    expect(order).toEqual([
+      'Tokyo National Museum',
+      'Sensō-ji',
+      'Tokyo Skytree',
+      'Tsukiji Market',
+      'A ramen counter',
+    ])
+  })
+
+  it('drops nothing — the rest is demoted, not hidden', () => {
+    expect(byTaste(list, new Set(['food'] as never))).toHaveLength(list.length)
+  })
+
+  it('offers only the kinds that are actually there', () => {
+    expect(categoriesIn(list).sort()).toEqual(['food', 'museum', 'shopping', 'sight', 'temple'])
   })
 })

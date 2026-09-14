@@ -1,10 +1,10 @@
 import { useState } from 'react'
 
 import { useCreatePlace, useSuggestions } from '../api/trips'
-import type { Place } from '../api/types'
+import type { Place, PlaceCategory } from '../api/types'
 import { count, t } from '../i18n'
 import { placeCategoryLabel } from '../i18n/labels'
-import { onlyNew } from '../lib/suggest'
+import { byTaste, categoriesIn, onlyNew } from '../lib/suggest'
 import { Icon } from './Icon'
 
 /**
@@ -41,14 +41,26 @@ export function SuggestPlaces({
   const found = useSuggestions({ lat: stop.lat, lon: stop.lon })
   const create = useCreatePlace(tripId)
 
+  /** What you said you care about. Empty means everything. */
+  const [wanted, setWanted] = useState<Set<PlaceCategory>>(new Set())
   const [chosen, setChosen] = useState<Set<string> | null>(null)
   const [saving, setSaving] = useState<{ done: number; total: number } | null>(null)
   const [failed, setFailed] = useState(false)
 
-  const fresh = onlyNew(found.data ?? [], places)
+  const available = onlyNew(found.data ?? [], places)
+  const fresh = byTaste(available, wanted)
   // Ticked on first sight, then left alone: re-deriving this on every
   // render would undo every tap.
   const ticked = chosen ?? new Set(fresh.slice(0, PRESELECTED).map((item) => item.osm_id))
+
+  function want(category: PlaceCategory) {
+    const next = new Set(wanted)
+    if (!next.delete(category)) next.add(category)
+    setWanted(next)
+    // The pre-ticked eight are the first eight of the new order, so the
+    // choice has to be recomputed rather than carried across.
+    setChosen(null)
+  }
 
   function toggle(osmId: string) {
     const next = new Set(ticked)
@@ -111,6 +123,27 @@ export function SuggestPlaces({
     <div className="card stack stack--tight">
       <p className="detail__label">{t('suggest.title', { stop: stop.name })}</p>
       <p className="muted small">{t('suggest.explain')}</p>
+
+      {/* The ranking underneath measures fame, which is not taste: it puts
+          the famous tower first whether or not you came to eat. This is
+          the only lever that says what you want. */}
+      <fieldset className="field kinds">
+        <legend className="field__label">{t('suggest.taste')}</legend>
+        <div className="chips">
+          {categoriesIn(available).map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={`chip ${wanted.has(category) ? 'chip--on' : ''}`}
+              aria-pressed={wanted.has(category)}
+              onClick={() => want(category)}
+              disabled={saving !== null}
+            >
+              {placeCategoryLabel(category)}
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
       <ul className="pack">
         {fresh.map((item) => {
