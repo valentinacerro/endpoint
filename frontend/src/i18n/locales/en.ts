@@ -44,6 +44,7 @@ export const en: Record<TranslationKey, string> = {
   'document.none': 'No documents attached.',
   'document.add': 'Attach document',
   'document.uploading': 'Uploading…',
+  'document.waiting': 'Waiting for a network',
   'document.shrunk': 'Reduced from {from} to {to}',
   'document.page': 'Page {page} of {total}',
   'document.prevPage': 'Previous page',
@@ -240,7 +241,7 @@ export const en: Record<TranslationKey, string> = {
   'plan.travelTotal': 'About {duration} of travelling in all.',
   'plan.hoursUnknown': 'Opening hours marked ? are unknown to us: check them.',
   'plan.needsNetwork':
-    'The plan could not be applied: moving visits needs the network. The preview is still here — try again.',
+    'The plan could not be applied: the server refused it. The preview is still here — try again.',
   'plan.estimates':
     'Travel times are estimates, not real train times. They are here to stop the day zig-zagging, not to catch you a connection.',
 

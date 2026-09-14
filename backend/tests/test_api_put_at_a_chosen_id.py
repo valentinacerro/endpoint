@@ -251,3 +251,46 @@ def test_putting_a_booking_into_a_stop_from_another_trip_is_refused(client: Test
     )
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "stop_not_found"
+
+
+# --- Trips ---
+
+
+def test_a_replayed_trip_creates_one_trip(client: TestClient) -> None:
+    trip_id = str(uuid.uuid4())
+    body = {"title": "Japan", "start_date": "2026-04-11", "end_date": "2026-04-25"}
+
+    first = client.put(f"/api/trips/{trip_id}", json=body)
+    assert first.status_code == 200, first.text
+    assert first.json()["id"] == trip_id
+    assert client.put(f"/api/trips/{trip_id}", json=body).status_code == 200
+
+    assert [item["title"] for item in client.get("/api/trips").json()] == ["Japan"]
+
+
+def test_a_second_write_replaces_the_whole_trip(client: TestClient) -> None:
+    trip_id = str(uuid.uuid4())
+    client.put(f"/api/trips/{trip_id}", json={"title": "Japan", "notes": "JR Pass"})
+    replaced = client.put(f"/api/trips/{trip_id}", json={"title": "Japan 2026"})
+    assert replaced.json()["title"] == "Japan 2026"
+    assert replaced.json()["notes"] is None
+
+
+def test_a_put_trip_with_dates_the_wrong_way_round_is_refused(client: TestClient) -> None:
+    response = client.put(
+        f"/api/trips/{uuid.uuid4()}",
+        json={"title": "Japan", "start_date": "2026-04-25", "end_date": "2026-04-11"},
+    )
+    assert response.status_code == 422
+
+
+def test_a_stop_can_be_created_under_a_trip_that_was_also_client_named(client: TestClient) -> None:
+    """The sequence the new-trip form makes, as the queue would replay it."""
+    trip_id = str(uuid.uuid4())
+    stop_id = str(uuid.uuid4())
+    client.put(f"/api/trips/{trip_id}", json={"title": "Japan"})
+    created = client.put(
+        f"/api/trips/{trip_id}/stops/{stop_id}", json={"name": "Tokyo", "tz": "Asia/Tokyo"}
+    )
+    assert created.status_code == 200
+    assert created.json()["trip_id"] == trip_id

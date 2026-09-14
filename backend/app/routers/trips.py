@@ -30,6 +30,33 @@ def read_trip(trip_id: uuid.UUID, db: DbSession) -> Trip:
     return get_or_404(db, Trip, trip_id)
 
 
+@router.put("/{trip_id}", response_model=TripRead)
+def put_trip(trip_id: uuid.UUID, payload: TripCreate, db: DbSession) -> Trip:
+    """Create or replace one trip at an id the client chose.
+
+    The last write that could not be queued. Starting a trip is the one
+    thing you do before leaving rather than while travelling, so this
+    matters less than a place typed on a train — but a queue with a hole
+    in it is a queue nobody can trust, and the first stop the new-trip
+    form creates is queued behind this one, addressed by the id chosen
+    here.
+
+    There is no `free_or_owned` to call: a trip has no parent to check
+    against, so an unknown id is simply free.
+    """
+    existing = db.get(Trip, trip_id)
+    if existing is not None:
+        for field, value in payload.model_dump().items():
+            setattr(existing, field, value)
+        db.commit()
+        return existing
+
+    trip = Trip(id=trip_id, **payload.model_dump())
+    db.add(trip)
+    db.commit()
+    return trip
+
+
 @router.patch("/{trip_id}", response_model=TripRead)
 def update_trip(trip_id: uuid.UUID, payload: TripUpdate, db: DbSession) -> Trip:
     trip = get_or_404(db, Trip, trip_id)

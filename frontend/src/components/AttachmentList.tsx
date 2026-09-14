@@ -55,6 +55,11 @@ function OfflineToggle({ url }: { url: string }) {
   )
 }
 
+/** A document still in the queue, standing in for one the server has. */
+export function isWaiting(attachment: Attachment): boolean {
+  return attachment.id.startsWith('pending:')
+}
+
 interface Props {
   tripId: string
   bookingId: string
@@ -94,6 +99,22 @@ export function AttachmentList({ tripId, bookingId, attachments }: Props) {
 
       <ul className="docs">
         {attachments.map((attachment) => {
+          // A file chosen with no network: it is on the phone and in the
+          // queue, but the server has never seen it, so there is nothing
+          // at its address to open, pin for offline, or delete. Saying so
+          // is better than three controls that all fail.
+          if (isWaiting(attachment)) {
+            return (
+              <li key={attachment.id} className="doc">
+                <span className="doc__open" style={{ cursor: 'default' }}>
+                  <span className="doc__name">{attachment.filename}</span>
+                  <span className="doc__meta">
+                    {formatBytes(attachment.byte_size)} · {t('document.waiting')}
+                  </span>
+                </span>
+              </li>
+            )
+          }
           const url = attachmentUrl(tripId, attachment.id)
           return (
             <li key={attachment.id} className="doc">

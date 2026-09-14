@@ -4,7 +4,7 @@ import { set } from 'idb-keyval'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { clear, count, enqueue, flush, pending, size, subscribe } from './outbox'
+import { clear, count, enqueue, flush, payloadOf, pending, size, subscribe } from './outbox'
 
 const entry = (key: string, url = `/api/x/${key}`) =>
   ({ key, method: 'PUT', url, body: { a: 1 } }) as const
@@ -221,5 +221,76 @@ describe('draining the queue', () => {
     // and neither call throws.
     expect(first.sent + second.sent).toBeGreaterThanOrEqual(1)
     expect(await count()).toBe(0)
+  })
+})
+
+
+describe('a document queued with its bytes', () => {
+  // The reason the queue stores a file and its fields apart rather than
+  // the `FormData` itself: a FormData is not structured-cloneable, so it
+  // cannot go into IndexedDB at all. A File can, and survives the app
+  // being closed — which is the whole point, because a voucher
+  // photographed in a hotel with no wifi has to still be there in the
+  // morning.
+  const voucher = () =>
+    new File([new Uint8Array([37, 80, 68, 70])], 'voucher.pdf', { type: 'application/pdf' })
+
+  // Whether a `File` really survives IndexedDB is deliberately not
+  // asserted here: under jsdom `structuredClone` does not preserve one
+  // either, so a test in this environment would only be measuring the
+  // test environment. `on-a-train.spec.ts` uploads a document in a real
+  // browser and reloads the page before the queue drains, which is the
+  // only place the question can honestly be answered.
+
+  it('is rebuilt into the multipart body that was going to be sent', async () => {
+    const file = voucher()
+    const body = payloadOf({
+      key: 'attachment:1',
+      method: 'POST',
+      url: '/api/trips/t/attachments',
+      form: { file, fields: { booking_id: 'b1', kind: 'voucher' } },
+      queuedAt: 0,
+      attempts: 0,
+    })
+
+    expect(body).toBeInstanceOf(FormData)
+    const form = body as FormData
+    expect(form.get('file')).toBe(file)
+    expect(form.get('booking_id')).toBe('b1')
+    expect(form.get('kind')).toBe('voucher')
+  })
+
+  it('leaves an ordinary write alone', async () => {
+    const body = payloadOf({
+      key: 'place:1',
+      method: 'PUT',
+      url: '/api/trips/t/places/1',
+      body: { name: 'Kyoto' },
+      queuedAt: 0,
+      attempts: 0,
+    })
+    expect(body).toEqual({ name: 'Kyoto' })
+  })
+
+  it('is never folded into by an edit, since it carries no JSON body', async () => {
+    // The fold merges one JSON body into another. An upload has none, and
+    // merging a PATCH into it would produce a multipart request carrying
+    // fields nobody asked for.
+    await enqueue({
+      key: 'attachment:1',
+      method: 'POST',
+      url: '/api/trips/t/attachments',
+      form: { file: voucher(), fields: {} },
+    })
+    await enqueue({
+      key: 'attachment:1',
+      method: 'PATCH',
+      url: '/api/trips/t/attachments',
+      body: { kind: 'ticket' },
+    })
+
+    const [queued] = await pending()
+    expect(queued.method).toBe('PATCH')
+    expect(queued.form).toBeUndefined()
   })
 })

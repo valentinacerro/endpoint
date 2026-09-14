@@ -56,7 +56,8 @@ export function PlanTrip() {
       setDone(result.scheduled)
       setPlan(null)
     } catch {
-      // Place writes are not queueable, so this is a real failure and the
+      // A plan made with no network is queued rather than lost, so
+      // reaching here means the server refused it on its merits. The
       // preview stays on screen to be retried.
       setFailed(true)
     }

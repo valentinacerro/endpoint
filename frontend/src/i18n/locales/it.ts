@@ -46,6 +46,7 @@ export const it = {
   'document.none': 'Nessun documento allegato.',
   'document.add': 'Allega documento',
   'document.uploading': 'Caricamento…',
+  'document.waiting': 'In attesa di rete',
   'document.shrunk': 'Ridotta da {from} a {to}',
   'document.page': 'Pagina {page} di {total}',
   'document.prevPage': 'Pagina precedente',
@@ -242,7 +243,7 @@ export const it = {
   'plan.travelTotal': 'Circa {duration} di spostamenti in tutto.',
   'plan.hoursUnknown': 'Gli orari di apertura segnati con ? non li conosciamo: verificali.',
   'plan.needsNetwork':
-    'Non sono riuscito ad applicare il piano: per spostare le visite serve la rete. L’anteprima è ancora qui, riprova.',
+    'Non sono riuscito ad applicare il piano: il server l’ha rifiutato. L’anteprima è ancora qui, riprova.',
   'plan.estimates':
     'I tempi di spostamento sono stime, non orari reali dei treni. Servono a evitare lo zig-zag, non a farti prendere una coincidenza.',
 

@@ -105,7 +105,21 @@ export interface paths {
         };
         /** Read Trip */
         get: operations["read_trip_api_trips__trip_id__get"];
-        put?: never;
+        /**
+         * Put Trip
+         * @description Create or replace one trip at an id the client chose.
+         *
+         *     The last write that could not be queued. Starting a trip is the one
+         *     thing you do before leaving rather than while travelling, so this
+         *     matters less than a place typed on a train — but a queue with a hole
+         *     in it is a queue nobody can trust, and the first stop the new-trip
+         *     form creates is queued behind this one, addressed by the id chosen
+         *     here.
+         *
+         *     There is no `free_or_owned` to call: a trip has no parent to check
+         *     against, so an unknown id is simply free.
+         */
+        put: operations["put_trip_api_trips__trip_id__put"];
         post?: never;
         /** Delete Trip */
         delete: operations["delete_trip_api_trips__trip_id__delete"];
@@ -2111,6 +2125,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_trip_api_trips__trip_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TripCreate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

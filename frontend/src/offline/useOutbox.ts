@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { ApiError, apiFetch } from '../api/client'
-import { flush, size, subscribe, type QueuedWrite } from './outbox'
+import { flush, payloadOf, size, subscribe, type QueuedWrite } from './outbox'
 
 /**
  * Is this worth keeping the write for?
@@ -22,7 +22,7 @@ export function shouldKeep(error: unknown): boolean {
 }
 
 async function sendOne(entry: QueuedWrite): Promise<void> {
-  await apiFetch(entry.url, { method: entry.method, body: entry.body })
+  await apiFetch(entry.url, { method: entry.method, body: payloadOf(entry) })
 }
 
 /**

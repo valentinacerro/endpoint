@@ -124,3 +124,141 @@ test.describe.serial('with no network', () => {
     expect(sent).toEqual([])
   })
 })
+
+test.describe.serial('a document with no network', () => {
+  /**
+   * Just enough to sniff as a PDF. The server decides a file's type from
+   * its first bytes and not from what the browser claims, so `%PDF` alone
+   * is refused with a 415 — the hyphen is part of the signature.
+   */
+  const VOUCHER = {
+    name: 'voucher.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n'),
+  }
+
+  test('a file attached in a hotel with no wifi is still there in the morning', async ({
+    page,
+    context,
+  }) => {
+    // The one queued write whose payload is not JSON. A `FormData` cannot
+    // be stored in IndexedDB, so the file and its fields are kept apart
+    // and the multipart body is rebuilt when it is finally sent — and
+    // whether a `File` really survives IndexedDB is a question only a
+    // real browser can answer, which is why this test reloads the page
+    // before letting the queue drain.
+    await signIn(page)
+    const tripId = await seedTrip(page.request)
+    const bookings = await page.request
+      .get(`/api/trips/${tripId}/bookings`)
+      .then((r) => r.json())
+    const hotel = bookings.find((booking: { kind: string }) => booking.kind === 'hotel')
+    await page.goto(`/trips/${tripId}/bookings/${hotel.id}`)
+    await expect(page.getByRole('button', { name: /allega documento/i })).toBeVisible()
+
+    await context.setOffline(true)
+    await page.setInputFiles('input[type=file]', VOUCHER)
+
+    // Named, sized, and honest about not being anywhere yet: there is no
+    // file at its address to open, pin, or delete.
+    await expect(page.getByText('voucher.pdf')).toBeVisible()
+    await expect(page.getByText(/in attesa di rete/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /salva offline/i })).toBeHidden()
+
+    // Closed and reopened while still offline: the bytes have to have
+    // reached IndexedDB, not merely a variable. What is checked is the
+    // queue rather than the row — the row is drawn from the persisted
+    // query cache, which is written on a throttle and may not have caught
+    // up, while the write itself goes to the store at once.
+    await page.reload()
+    await expect(page.getByText(/modific(a|he) da inviare/i).first()).toBeVisible()
+
+    await context.setOffline(false)
+    await page.reload()
+
+    const attachments = await page.request
+      .get(`/api/trips/${tripId}/attachments`)
+      .then((r) => r.json())
+    const sent = attachments.filter((one: { filename: string }) => one.filename === 'voucher.pdf')
+    expect(sent).toHaveLength(1)
+    expect(sent[0].byte_size).toBe(9)
+
+    // And the real one has replaced the stand-in, with the controls back.
+    await expect(page.getByText(/in attesa di rete/i)).toBeHidden()
+    await expect(page.getByRole('button', { name: /salva offline/i })).toBeVisible()
+  })
+})
+
+test.describe.serial('a trip started with no network', () => {
+  test('is on the list at once, and on the server when there is a signal', async ({
+    page,
+    context,
+  }) => {
+    // The least likely of these to happen — a trip is planned at a kitchen
+    // table — but it is the write everything else hangs off, and a queue
+    // with a hole in it is a queue nobody can trust. The trip is named by
+    // the phone when the form opens, which is what makes it queueable and
+    // what lets the first stop be addressed before the server has replied.
+    await signIn(page)
+    await page.goto('/trips')
+    await context.setOffline(true)
+
+    await page.getByRole('button', { name: /nuovo viaggio/i }).click()
+    await page.getByLabel(/dove vai/i).fill('Lisbona')
+    await page.getByRole('button', { name: /^salva$/i }).click()
+
+    // Straight into the trip it just made, at the id it chose itself.
+    await expect(page).toHaveURL(/\/trips\/[0-9a-f-]{36}$/)
+    const tripId = page.url().split('/').pop()!
+    await expect(page.getByText(/modific(a|he) da inviare/i).first()).toBeVisible()
+
+    await context.setOffline(false)
+    await page.reload()
+
+    const trip = await page.request.get(`/api/trips/${tripId}`)
+    expect(trip.status()).toBe(200)
+    expect((await trip.json()).title).toBe('Lisbona')
+  })
+})
+
+test.describe.serial('a plan applied with no network', () => {
+  test('rearranges the days at once and reaches the server later', async ({ page, context }) => {
+    // Thirty visits in one request, and the one queued write that is a
+    // POST: it is idempotent anyway, because it names every place it
+    // moves and gives each an absolute time, so replaying it in a tunnel
+    // leaves the same itinerary rather than a second copy of one.
+    await signIn(page)
+    const tripId = await seedTrip(page.request)
+    await page.goto(`/trips/${tripId}/plan`)
+    // Waited for before the network goes: `goto` resolves on load, while
+    // the bundle is still on its way, and cutting the line in between
+    // leaves the screen with no trip to plan and no button to press.
+    const compute = page.getByRole('button', { name: 'Calcola il piano' })
+    await expect(compute).toBeVisible()
+
+    await context.setOffline(true)
+    await compute.click()
+
+    const apply = page.getByRole('button', { name: /^applica$/i })
+    await expect(apply).toBeVisible()
+    await apply.click()
+
+    // No error, and a count: the plan was queued and the screen was told
+    // what it would have been told by the server.
+    await expect(page.getByText(/il server l’ha rifiutato/i)).toBeHidden()
+    await expect(page.getByText(/applicat[ae] .* visit[ae]\.|applicata una visita\./i)).toBeVisible()
+    await expect(page.getByText(/modific(a|he) da inviare/i).first()).toBeVisible()
+
+    await context.setOffline(false)
+    await page.reload()
+
+    const places = await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json())
+    const scheduled = places.filter((place: { planned_start_at: string | null }) =>
+      Boolean(place.planned_start_at),
+    )
+    expect(scheduled.length).toBeGreaterThan(0)
+    // And every one of them carries the zone its day is in, never the
+    // phone's — the trap that put bookings on the wrong day.
+    for (const place of scheduled) expect(place.planned_tz).toBe('Asia/Tokyo')
+  })
+})

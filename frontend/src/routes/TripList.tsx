@@ -2,11 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 
 import { useLogout } from '../api/auth'
-import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 
-import { apiFetch } from '../api/client'
-import { keys, useCreateTrip, useTrips } from '../api/trips'
+import { useCreateStop, useCreateTrip, useTrips } from '../api/trips'
 import type { PlaceHit, Trip } from '../api/types'
 import { PlaceSearch } from '../components/PlaceSearch'
 import { AppBar } from '../components/AppBar'
@@ -38,21 +36,28 @@ function dateLabel(trip: Trip): string {
  * step one of three is done before the form closes.
  */
 function NewTripForm({ onDone }: { onDone: () => void }) {
+  // Named when the form opens rather than when it is submitted, because
+  // the hook that creates the first stop needs the trip's id to build its
+  // URL, and a hook cannot wait for a value the submit handler makes.
+  const [tripId] = useState(() => crypto.randomUUID())
   const create = useCreateTrip()
+  const addStop = useCreateStop(tripId)
   const [title, setTitle] = useState('')
   const [where, setWhere] = useState<PlaceHit | null>(null)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     const name = title.trim()
     if (!name) return
 
-    const trip = await create.mutateAsync({
+    // The id is ours, not the server's, so the whole first-trip sequence
+    // — the trip and the stop that hangs off it — can be queued together.
+    await create.mutateAsync({
+      id: tripId,
       title: name,
       destination_label: where?.name ?? name,
       start_date: startDate || null,
@@ -70,23 +75,22 @@ function NewTripForm({ onDone }: { onDone: () => void }) {
     // The lookup already told us everything a first stop needs. Asking
     // for it again on another screen would be asking twice.
     if (where) {
-      await apiFetch(`/api/trips/${trip.id}/stops`, {
-        method: 'POST',
-        body: {
-          name: where.name,
-          tz: where.tz ?? deviceTimeZone(),
-          country_code: where.country ?? null,
-          lat: where.lat,
-          lon: where.lon,
-          arrive_date: startDate || null,
-          depart_date: endDate || null,
-        },
+      // Through the hook rather than a bare request, so this one is queued
+      // behind the trip it belongs to instead of failing on its own.
+      await addStop.mutateAsync({
+        id: crypto.randomUUID(),
+        name: where.name,
+        tz: where.tz ?? deviceTimeZone(),
+        country_code: where.country ?? null,
+        lat: where.lat,
+        lon: where.lon,
+        arrive_date: startDate || null,
+        depart_date: endDate || null,
       })
-      await queryClient.invalidateQueries({ queryKey: keys.bundle(trip.id) })
     }
 
     onDone()
-    navigate(`/trips/${trip.id}`)
+    navigate(`/trips/${tripId}`)
   }
 
   return (

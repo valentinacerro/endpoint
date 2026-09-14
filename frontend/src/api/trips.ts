@@ -10,7 +10,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
 import { guessBooking, guessPlace, guessStop } from '../lib/optimistic'
-import { enqueue } from '../offline/outbox'
+import { enqueue, payloadOf, type QueuedWrite } from '../offline/outbox'
 import { shouldKeep } from '../offline/useOutbox'
 
 import { ApiError, apiFetch } from './client'
@@ -61,19 +61,23 @@ type Rollback = { previous: TripBundle | undefined }
 export async function sendOrQueue<T>(
   request: {
     key: string
-    method: 'PUT' | 'PATCH' | 'DELETE'
+    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     url: string
     body?: unknown
+    /** An upload. Stored in pieces, because a `FormData` cannot be. */
+    form?: { file: File; fields: Record<string, string> }
     creates?: boolean
   },
   guess: () => T,
 ): Promise<T> {
-  const { key, method, url, body, creates } = request
+  const { key, method, url, body, form, creates } = request
   try {
-    return await apiFetch<T>(url, { method, body })
+    // Built by the same function that will rebuild it out of the queue, so
+    // a request that waited in a tunnel is the request that would have gone.
+    return await apiFetch<T>(url, { method, body: payloadOf({ body, form } as QueuedWrite) })
   } catch (error) {
     if (!shouldKeep(error)) throw error
-    await enqueue({ key, method, url, body, creates })
+    await enqueue({ key, method, url, body, form, creates })
     return guess()
   }
 }
@@ -124,11 +128,31 @@ function useTripMutation<TVars, TData>(
 
 // --- Trips ---
 
+/**
+ * Start a trip, at an id chosen here.
+ *
+ * The least likely of these to be made with no network — you plan a trip
+ * at a kitchen table — but the first stop the form creates is addressed
+ * by this id, so if this one could not be queued neither could that one.
+ */
 export function useCreateTrip() {
   const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (body: TripCreate) => apiFetch<Trip>('/api/trips', { method: 'POST', body }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.trips }),
+  return useMutation<Trip, ApiError, TripCreate & { id: string }>({
+    mutationFn: ({ id, ...body }) =>
+      sendOrQueue<Trip>(
+        { key: `trip:${id}`, method: 'PUT', url: `/api/trips/${id}`, body, creates: true },
+        () => {
+          const now = new Date().toISOString()
+          return { ...body, id, created_at: now, updated_at: now } as Trip
+        },
+      ),
+    // The reply is the whole trip, so there is nothing to go back and ask
+    // for — and asking would fail in the one case this exists for.
+    onSuccess: (trip) =>
+      queryClient.setQueryData<Trip[]>(keys.trips, (trips) => [
+        ...(trips ?? []).filter((entry) => entry.id !== trip.id),
+        trip,
+      ]),
   })
 }
 
@@ -616,15 +640,49 @@ export function useFetchRate() {
  * and sixty refetches — and a connection dropping halfway left the
  * itinerary half rearranged with no way to tell which half.
  */
+interface ScheduleBody {
+  scheduled: { id: string; planned_start_at: string; planned_tz: string }[]
+  cleared?: string[]
+}
+
 export function useSchedulePlaces(tripId: string) {
-  return useTripMutation(
-    tripId,
-    (body: { scheduled: { id: string; planned_start_at: string; planned_tz: string }[]; cleared?: string[] }) =>
-      apiFetch<{ scheduled: number; cleared: number }>(
-        `/api/trips/${tripId}/places/schedule`,
-        { method: 'POST', body },
+  const queryClient = useQueryClient()
+  return useMutation<{ scheduled: number; cleared: number }, ApiError, ScheduleBody, Rollback>({
+    mutationFn: (body) =>
+      sendOrQueue(
+        {
+          // A key of its own each time, rather than one per trip: planning
+          // Tuesday and then Wednesday are two different plans, and folding
+          // them onto one key would send only Wednesday's. They are small,
+          // they are ordered, and the later one wins where they overlap
+          // because it names every place it moves.
+          key: `schedule:${crypto.randomUUID()}`,
+          method: 'POST',
+          url: `/api/trips/${tripId}/places/schedule`,
+          body,
+        },
+        () => ({ scheduled: body.scheduled.length, cleared: body.cleared?.length ?? 0 }),
       ),
-  )
+    onMutate: async (body) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      const moved = new Map(body.scheduled.map((entry) => [entry.id, entry]))
+      const cleared = new Set(body.cleared ?? [])
+      patchPlaces(queryClient, tripId, (places) =>
+        places.map((place) => {
+          const to = moved.get(place.id)
+          if (to) {
+            return { ...place, planned_start_at: to.planned_start_at, planned_tz: to.planned_tz }
+          }
+          return cleared.has(place.id)
+            ? { ...place, planned_start_at: null, planned_tz: null }
+            : place
+        }),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
 }
 
 // --- Looking a place up by name ---
@@ -775,6 +833,16 @@ function patchChecklist(
 ) {
   queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
     bundle ? { ...bundle, checklist: change(bundle.checklist) } : bundle,
+  )
+}
+
+function patchAttachments(
+  queryClient: QueryClient,
+  tripId: string,
+  change: (attachments: Attachment[]) => Attachment[],
+) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle ? { ...bundle, attachments: change(bundle.attachments) } : bundle,
   )
 }
 
@@ -1155,20 +1223,89 @@ export interface UploadVars {
   stopId?: string
 }
 
+/**
+ * Put a document on the trip, queueing the file itself when offline.
+ *
+ * Still a POST, and still safe to replay: the server stores a document
+ * under the hash of its bytes and hands back the one it already has
+ * rather than making a second copy — which it did long before there was
+ * a queue, because tapping "upload" twice on a slow connection is the
+ * ordinary case.
+ *
+ * What had to change is the queue, not the route. A `FormData` cannot be
+ * put in IndexedDB, so the file and the fields are stored apart and the
+ * multipart body is rebuilt at the moment of sending. A `File` survives
+ * both the storing and the app being closed, so a voucher photographed
+ * in a hotel with no wifi is still there in the morning.
+ */
 export function useUploadAttachment(tripId: string) {
-  return useTripMutation(tripId, async ({ file, kind, bookingId, stopId }: UploadVars) => {
-    const form = new FormData()
-    form.append('file', file)
-    if (kind) form.append('kind', kind)
-    if (bookingId) form.append('booking_id', bookingId)
-    if (stopId) form.append('stop_id', stopId)
-    // No Content-Type header: the browser has to set the multipart boundary
-    // itself, and overriding it makes the request unparseable.
-    return apiFetch<Attachment>(`/api/trips/${tripId}/attachments`, {
-      method: 'POST',
-      body: form,
-    })
+  const queryClient = useQueryClient()
+  return useMutation<Attachment, ApiError, UploadVars, Rollback>({
+    mutationFn: ({ file, kind, bookingId, stopId }) => {
+      const fields: Record<string, string> = {}
+      if (kind) fields.kind = kind
+      if (bookingId) fields.booking_id = bookingId
+      if (stopId) fields.stop_id = stopId
+      return sendOrQueue<Attachment>(
+        {
+          // Never folded onto another upload: two documents are two
+          // documents, even for the same booking.
+          key: `attachment:${crypto.randomUUID()}`,
+          method: 'POST',
+          url: `/api/trips/${tripId}/attachments`,
+          form: { file, fields },
+        },
+        () => {
+          // Drawn only when the write was queued. Online the row comes
+          // from the server, with the id and the type it decided on.
+          const waiting = waitingAttachment(tripId, file, fields)
+          patchAttachments(queryClient, tripId, (all) => [...all, waiting])
+          return waiting
+        },
+      )
+    },
+    onSuccess: async () => {
+      // The stand-in carries an id no server will ever agree with, so the
+      // list has to be re-read rather than patched. Offline this simply
+      // fails and leaves the stand-in in place, which is correct.
+      await queryClient.invalidateQueries({ queryKey: keys.bundle(tripId) })
+    },
   })
+}
+
+/**
+ * A document that is on the phone but not yet on the server.
+ *
+ * Its id is deliberately not a uuid: the id is the server's to give, and
+ * `pending:` is what tells the list to show the file without a link to
+ * bytes nobody can fetch yet. The same trick the diary already uses.
+ */
+function waitingAttachment(
+  tripId: string,
+  file: File,
+  fields: Record<string, string>,
+): Attachment {
+  const now = new Date().toISOString()
+  return {
+    id: `pending:${now}:${file.name}`,
+    trip_id: fields.booking_id || fields.stop_id ? null : tripId,
+    stop_id: fields.stop_id ?? null,
+    booking_id: fields.booking_id ?? null,
+    kind: fields.kind ?? 'other',
+    filename: file.name,
+    // The server decides this from the bytes, never from the browser's
+    // claim, so this is only what the list needs to draw a row.
+    content_type: file.type,
+    byte_size: file.size,
+    // Neither is known here, and nothing on the phone reads either: the
+    // digest is computed by the server from the bytes it receives, and
+    // where the file lives is its decision too. They are here because the
+    // row has to have the shape of a row.
+    sha256: '',
+    storage: 'db',
+    created_at: now,
+    updated_at: now,
+  } as Attachment
 }
 
 export function useDeleteAttachment(tripId: string) {

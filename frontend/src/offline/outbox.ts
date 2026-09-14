@@ -18,7 +18,14 @@ const KEY = 'outbox-v1'
 export interface QueuedWrite {
   /** Chosen by the caller; a second write to the same key folds into the first. */
   key: string
-  method: 'PUT' | 'PATCH' | 'DELETE'
+  /**
+   * `POST` is here for exactly two writes, both of which are idempotent
+   * despite the method: applying a plan, which names every place it
+   * touches and sets absolute times, and uploading a document, which the
+   * server stores under the hash of its bytes and hands back the existing
+   * one rather than making a second copy. Nothing else may use it.
+   */
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   /**
    * This write is the only reason the row exists on the server.
    *
@@ -30,6 +37,14 @@ export interface QueuedWrite {
   creates?: boolean
   url: string
   body?: unknown
+  /**
+   * A file upload, taken apart so it can be stored.
+   *
+   * `FormData` is not structured-cloneable, so it cannot go into
+   * IndexedDB — but a `File` can, and survives the app being closed. The
+   * multipart body is rebuilt from these two at the moment of sending.
+   */
+  form?: { file: File; fields: Record<string, string> }
   queuedAt: number
   attempts: number
   lastError?: string
@@ -97,6 +112,15 @@ export async function pending(): Promise<QueuedWrite[]> {
   return read()
 }
 
+/** What to actually send: a JSON body, or a multipart one put back together. */
+export function payloadOf(entry: QueuedWrite): unknown {
+  if (!entry.form) return entry.body
+  const form = new FormData()
+  form.append('file', entry.form.file)
+  for (const [name, value] of Object.entries(entry.form.fields)) form.append(name, value)
+  return form
+}
+
 export async function count(): Promise<number> {
   return (await read()).length
 }
@@ -128,7 +152,7 @@ function fold(queued: QueuedWrite | undefined, next: NewWrite): NewWrite | null 
   // send only the second, and the first silently came back at the next
   // sync. On top of a create it was worse: the create itself was dropped
   // and the edit arrived at a row the server did not have.
-  if (next.method === 'PATCH' && queued.body !== undefined) {
+  if (next.method === 'PATCH' && queued.body !== undefined && !queued.form) {
     return {
       ...queued,
       body: { ...(queued.body as object), ...(next.body as object) },
