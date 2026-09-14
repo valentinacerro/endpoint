@@ -212,4 +212,62 @@ describe('count', () => {
     setLocale('en')
     expect(count('memories.thatDay', 1)).toBe('One shot')
   })
+
+  it('asks only for the values its callers actually pass', () => {
+    // The check that was missing, and the bug it would have caught: the
+    // home screen showed "{n} giorni" to the reader for days, because
+    // `count()` fills `{count}` and the string asked for `{n}`. Every
+    // other guard here compares the dictionaries with each other, so a
+    // mistake made in both languages at once — which is what happens when
+    // one person writes both — went straight through.
+    //
+    // Reads the call sites instead: `count('key', n)` supplies `count`,
+    // plus whatever a third argument names.
+    const source = readSources().join('\n')
+    const wrong: string[] = []
+
+    for (const opening of [...source.matchAll(/\bcount\(\s*'([\w.]+)'/g)]) {
+      const key = opening[1]
+      // Walk to the matching close paren rather than the first one: the
+      // arguments routinely contain calls of their own, and `[^)]*` stops
+      // inside `.join(', ')` — which made this report six false alarms
+      // the first time it ran.
+      let depth = 0
+      let end = opening.index
+      for (let at = opening.index; at < source.length; at += 1) {
+        if (source[at] === '(') depth += 1
+        else if (source[at] === ')') {
+          depth -= 1
+          if (depth === 0) {
+            end = at
+            break
+          }
+        }
+      }
+      const call = source.slice(opening.index, end)
+      const supplied = new Set(['count'])
+      const object = call.match(/\{([\s\S]*)\}/)
+      if (object) {
+        // `{ total: n }` and the shorthand `{ found }` both count.
+        for (const [, name] of object[1].matchAll(/(?:^|[,{\s])([A-Za-z_]\w*)\s*:/g)) {
+          supplied.add(name)
+        }
+        for (const [, name] of object[1].matchAll(/(?:^|[,{\s])([A-Za-z_]\w*)\s*(?=[,}])/g)) {
+          supplied.add(name)
+        }
+      }
+
+      for (const form of ['_one', '_other'] as const) {
+        const template = italian[(key + form) as keyof typeof italian]
+        if (!template) continue
+        for (const [, asked] of String(template).matchAll(/\{(\w+)\}/g)) {
+          if (!supplied.has(asked)) {
+            wrong.push(`${key}${form} asks for {${asked}}, caller gives ${[...supplied].join(', ')}`)
+          }
+        }
+      }
+    }
+
+    expect([...new Set(wrong)]).toEqual([])
+  })
 })

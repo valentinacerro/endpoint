@@ -9,11 +9,45 @@ import { canOpenInMaps, mapsDirectionsUrl, mapsSearchUrl, type Locatable } from 
  * app itself with the destination already set, and coming back leaves the
  * itinerary exactly where it was.
  */
-export function MapsLink({ place }: { place: Locatable }) {
+export function MapsLink({ place, compact = false }: { place: Locatable; compact?: boolean }) {
   if (!canOpenInMaps(place)) return null
 
   const search = mapsSearchUrl(place)
   const directions = mapsDirectionsUrl(place)
+
+  // `compact` is for a list you are scanning: two labelled buttons per
+  // row turn twenty places into a wall, and the icons say the same thing.
+  // The words stay on a detail screen, where there is one of each.
+  if (compact) {
+    return (
+      <>
+        {search && (
+          <a
+            className="chip"
+            href={search}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t('maps.open')}
+            title={t('maps.open')}
+          >
+            <Icon name="map" size={15} />
+          </a>
+        )}
+        {directions && (
+          <a
+            className="chip"
+            href={directions}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t('maps.directions')}
+            title={t('maps.directions')}
+          >
+            <Icon name="directions" size={15} />
+          </a>
+        )}
+      </>
+    )
+  }
 
   return (
     <div className="row">

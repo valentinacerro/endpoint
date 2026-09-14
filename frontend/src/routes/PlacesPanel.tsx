@@ -188,7 +188,7 @@ export function PlacesPanel() {
     if (!name) return null
     const km = Math.round(match.km)
     return match.band === 'city'
-      ? t('places.inferredCity', { stop: name, km })
+      ? t('places.inferredCity', { stop: name })
       : match.band === 'day_trip'
         ? t('places.inferredDayTrip', { stop: name, km })
         : t('places.inferredFar', { stop: name, km })
@@ -238,8 +238,19 @@ export function PlacesPanel() {
                   </span>}
               </span>
               <span className="doc__meta">
-                {placeCategoryLabel(place.category)} ·{' '}
-                {formatDuration(place.visit_minutes)} · {exposureLabel(place.weather_exposure)}
+                {[
+                  placeCategoryLabel(place.category),
+                  formatDuration(place.visit_minutes),
+                  exposureLabel(place.weather_exposure),
+                  // Said here rather than inside the picker, where the word
+                  // was cut to "ded…". It is a fact about the place, like
+                  // the others on this line.
+                  place.stop_id === null && inferred.get(place.id)
+                    ? t('places.cityInferred')
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </span>
               {place.planned_start_at && place.planned_tz && (
                 <span className="doc__meta doc__meta--planned">
@@ -248,7 +259,7 @@ export function PlacesPanel() {
                 </span>
               )}
             </span>
-            <label className="doc__stop">
+            <label className="doc__stop doc__stop--inline">
               {/* The link between a place and a day: without a city, no
                   day can claim it and the optimiser cannot see it. */}
               <select
@@ -267,7 +278,7 @@ export function PlacesPanel() {
               </select>
             </label>
             <div className="doc__actions">
-              <MapsLink place={place} />
+              <MapsLink place={place} compact />
               {place.planned_start_at && (
                 <button
                   className="chip"

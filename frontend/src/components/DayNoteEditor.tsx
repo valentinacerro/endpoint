@@ -8,6 +8,8 @@ interface Props {
   tripId: string
   day: string
   note: DayNote | undefined
+  /** Opened already, when it was reached by asking for it. */
+  startOpen?: boolean
 }
 
 /**
@@ -17,10 +19,10 @@ interface Props {
  * would otherwise end up buried in the notes field of an unrelated hotel,
  * where you will not find them on the morning they matter.
  */
-export function DayNoteEditor({ tripId, day, note }: Props) {
+export function DayNoteEditor({ tripId, day, note, startOpen = false }: Props) {
   const save = useSetDayNote(tripId)
   const clear = useClearDayNote(tripId)
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(startOpen)
   const [text, setText] = useState(note?.note ?? '')
 
   function open() {

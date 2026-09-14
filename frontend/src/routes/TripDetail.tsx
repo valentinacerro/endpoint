@@ -5,6 +5,7 @@ import { useTripBundle, useUpdatePlace } from '../api/trips'
 import type { Place } from '../api/types'
 import { BookingForm } from '../components/BookingForm'
 import { DayNoteEditor } from '../components/DayNoteEditor'
+import { EmptyDay } from '../components/EmptyDay'
 import { OfflineReminder } from '../components/OfflineReminder'
 import { OptimizeDay } from '../components/OptimizeDay'
 import { FirstSteps, startingOut } from '../components/FirstSteps'
@@ -142,12 +143,30 @@ export function TripDetail() {
             <span className="day__number">{t('timeline.day', { n: day.number })}</span>
             <span className="day__date">{formatDayKey(day.key)}</span>
             {day.stop && <span className="day__stop">{day.stop.name}</span>}
-            <OptimizeDay bundle={data} day={day} tripId={tripId} />
+            {/* Only where there is something to reorder. On a fortnight
+                mostly still to plan this was a chip on every day, wrapping
+                onto a line of its own on a narrow phone — and doing
+                nothing, because filling an empty day is the whole-trip
+                planner's job and it is offered at the top. */}
+            {day.entries.length > 0 && (
+              <OptimizeDay bundle={data} day={day} tripId={tripId} />
+            )}
           </h2>
 
-          <DayNoteEditor tripId={tripId} day={day.key} note={notesByDay.get(day.key)} />
+          {/* An empty day is one quiet line. It used to be three controls
+              and a sentence — about two hundred pixels — repeated down
+              every unplanned day of the trip, which on fifteen days is
+              three thousand pixels of nothing. The note editor is still
+              there, one tap away, and appears at once if a note exists. */}
+          {(day.entries.length > 0 || notesByDay.get(day.key)) && (
+            <DayNoteEditor tripId={tripId} day={day.key} note={notesByDay.get(day.key)} />
+          )}
           {day.entries.length === 0 ? (
-            <p className="day__empty">{t('timeline.emptyDay')}</p>
+            notesByDay.get(day.key) ? (
+              <p className="day__empty">{t('timeline.emptyDay')}</p>
+            ) : (
+              <EmptyDay tripId={tripId} day={day.key} />
+            )
           ) : (
             <ul className="entries">
               {day.entries.map((placed) => (
