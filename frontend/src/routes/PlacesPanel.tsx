@@ -44,6 +44,7 @@ function AddPlace({
     if (!name.trim()) return
     create.mutate(
       {
+        id: crypto.randomUUID(),
         name: name.trim(),
         category,
         priority,
@@ -122,7 +123,13 @@ function AddPlace({
             type="number"
             min={5}
             max={1440}
-            step={15}
+            // Five, not fifteen: a `step` counts from `min`, so with a
+            // minimum of 5 the quarter-hour step made 20, 35 and 50 the
+            // only valid values under an hour — and 60, the default this
+            // form opens with, invalid. Chrome then refuses to submit the
+            // form and says nothing a person can see, so the Salva button
+            // did nothing at all. Every quarter hour is still valid.
+            step={5}
             style={{ width: '9ch' }}
             value={minutes}
             onChange={(event) => setMinutes(Number(event.target.value))}

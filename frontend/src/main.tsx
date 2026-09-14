@@ -26,6 +26,29 @@ const queryClient = new QueryClient({
       // Render's cold start.
       retry: false,
     },
+    mutations: {
+      /**
+       * Run the write even with no network, so our own queue can have it.
+       *
+       * This line is what makes the offline queue exist at all. React
+       * Query's default is `'online'`, under which a mutation started
+       * with `navigator.onLine` false is *paused*: `onMutate` runs, the
+       * screen updates optimistically, and `mutationFn` is simply never
+       * called. Every queued write in this app — the packing list, a
+       * coffee, a place typed on a train — lives inside `mutationFn`, so
+       * none of them were ever reached in aeroplane mode. The queue only
+       * worked in the milder case it was not built for: the browser
+       * online and the free instance asleep.
+       *
+       * Found by a Playwright test that actually turns the network off;
+       * nothing short of that would have shown it, because with a server
+       * merely unreachable the old behaviour looks perfect.
+       */
+      networkMode: 'offlineFirst',
+      // Same reason as above, and `sendOrQueue` treats a failure as
+      // "keep it for later" rather than as an error.
+      retry: false,
+    },
   },
 })
 

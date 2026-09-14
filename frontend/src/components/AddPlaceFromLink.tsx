@@ -69,6 +69,7 @@ export function AddPlaceFromLink({
       try {
         const found = await resolve.mutateAsync({ url: link, near })
         await create.mutateAsync({
+          id: crypto.randomUUID(),
           name: found.name ?? shortenLink(link),
           category: 'sight',
           priority: 'normal',

@@ -133,6 +133,7 @@ export function BookingForm({ tripId, defaultZone, stops, onDone, booking }: Pro
     } else {
       create.mutate(
         {
+          id: crypto.randomUUID(),
           ...fields,
           status: 'confirmed',
           // The form always collects a time, never a bare date.

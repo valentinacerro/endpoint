@@ -79,6 +79,7 @@ export function SuggestPlaces({
     try {
       for (const [index, item] of picked.entries()) {
         await create.mutateAsync({
+          id: crypto.randomUUID(),
           name: item.name,
           category: item.category,
           priority: 'normal',
@@ -91,8 +92,9 @@ export function SuggestPlaces({
       }
       onDone()
     } catch {
-      // Places are not queueable, so this is a real failure. What was
-      // already saved stays saved, and the list redraws without it.
+      // A place with no network is queued rather than lost, so reaching
+      // here means a real rejection. What was already saved stays saved,
+      // and the list redraws without it.
       setFailed(true)
     } finally {
       setSaving(null)

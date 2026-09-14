@@ -9,6 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
+import { guessBooking, guessPlace, guessStop } from '../lib/optimistic'
 import { enqueue } from '../offline/outbox'
 import { shouldKeep } from '../offline/useOutbox'
 
@@ -41,6 +42,41 @@ import type {
   TripUpdate,
   Weather,
 } from './types'
+
+/** What an optimistic write puts back if the server turns it down. */
+type Rollback = { previous: TripBundle | undefined }
+
+/**
+ * Send a write, or keep it until there is a network again.
+ *
+ * The same eight lines were written out at every queued mutation, and the
+ * one that is easy to get wrong is `creates`: forget it on a create and a
+ * place added in a tunnel and then deleted before surfacing sends a
+ * deletion for a row the server was never told about.
+ *
+ * `guess` is what the caller believes the server would have stored. It is
+ * returned in place of the server's answer, so the screen carries on as
+ * though the write had landed — which, once the queue drains, it will have.
+ */
+export async function sendOrQueue<T>(
+  request: {
+    key: string
+    method: 'PUT' | 'PATCH' | 'DELETE'
+    url: string
+    body?: unknown
+    creates?: boolean
+  },
+  guess: () => T,
+): Promise<T> {
+  const { key, method, url, body, creates } = request
+  try {
+    return await apiFetch<T>(url, { method, body })
+  } catch (error) {
+    if (!shouldKeep(error)) throw error
+    await enqueue({ key, method, url, body, creates })
+    return guess()
+  }
+}
 
 export const keys = {
   trips: ['trips'] as const,
@@ -113,22 +149,95 @@ export function useDeleteTrip() {
 
 // --- Stops ---
 
+/**
+ * Add a city, at an id chosen here rather than by the server.
+ *
+ * A POST cannot be queued: the server names the row, so a request whose
+ * reply was lost would be sent again and produce a second Kyoto. Naming it
+ * on the phone is what makes the write safe to repeat, and therefore what
+ * makes it possible to add a stop with no network at all.
+ *
+ * `position` is the server's to decide, so the guess drawn on screen puts
+ * the new stop last — which is where it goes. The server's answer replaces
+ * the guess as soon as one arrives.
+ */
 export function useCreateStop(tripId: string) {
-  return useTripMutation(tripId, (body: StopCreate) =>
-    apiFetch<Stop>(`/api/trips/${tripId}/stops`, { method: 'POST', body }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<Stop, ApiError, StopCreate & { id: string }, Rollback>({
+    mutationFn: ({ id, ...body }) =>
+      sendOrQueue<Stop>(
+        {
+          key: `stop:${id}`,
+          method: 'PUT',
+          url: `/api/trips/${tripId}/stops/${id}`,
+          body,
+          creates: true,
+        },
+        () => guessStop(tripId, id, body, snapshotBundle(queryClient, tripId)?.stops),
+      ),
+    onMutate: async ({ id, ...body }) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      const optimistic = guessStop(tripId, id, body, previous?.stops)
+      patchStops(queryClient, tripId, (stops) => [
+        ...stops.filter((stop) => stop.id !== id),
+        optimistic,
+      ])
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    onSuccess: (stop) =>
+      patchStops(queryClient, tripId, (stops) =>
+        stops.map((entry) => (entry.id === stop.id ? stop : entry)),
+      ),
+  })
 }
 
 export function useUpdateStop(tripId: string) {
-  return useTripMutation(tripId, ({ id, ...body }: StopUpdate & { id: string }) =>
-    apiFetch<Stop>(`/api/trips/${tripId}/stops/${id}`, { method: 'PATCH', body }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<Stop, ApiError, StopUpdate & { id: string }, Rollback>({
+    mutationFn: ({ id, ...body }) =>
+      sendOrQueue<Stop>(
+        { key: `stop:${id}`, method: 'PATCH', url: `/api/trips/${tripId}/stops/${id}`, body },
+        () => {
+          const existing = snapshotBundle(queryClient, tripId)?.stops.find((stop) => stop.id === id)
+          return { ...existing, ...body, id } as Stop
+        },
+      ),
+    onMutate: async ({ id, ...body }) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchStops(queryClient, tripId, (stops) =>
+        stops.map((stop) =>
+          stop.id === id ? ({ ...stop, ...body, updated_at: new Date().toISOString() } as Stop) : stop,
+        ),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    onSuccess: (stop) =>
+      patchStops(queryClient, tripId, (stops) =>
+        stops.map((entry) => (entry.id === stop.id ? stop : entry)),
+      ),
+  })
 }
 
 export function useDeleteStop(tripId: string) {
-  return useTripMutation(tripId, (stopId: string) =>
-    apiFetch<void>(`/api/trips/${tripId}/stops/${stopId}`, { method: 'DELETE' }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string, Rollback>({
+    mutationFn: (stopId) =>
+      sendOrQueue<void>(
+        { key: `stop:${stopId}`, method: 'DELETE', url: `/api/trips/${tripId}/stops/${stopId}` },
+        () => undefined,
+      ),
+    onMutate: async (stopId) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchStops(queryClient, tripId, (stops) => stops.filter((stop) => stop.id !== stopId))
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
 }
 
 export function useReorderStops(tripId: string) {
@@ -142,30 +251,141 @@ export function useReorderStops(tripId: string) {
 
 // --- Bookings ---
 
+/**
+ * Record a booking, at an id chosen here.
+ *
+ * The write that most wants the queue: you are handed a confirmation at a
+ * desk, in a building with no signal, and the alternative to recording it
+ * there is remembering it until later.
+ */
 export function useCreateBooking(tripId: string) {
-  return useTripMutation(tripId, (body: BookingCreate) =>
-    apiFetch<Booking>(`/api/trips/${tripId}/bookings`, { method: 'POST', body }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<Booking, ApiError, BookingCreate & { id: string }, Rollback>({
+    mutationFn: ({ id, ...body }) =>
+      sendOrQueue<Booking>(
+        {
+          key: `booking:${id}`,
+          method: 'PUT',
+          url: `/api/trips/${tripId}/bookings/${id}`,
+          body,
+          creates: true,
+        },
+        () => guessBooking(tripId, id, body),
+      ),
+    onMutate: async ({ id, ...body }) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchBookings(queryClient, tripId, (bookings) => [
+        ...bookings.filter((booking) => booking.id !== id),
+        guessBooking(tripId, id, body),
+      ])
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    onSuccess: (booking) =>
+      patchBookings(queryClient, tripId, (bookings) =>
+        bookings.map((entry) => (entry.id === booking.id ? booking : entry)),
+      ),
+  })
 }
 
 export function useUpdateBooking(tripId: string) {
-  return useTripMutation(tripId, ({ id, ...body }: BookingUpdate & { id: string }) =>
-    apiFetch<Booking>(`/api/trips/${tripId}/bookings/${id}`, { method: 'PATCH', body }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<Booking, ApiError, BookingUpdate & { id: string }, Rollback>({
+    mutationFn: ({ id, ...body }) =>
+      sendOrQueue<Booking>(
+        { key: `booking:${id}`, method: 'PATCH', url: `/api/trips/${tripId}/bookings/${id}`, body },
+        () => {
+          const existing = snapshotBundle(queryClient, tripId)?.bookings.find(
+            (booking) => booking.id === id,
+          )
+          return { ...existing, ...body, id } as Booking
+        },
+      ),
+    onMutate: async ({ id, ...body }) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchBookings(queryClient, tripId, (bookings) =>
+        bookings.map((booking) =>
+          booking.id === id
+            ? ({ ...booking, ...body, updated_at: new Date().toISOString() } as Booking)
+            : booking,
+        ),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    onSuccess: (booking) =>
+      patchBookings(queryClient, tripId, (bookings) =>
+        bookings.map((entry) => (entry.id === booking.id ? booking : entry)),
+      ),
+  })
 }
 
 export function useDeleteBooking(tripId: string) {
-  return useTripMutation(tripId, (bookingId: string) =>
-    apiFetch<void>(`/api/trips/${tripId}/bookings/${bookingId}`, { method: 'DELETE' }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, string, Rollback>({
+    mutationFn: (bookingId) =>
+      sendOrQueue<void>(
+        {
+          key: `booking:${bookingId}`,
+          method: 'DELETE',
+          url: `/api/trips/${tripId}/bookings/${bookingId}`,
+        },
+        () => undefined,
+      ),
+    onMutate: async (bookingId) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchBookings(queryClient, tripId, (bookings) =>
+        bookings.filter((booking) => booking.id !== bookingId),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
 }
 
 // --- Places ---
 
+/**
+ * Add a place, at an id chosen here.
+ *
+ * Collecting places is the thing you do on a train, and a train is where
+ * this used to fail: the form said "saving" and then said nothing.
+ *
+ * The queue key is per place, so adding one underground and correcting its
+ * name twice before surfacing sends one write carrying the last version.
+ */
 export function useCreatePlace(tripId: string) {
-  return useTripMutation(tripId, (body: PlaceCreate) =>
-    apiFetch<Place>(`/api/trips/${tripId}/places`, { method: 'POST', body }),
-  )
+  const queryClient = useQueryClient()
+  return useMutation<Place, ApiError, PlaceCreate & { id: string }, Rollback>({
+    mutationFn: ({ id, ...body }) =>
+      sendOrQueue<Place>(
+        {
+          key: `place:${id}`,
+          method: 'PUT',
+          url: `/api/trips/${tripId}/places/${id}`,
+          body,
+          creates: true,
+        },
+        () => guessPlace(tripId, id, body),
+      ),
+    onMutate: async ({ id, ...body }) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      patchPlaces(queryClient, tripId, (places) => [
+        ...places.filter((place) => place.id !== id),
+        guessPlace(tripId, id, body),
+      ])
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+    onSuccess: (place) =>
+      patchPlaces(queryClient, tripId, (places) =>
+        places.map((entry) => (entry.id === place.id ? place : entry)),
+      ),
+  })
 }
 
 /**
@@ -191,19 +411,16 @@ export function useUpdatePlace(tripId: string) {
     PlaceUpdate & { id: string },
     { previous: TripBundle | undefined }
   >({
-    mutationFn: async ({ id, ...body }) => {
-      const url = `/api/trips/${tripId}/places/${id}`
-      try {
-        return await apiFetch<Place>(url, { method: 'PATCH', body })
-      } catch (error) {
-        if (!shouldKeep(error)) throw error
-        await enqueue({ key: `place:${id}`, method: 'PATCH', url, body })
-        const existing = snapshotBundle(queryClient, tripId)?.places.find(
-          (place) => place.id === id,
-        )
-        return { ...existing, ...body, id } as Place
-      }
-    },
+    mutationFn: ({ id, ...body }) =>
+      sendOrQueue<Place>(
+        { key: `place:${id}`, method: 'PATCH', url: `/api/trips/${tripId}/places/${id}`, body },
+        () => {
+          const existing = snapshotBundle(queryClient, tripId)?.places.find(
+            (place) => place.id === id,
+          )
+          return { ...existing, ...body, id } as Place
+        },
+      ),
     onMutate: async ({ id, ...body }) => {
       await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
       const previous = snapshotBundle(queryClient, tripId)
@@ -228,15 +445,11 @@ export function useUpdatePlace(tripId: string) {
 export function useDeletePlace(tripId: string) {
   const queryClient = useQueryClient()
   return useMutation<void, ApiError, string, { previous: TripBundle | undefined }>({
-    mutationFn: async (placeId) => {
-      const url = `/api/trips/${tripId}/places/${placeId}`
-      try {
-        await apiFetch<void>(url, { method: 'DELETE' })
-      } catch (error) {
-        if (!shouldKeep(error)) throw error
-        await enqueue({ key: `place:${placeId}`, method: 'DELETE', url })
-      }
-    },
+    mutationFn: (placeId) =>
+      sendOrQueue<void>(
+        { key: `place:${placeId}`, method: 'DELETE', url: `/api/trips/${tripId}/places/${placeId}` },
+        () => undefined,
+      ),
     onMutate: async (placeId) => {
       await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
       const previous = snapshotBundle(queryClient, tripId)
@@ -335,7 +548,17 @@ export function usePutExpense(tripId: string) {
         if (!shouldKeep(error)) throw error
         // No signal: queue it and hand back a stand-in, so the list shows
         // the coffee you just paid for instead of looking like it failed.
-        await enqueue({ key: `expense:${id}`, method: 'PUT', url, body })
+        // `creates` when the server has never seen this row: deleting it
+        // while still offline then cancels both writes, instead of asking
+        // the server to remove something it was never told about.
+        const known = snapshotBundle(queryClient, tripId)?.expenses
+        await enqueue({
+          key: `expense:${id}`,
+          method: 'PUT',
+          url,
+          body,
+          creates: !known?.some((item) => item.id === id),
+        })
         const now = new Date().toISOString()
         return {
           ...body,
@@ -555,6 +778,22 @@ function patchChecklist(
   )
 }
 
+function patchStops(queryClient: QueryClient, tripId: string, change: (stops: Stop[]) => Stop[]) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle ? { ...bundle, stops: change(bundle.stops) } : bundle,
+  )
+}
+
+function patchBookings(
+  queryClient: QueryClient,
+  tripId: string,
+  change: (bookings: Booking[]) => Booking[],
+) {
+  queryClient.setQueryData<TripBundle>(keys.bundle(tripId), (bundle) =>
+    bundle ? { ...bundle, bookings: change(bundle.bookings) } : bundle,
+  )
+}
+
 function patchPlaces(
   queryClient: QueryClient,
   tripId: string,
@@ -613,7 +852,17 @@ export function usePutChecklistItem(tripId: string) {
         return await apiFetch<ChecklistItem>(url, { method: 'PUT', body })
       } catch (error) {
         if (!shouldKeep(error)) throw error
-        await enqueue({ key: `checklist:${id}`, method: 'PUT', url, body })
+        // `creates` when the server has never seen this row: deleting it
+        // while still offline then cancels both writes, instead of asking
+        // the server to remove something it was never told about.
+        const known = snapshotBundle(queryClient, tripId)?.checklist
+        await enqueue({
+          key: `checklist:${id}`,
+          method: 'PUT',
+          url,
+          body,
+          creates: !known?.some((item) => item.id === id),
+        })
         const now = new Date().toISOString()
         return { ...body, id, trip_id: tripId, created_at: now, updated_at: now } as ChecklistItem
       }
@@ -692,7 +941,17 @@ export function usePutMemory(tripId: string) {
         return await apiFetch<Memory>(url, { method: 'PUT', body })
       } catch (error) {
         if (!shouldKeep(error)) throw error
-        await enqueue({ key: `memory:${id}`, method: 'PUT', url, body })
+        // `creates` when the server has never seen this row: deleting it
+        // while still offline then cancels both writes, instead of asking
+        // the server to remove something it was never told about.
+        const known = snapshotBundle(queryClient, tripId)?.memories
+        await enqueue({
+          key: `memory:${id}`,
+          method: 'PUT',
+          url,
+          body,
+          creates: !known?.some((item) => item.id === id),
+        })
         const now = new Date().toISOString()
         return {
           ...body,
@@ -767,7 +1026,14 @@ export function usePutDiaryEntry(tripId: string) {
         return await apiFetch<DiaryEntry>(url, { method: 'PUT', body: { text } })
       } catch (error) {
         if (!shouldKeep(error)) throw error
-        await enqueue({ key: `diary:${day}`, method: 'PUT', url, body: { text } })
+        const known = snapshotBundle(queryClient, tripId)?.diary
+        await enqueue({
+          key: `diary:${day}`,
+          method: 'PUT',
+          url,
+          body: { text },
+          creates: !known?.some((entry) => entry.day === day),
+        })
         const now = new Date().toISOString()
         // A stand-in so the page shows what you just wrote. The id is
         // provisional and is replaced by the server's on the next sync.
@@ -832,7 +1098,14 @@ export function useSetDayNote(tripId: string) {
         return await apiFetch<DayNote>(url, { method: 'PUT', body: { note } })
       } catch (error) {
         if (!shouldKeep(error)) throw error
-        await enqueue({ key: `day-note:${day}`, method: 'PUT', url, body: { note } })
+        const known = snapshotBundle(queryClient, tripId)?.day_notes
+        await enqueue({
+          key: `day-note:${day}`,
+          method: 'PUT',
+          url,
+          body: { note },
+          creates: !known?.some((entry) => entry.day === day),
+        })
         const now = new Date().toISOString()
         return { id: day, trip_id: tripId, day, note, created_at: now, updated_at: now } as DayNote
       }

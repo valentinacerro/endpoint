@@ -12,7 +12,7 @@ from app.schemas.booking import (
     BookingUpdate,
     validate_time_fields,
 )
-from app.services.lookup import apply_update, child_of_trip, get_or_404
+from app.services.lookup import apply_update, child_of_trip, free_or_owned, get_or_404
 
 router = APIRouter(prefix="/api/trips/{trip_id}/bookings", tags=["bookings"])
 
@@ -70,6 +70,37 @@ def create_booking(trip_id: uuid.UUID, payload: BookingCreate, db: DbSession) ->
 @router.get("/{booking_id}", response_model=BookingRead)
 def read_booking(trip_id: uuid.UUID, booking_id: uuid.UUID, db: DbSession) -> Booking:
     return child_of_trip(db, Booking, booking_id, trip_id)
+
+
+@router.put("/{booking_id}", response_model=BookingRead)
+def put_booking(
+    trip_id: uuid.UUID, booking_id: uuid.UUID, payload: BookingCreate, db: DbSession
+) -> Booking:
+    """Create or replace one booking at an id the client chose.
+
+    The write that most wants this: you are handed a confirmation at a
+    desk, in a building with no signal, and the flight it describes has to
+    be recorded there rather than remembered until later.
+    """
+    get_or_404(db, Trip, trip_id)
+    _check_stop_belongs_to_trip(db, payload.stop_id, trip_id)
+
+    # No `_check_times` here, unlike the PATCH below. That call exists to
+    # validate a *merge*: a PATCH carrying only `end_at` has to be judged
+    # against the `end_tz` already stored. A PUT carries the whole booking,
+    # so `BookingCreate` has settled the question before this runs, and
+    # sabotaging the call proved it could never fire.
+    existing = free_or_owned(db, Booking, booking_id, trip_id)
+    if existing is not None:
+        for field, value in payload.model_dump().items():
+            setattr(existing, field, value)
+        db.commit()
+        return existing
+
+    booking = Booking(id=booking_id, trip_id=trip_id, **payload.model_dump())
+    db.add(booking)
+    db.commit()
+    return booking
 
 
 @router.patch("/{booking_id}", response_model=BookingRead)

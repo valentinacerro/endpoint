@@ -62,3 +62,26 @@ def apply_update(row: Base, payload: BaseModel) -> None:
     """
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(row, field, value)
+
+
+def free_or_owned[T: Base](
+    db: Session, model: type[T], row_id: uuid.UUID, trip_id: uuid.UUID
+) -> T | None:
+    """The row at a client-chosen id, or None when that id is free to take.
+
+    The lookup behind every create-or-replace PUT. The client picks the id
+    before the write leaves the phone, so the same write can sit in the
+    offline queue, be sent, lose its reply in a tunnel and be sent again
+    without producing two of anything.
+
+    The trip check is the half that is easy to leave out. Without it a
+    replay aimed at the wrong trip would quietly move a row between trips,
+    because a primary key is global while the URL is not.
+    """
+    existing = db.get(model, row_id)
+    if existing is None:
+        return None
+    if getattr(existing, "trip_id", None) != trip_id:
+        code = _NOT_FOUND_CODES.get(model, "not_found")
+        raise AppError(code, "That id belongs to another trip", status_code=404)
+    return existing

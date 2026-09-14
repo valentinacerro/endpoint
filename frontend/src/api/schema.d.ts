@@ -158,7 +158,19 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /**
+         * Put Stop
+         * @description Create or replace one stop at an id the client chose.
+         *
+         *     Same reason as places: a city added with no network needs an address
+         *     before it can be queued, and the queued write must survive being sent
+         *     twice.
+         *
+         *     `position` is the one field the body does not carry and must not lose.
+         *     A new stop goes on the end; a replaced one stays exactly where it was
+         *     in the order, because a replay is not a request to move anything.
+         */
+        put: operations["put_stop_api_trips__trip_id__stops__stop_id__put"];
         post?: never;
         /** Delete Stop */
         delete: operations["delete_stop_api_trips__trip_id__stops__stop_id__delete"];
@@ -195,7 +207,15 @@ export interface paths {
         };
         /** Read Booking */
         get: operations["read_booking_api_trips__trip_id__bookings__booking_id__get"];
-        put?: never;
+        /**
+         * Put Booking
+         * @description Create or replace one booking at an id the client chose.
+         *
+         *     The write that most wants this: you are handed a confirmation at a
+         *     desk, in a building with no signal, and the flight it describes has to
+         *     be recorded there rather than remembered until later.
+         */
+        put: operations["put_booking_api_trips__trip_id__bookings__booking_id__put"];
         post?: never;
         /** Delete Booking */
         delete: operations["delete_booking_api_trips__trip_id__bookings__booking_id__delete"];
@@ -293,7 +313,21 @@ export interface paths {
         };
         /** Read Place */
         get: operations["read_place_api_trips__trip_id__places__place_id__get"];
-        put?: never;
+        /**
+         * Put Place
+         * @description Create or replace one place at an id the client chose.
+         *
+         *     The POST above is still what a form uses online, because it is the
+         *     server's job to name a new row. This exists for the other case: a
+         *     place added in a tunnel, which has to be given an address before it
+         *     can be queued, and whose queued write may be replayed after its reply
+         *     was lost. Replaying it must leave one place, not two.
+         *
+         *     Replace, not merge: the body is the whole place. A queued create that
+         *     is edited three times before it drains sends the last version, and
+         *     the last version is the whole truth about what should be there.
+         */
+        put: operations["put_place_api_trips__trip_id__places__place_id__put"];
         post?: never;
         /** Delete Place */
         delete: operations["delete_place_api_trips__trip_id__places__place_id__delete"];
@@ -2263,6 +2297,42 @@ export interface operations {
             };
         };
     };
+    put_stop_api_trips__trip_id__stops__stop_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                stop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StopCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StopRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_stop_api_trips__trip_id__stops__stop_id__delete: {
         parameters: {
             query?: never;
@@ -2406,6 +2476,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_booking_api_trips__trip_id__bookings__booking_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingCreate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2640,6 +2746,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_place_api_trips__trip_id__places__place_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+                place_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceCreate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

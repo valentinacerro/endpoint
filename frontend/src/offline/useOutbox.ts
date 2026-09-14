@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { ApiError, apiFetch } from '../api/client'
-import { count, flush, subscribe, type QueuedWrite } from './outbox'
+import { flush, size, subscribe, type QueuedWrite } from './outbox'
 
 /**
  * Is this worth keeping the write for?
@@ -25,21 +25,6 @@ async function sendOne(entry: QueuedWrite): Promise<void> {
   await apiFetch(entry.url, { method: entry.method, body: entry.body })
 }
 
-/** A snapshot of the queue length that React can subscribe to. */
-let cached = 0
-void count().then((value) => {
-  cached = value
-})
-subscribe(() => {
-  void count().then((value) => {
-    cached = value
-  })
-})
-
-function snapshot(): number {
-  return cached
-}
-
 /**
  * The pending queue, and a way to drain it.
  *
@@ -50,7 +35,7 @@ function snapshot(): number {
  */
 export function useOutbox() {
   const queryClient = useQueryClient()
-  const pending = useSyncExternalStore(subscribe, snapshot, snapshot)
+  const pending = useSyncExternalStore(subscribe, size, size)
   const [flushing, setFlushing] = useState(false)
 
   const drain = useCallback(async () => {

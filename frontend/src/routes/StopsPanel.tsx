@@ -40,6 +40,7 @@ function AddStop({ tripId, defaultZone, onDone }: {
     if (!name.trim()) return
     create.mutate(
       {
+        id: crypto.randomUUID(),
         name: name.trim(),
         tz,
         country_code: country.trim() || null,

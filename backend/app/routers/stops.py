@@ -8,7 +8,7 @@ from app.errors import AppError
 from app.models import Stop, Trip
 from app.schemas.stop import StopCreate, StopRead, StopReorder, StopUpdate
 from app.services import ordering
-from app.services.lookup import apply_update, child_of_trip, get_or_404
+from app.services.lookup import apply_update, child_of_trip, free_or_owned, get_or_404
 
 router = APIRouter(prefix="/api/trips/{trip_id}/stops", tags=["stops"])
 
@@ -39,6 +39,38 @@ def reorder_stops(trip_id: uuid.UUID, payload: StopReorder, db: DbSession) -> li
     stops = ordering.reorder(db, trip_id, payload.stop_ids)
     db.commit()
     return stops
+
+
+@router.put("/{stop_id}", response_model=StopRead)
+def put_stop(trip_id: uuid.UUID, stop_id: uuid.UUID, payload: StopCreate, db: DbSession) -> Stop:
+    """Create or replace one stop at an id the client chose.
+
+    Same reason as places: a city added with no network needs an address
+    before it can be queued, and the queued write must survive being sent
+    twice.
+
+    `position` is the one field the body does not carry and must not lose.
+    A new stop goes on the end; a replaced one stays exactly where it was
+    in the order, because a replay is not a request to move anything.
+    """
+    get_or_404(db, Trip, trip_id)
+
+    existing = free_or_owned(db, Stop, stop_id, trip_id)
+    if existing is not None:
+        for field, value in payload.model_dump().items():
+            setattr(existing, field, value)
+        db.commit()
+        return existing
+
+    stop = Stop(
+        id=stop_id,
+        trip_id=trip_id,
+        position=ordering.next_position(db, trip_id),
+        **payload.model_dump(),
+    )
+    db.add(stop)
+    db.commit()
+    return stop
 
 
 @router.patch("/{stop_id}", response_model=StopRead)

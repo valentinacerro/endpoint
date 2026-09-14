@@ -123,6 +123,7 @@ function Importer({
             near: bundle.data ? tripCentre(bundle.data) : null,
           })
           await create.mutateAsync({
+            id: crypto.randomUUID(),
             name: found.name ?? label,
             category: 'sight',
             priority: 'normal',

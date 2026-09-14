@@ -11,7 +11,7 @@ from app.errors import AppError
 from app.models import Place, Stop, Trip
 from app.schemas.place import PlaceCreate, PlaceRead, PlaceUpdate
 from app.services import takeout
-from app.services.lookup import apply_update, child_of_trip, get_or_404
+from app.services.lookup import apply_update, child_of_trip, free_or_owned, get_or_404
 from app.services.maps import parse_maps_url
 
 router = APIRouter(prefix="/api/trips/{trip_id}/places", tags=["places"])
@@ -186,6 +186,39 @@ def schedule_places(trip_id: uuid.UUID, payload: ScheduleRequest, db: DbSession)
 @router.get("/{place_id}", response_model=PlaceRead)
 def read_place(trip_id: uuid.UUID, place_id: uuid.UUID, db: DbSession) -> Place:
     return child_of_trip(db, Place, place_id, trip_id)
+
+
+@router.put("/{place_id}", response_model=PlaceRead)
+def put_place(
+    trip_id: uuid.UUID, place_id: uuid.UUID, payload: PlaceCreate, db: DbSession
+) -> Place:
+    """Create or replace one place at an id the client chose.
+
+    The POST above is still what a form uses online, because it is the
+    server's job to name a new row. This exists for the other case: a
+    place added in a tunnel, which has to be given an address before it
+    can be queued, and whose queued write may be replayed after its reply
+    was lost. Replaying it must leave one place, not two.
+
+    Replace, not merge: the body is the whole place. A queued create that
+    is edited three times before it drains sends the last version, and
+    the last version is the whole truth about what should be there.
+    """
+    get_or_404(db, Trip, trip_id)
+    if payload.stop_id is not None:
+        child_of_trip(db, Stop, payload.stop_id, trip_id)
+
+    existing = free_or_owned(db, Place, place_id, trip_id)
+    if existing is not None:
+        for field, value in payload.model_dump().items():
+            setattr(existing, field, value)
+        db.commit()
+        return existing
+
+    place = Place(id=place_id, trip_id=trip_id, **payload.model_dump())
+    db.add(place)
+    db.commit()
+    return place
 
 
 @router.patch("/{place_id}", response_model=PlaceRead)
