@@ -1,7 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router'
 
-import { useCreatePlace, useDeletePlace, useTripBundle, useUpdatePlace } from '../api/trips'
+import {
+  useCreatePlace,
+  useDeletePlace,
+  useDeletePlaces,
+  useTripBundle,
+  useUpdatePlace,
+} from '../api/trips'
 import { PLACE_CATEGORIES, type Place, type PlaceCategory, type Priority } from '../api/types'
 import { AddPlaceFromLink } from '../components/AddPlaceFromLink'
 import { PlaceSearch } from '../components/PlaceSearch'
@@ -159,6 +165,9 @@ export function PlacesPanel() {
   const { tripId } = useParams<{ tripId: string }>()
   const bundle = useTripBundle(tripId)
   const remove = useDeletePlace(tripId ?? '')
+  const removeMany = useDeletePlaces(tripId ?? '')
+  /** Null while not choosing; a set once you are. */
+  const [picked, setPicked] = useState<Set<string> | null>(null)
   const update = useUpdatePlace(tripId ?? '')
   const [adding, setAdding] = useState(false)
   const [pasting, setPasting] = useState(false)
@@ -234,9 +243,70 @@ export function PlacesPanel() {
 
       <LocatePlaces tripId={tripId} places={places} near={near} />
 
+      {/* Choosing several at once. A list you filled from the suggestions
+          is forty rows you mostly did not mean to keep, and clearing it
+          one confirmation at a time is the kind of chore that makes a
+          screen feel hostile. */}
+      {places.length > 1 && (
+        <div className="row row--between">
+          {picked === null ? (
+            <button className="button button--small button--quiet" onClick={() => setPicked(new Set())}>
+              {t('places.choose')}
+            </button>
+          ) : (
+            <>
+              <button
+                className="button button--small button--quiet"
+                onClick={() =>
+                  setPicked(
+                    picked.size === places.length
+                      ? new Set()
+                      : new Set(places.map((place) => place.id)),
+                  )
+                }
+              >
+                {picked.size === places.length ? t('places.noneOfThem') : t('places.allOfThem')}
+              </button>
+              <button
+                className="button button--small button--danger"
+                disabled={picked.size === 0 || removeMany.isPending}
+                onClick={() => {
+                  if (!confirm(t('places.confirmMany', { count: picked.size }))) return
+                  removeMany.mutate([...picked], { onSuccess: () => setPicked(null) })
+                }}
+              >
+                {t('places.deleteChosen', { count: picked.size })}
+              </button>
+              <button className="button button--small button--quiet" onClick={() => setPicked(null)}>
+                {t('common.cancel')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       <ul className="docs">
         {places.map((place) => (
           <li key={place.id} className="doc">
+            {picked && (
+              <button
+                className="pack__tick pack__tick--bare"
+                onClick={() => {
+                  const next = new Set(picked)
+                  if (!next.delete(place.id)) next.add(place.id)
+                  setPicked(next)
+                }}
+                aria-pressed={picked.has(place.id)}
+                aria-label={place.name}
+              >
+                <span className={`pack__box ${picked.has(place.id) ? 'pack__box--on' : ''}`}>
+                  {picked.has(place.id) && <Icon name="check" size={14} />}
+                </span>
+              </button>
+            )}
+            {place.image_url && (
+              <img className="doc__photo" src={place.image_url} alt="" loading="lazy" />
+            )}
             <span className="doc__open" style={{ cursor: 'default' }}>
               <span className="doc__name">
                 {place.name}
@@ -244,6 +314,9 @@ export function PlacesPanel() {
                     <Icon name="star" size={12} title={priorityLabel('must_see')} />
                   </span>}
               </span>
+              {place.description && (
+                <span className="doc__meta doc__meta--what">{place.description}</span>
+              )}
               <span className="doc__meta">
                 {[
                   placeCategoryLabel(place.category),

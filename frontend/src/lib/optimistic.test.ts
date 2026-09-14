@@ -48,6 +48,8 @@ describe('a place added with no network', () => {
       place({
         category: 'viewpoint',
         weather_exposure: 'indoor',
+        description: null,
+        image_url: null,
         visit_minutes: 45,
         priority: 'must_see',
         opening_hours: { mon: [['10:00', '22:30']] },

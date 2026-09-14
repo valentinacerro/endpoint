@@ -487,6 +487,38 @@ export function useDeletePlace(tripId: string) {
   })
 }
 
+/**
+ * Drop several places in one go.
+ *
+ * Forty suggestions you did not want were forty taps and forty
+ * confirmations. The ids are named rather than the request meaning "all
+ * of them", so the screen and the server agree about what "all" was at
+ * the moment you looked at it.
+ */
+export function useDeletePlaces(tripId: string) {
+  const queryClient = useQueryClient()
+  return useMutation<{ deleted: number }, ApiError, string[], Rollback>({
+    mutationFn: (ids) =>
+      sendOrQueue(
+        {
+          key: `places-delete:${crypto.randomUUID()}`,
+          method: 'POST',
+          url: `/api/trips/${tripId}/places/delete`,
+          body: { ids },
+        },
+        () => ({ deleted: ids.length }),
+      ),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: keys.bundle(tripId) })
+      const previous = snapshotBundle(queryClient, tripId)
+      const going = new Set(ids)
+      patchPlaces(queryClient, tripId, (places) => places.filter((p) => !going.has(p.id)))
+      return { previous }
+    },
+    onError: (_error, _vars, context) => restore(queryClient, tripId, context?.previous),
+  })
+}
+
 // --- Google Maps links ---
 
 /**

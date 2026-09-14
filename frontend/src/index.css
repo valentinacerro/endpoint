@@ -2754,3 +2754,33 @@ a.entry__content:hover .entry__title {
   font-size: 11.5px;
   color: var(--text-muted);
 }
+
+/* --- A place with its photograph --- */
+.doc__photo {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--surface-sunken);
+}
+/* What the thing actually is, from Wikidata. One line: the row is a list
+   entry and not an article, and the whole sentence is on the place. */
+.doc__meta--what {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The tick, without the button padding it carries in the packing list. */
+.pack__tick--bare {
+  flex: 0 0 auto;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.row--between {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}

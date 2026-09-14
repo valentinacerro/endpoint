@@ -31,7 +31,9 @@ function stop(p: Partial<Stop> & { id: string; name: string }): Stop {
 function place(p: Partial<Place> & { id: string }): Place {
   return {
     trip_id: 'trip', stop_id: null, name: p.id, category: 'sight', priority: 'normal',
-    weather_exposure: 'mixed', lat: null, lon: null, address: null, url: null, notes: null,
+    weather_exposure: 'mixed',
+    description: null,
+    image_url: null, lat: null, lon: null, address: null, url: null, notes: null,
     visit_minutes: 90, planned_start_at: null, planned_tz: null, opening_hours: {},
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', ...p,
   }

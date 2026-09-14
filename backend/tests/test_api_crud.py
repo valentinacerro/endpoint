@@ -335,3 +335,51 @@ def test_malformed_opening_hours_are_refused(client: TestClient) -> None:
             json={"name": "x", "opening_hours": broken},
         )
         assert response.status_code == 422, broken
+
+
+def test_many_places_can_be_dropped_at_once(client: TestClient) -> None:
+    """Clearing forty suggestions you did not want was forty taps."""
+    trip = client.post("/api/trips", json={"title": "Japan"}).json()
+    ids = [
+        client.post(f"/api/trips/{trip['id']}/places", json={"name": f"Place {n}"}).json()["id"]
+        for n in range(3)
+    ]
+
+    response = client.post(f"/api/trips/{trip['id']}/places/delete", json={"ids": ids[:2]})
+    assert response.status_code == 200, response.text
+    assert response.json() == {"deleted": 2}
+    assert [p["name"] for p in client.get(f"/api/trips/{trip['id']}/places").json()] == ["Place 2"]
+
+
+def test_dropping_the_same_places_twice_is_not_an_error(client: TestClient) -> None:
+    # The interesting failure is a replay after a lost reply, and it must
+    # not become an error the second time round.
+    trip = client.post("/api/trips", json={"title": "Japan"}).json()
+    place = client.post(f"/api/trips/{trip['id']}/places", json={"name": "Senso-ji"}).json()
+
+    assert client.post(
+        f"/api/trips/{trip['id']}/places/delete", json={"ids": [place["id"]]}
+    ).json() == {"deleted": 1}
+    assert client.post(
+        f"/api/trips/{trip['id']}/places/delete", json={"ids": [place["id"]]}
+    ).json() == {"deleted": 0}
+
+
+def test_it_will_not_drop_another_trip_s_places(client: TestClient) -> None:
+    mine = client.post("/api/trips", json={"title": "Japan"}).json()
+    yours = client.post("/api/trips", json={"title": "Portugal"}).json()
+    theirs = client.post(f"/api/trips/{yours['id']}/places", json={"name": "Belem"}).json()
+
+    assert client.post(
+        f"/api/trips/{mine['id']}/places/delete", json={"ids": [theirs["id"]]}
+    ).json() == {"deleted": 0}
+    assert len(client.get(f"/api/trips/{yours['id']}/places").json()) == 1
+
+
+def test_an_empty_removal_is_refused_rather_than_silently_doing_nothing(client: TestClient) -> None:
+    # "Delete nothing" is far more likely to be a bug in the caller than
+    # an intention, and answering "fine, deleted 0" hides it.
+    trip = client.post("/api/trips", json={"title": "Japan"}).json()
+    assert (
+        client.post(f"/api/trips/{trip['id']}/places/delete", json={"ids": []}).status_code == 422
+    )

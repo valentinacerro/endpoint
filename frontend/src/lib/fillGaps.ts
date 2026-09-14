@@ -58,6 +58,11 @@ export function asPlace(
     lon: suggestion.lon,
     address: null,
     url: suggestion.wikidata ? `https://www.wikidata.org/wiki/${suggestion.wikidata}` : null,
+    // Kept, not just shown while choosing. Both were thrown away the
+    // moment a proposal was accepted, so the itinerary you ended up with
+    // was a list of names again.
+    description: suggestion.description ?? null,
+    image_url: suggestion.image ?? null,
     notes: null,
     visit_minutes: VISIT_MINUTES,
     planned_start_at: null,

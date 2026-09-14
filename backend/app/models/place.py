@@ -50,6 +50,15 @@ class Place(Base, UuidPk, Timestamps):
     lon: Mapped[float | None] = mapped_column(Float)
     address: Mapped[str | None] = mapped_column(Text)
     url: Mapped[str | None] = mapped_column(Text)
+    #: One line saying what this is, and a photograph of it — both from
+    #: Wikidata, both kept so they survive being chosen.
+    #:
+    #: Separate from `notes`, which is yours. A sentence the app fetched
+    #: and a sentence you wrote are different things, and putting the
+    #: first in the field meant for the second would make it impossible to
+    #: refresh one without destroying the other.
+    description: Mapped[str | None] = mapped_column(Text)
+    image_url: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
 
     # How long you expect to stay. Without it an optimiser can order stops but

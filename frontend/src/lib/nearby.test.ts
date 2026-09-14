@@ -14,6 +14,8 @@ function place(partial: Partial<Place> & { id: string; name: string }): Place {
     category: 'sight',
     priority: 'normal',
     weather_exposure: 'mixed',
+    description: null,
+    image_url: null,
     lat: null,
     lon: null,
     address: null,

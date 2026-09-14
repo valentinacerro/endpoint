@@ -90,3 +90,61 @@ test('the biggest button on the trip no longer asks for a flight number', async 
   await page.goto(`/trips/${tripId}`)
   await expect(page.locator('.fab')).toHaveCount(0)
 })
+
+test('a pile of places can be cleared without forty confirmations', async ({ page }) => {
+  // "Mi rimangono nella tab ed è fastidioso." Clearing a list you filled
+  // from the suggestions was one tap and one confirm per row.
+  const tripId = await seedTrip(page.request)
+  await page.goto(`/trips/${tripId}/places`)
+  // Waited for: `count()` does not, so counting straight after `goto`
+  // counts an empty screen and then deletes nothing, successfully.
+  await expect(page.getByRole('button', { name: /scegline più di uno/i })).toBeVisible()
+
+  const before = await page.locator('.doc').count()
+  expect(before).toBeGreaterThan(1)
+
+  await page.getByRole('button', { name: /scegline più di uno/i }).click()
+  await page.getByRole('button', { name: 'Seleziona tutti', exact: true }).click()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: `Elimina (${before})`, exact: true }).click()
+
+  await expect(page.locator('.doc')).toHaveCount(0)
+  expect(await page.request.get(`/api/trips/${tripId}/places`).then((r) => r.json())).toEqual([])
+})
+
+test('selecting all and then none leaves nothing chosen', async ({ page }) => {
+  const tripId = await seedTrip(page.request)
+  await page.goto(`/trips/${tripId}/places`)
+  await expect(page.getByRole('button', { name: /scegline più di uno/i })).toBeVisible()
+
+  await page.getByRole('button', { name: /scegline più di uno/i }).click()
+  await page.getByRole('button', { name: 'Seleziona tutti', exact: true }).click()
+  await page.getByRole('button', { name: 'Deseleziona tutti', exact: true }).click()
+
+  // Nothing chosen, so nothing to delete — and the button says so.
+  await expect(page.getByRole('button', { name: 'Elimina (0)', exact: true })).toBeDisabled()
+})
+
+test('a saved place keeps what it is and what it looks like', async ({ page }) => {
+  // Both were shown while choosing and thrown away the moment you
+  // accepted, so the list you ended up with was names again. They are
+  // columns on the place now.
+  await page.route('**/commons.wikimedia.org/**', (route) =>
+    route.fulfill({ contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAAAAACw=', 'base64') }),
+  )
+  const tripId = await seedTrip(page.request)
+  await page.request.post(`/api/trips/${tripId}/places`, {
+    data: {
+      name: 'Gokokuji',
+      category: 'temple',
+      description: 'tempio buddhista del 1681 a Bunkyō, Tokyo',
+      image_url: 'http://commons.wikimedia.org/wiki/Special:FilePath/Gokokuji.jpg?width=320',
+    },
+  })
+
+  await page.goto(`/trips/${tripId}/places`)
+  const row = page.locator('.doc', { hasText: 'Gokokuji' })
+  await expect(row.getByText('tempio buddhista del 1681 a Bunkyō, Tokyo')).toBeVisible()
+  await expect(row.locator('.doc__photo')).toBeVisible()
+})

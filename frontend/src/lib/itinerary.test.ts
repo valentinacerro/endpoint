@@ -70,6 +70,8 @@ function place(over: Partial<Place>): Place {
     category: 'temple',
     priority: 'normal',
     weather_exposure: 'outdoor',
+    description: null,
+    image_url: null,
     lat: null,
     lon: null,
     address: null,

@@ -88,6 +88,8 @@ export function SuggestPlaces({
           lat: item.lat,
           lon: item.lon,
           stop_id: stop.id,
+          description: item.description,
+          image_url: item.image,
         })
         setSaving({ done: index + 1, total: picked.length })
       }

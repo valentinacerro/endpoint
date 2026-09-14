@@ -53,6 +53,8 @@ class PlaceCreate(WriteModel):
     lon: float | None = Field(default=None, ge=-180, le=180)
     address: str | None = None
     url: str | None = None
+    description: str | None = None
+    image_url: str | None = None
     notes: str | None = None
     visit_minutes: int = Field(default=60, gt=0, le=24 * 60)
     planned_start_at: AwareDatetime | None = None
@@ -95,6 +97,8 @@ class PlaceUpdate(WriteModel):
     lon: float | None = Field(default=None, ge=-180, le=180)
     address: str | None = None
     url: str | None = None
+    description: str | None = None
+    image_url: str | None = None
     notes: str | None = None
     visit_minutes: int | None = Field(default=None, gt=0, le=24 * 60)
     planned_start_at: AwareDatetime | None = None
@@ -119,6 +123,8 @@ class PlaceRead(ReadModel):
     lon: float | None
     address: str | None
     url: str | None
+    description: str | None
+    image_url: str | None
     notes: str | None
     visit_minutes: int
     planned_start_at: dt.datetime | None

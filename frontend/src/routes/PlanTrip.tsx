@@ -162,6 +162,8 @@ export function PlanTrip() {
           lat: item.place.lat,
           lon: item.place.lon,
           url: item.place.url,
+          description: item.place.description,
+          image_url: item.place.image_url,
         })),
         scheduled: plan.writes.map((write) => ({
           id: write.placeId,

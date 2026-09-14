@@ -71,6 +71,8 @@ function place(over: Partial<Place> = {}): Place {
     notes: null,
     visit_minutes: 90,
     weather_exposure: 'outdoor',
+    description: null,
+    image_url: null,
     opening_hours: null,
     planned_start_at: null,
     planned_tz: null,

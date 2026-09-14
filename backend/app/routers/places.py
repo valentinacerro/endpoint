@@ -240,6 +240,44 @@ def schedule_places(trip_id: uuid.UUID, payload: ScheduleRequest, db: DbSession)
     )
 
 
+class Removal(BaseModel):
+    """Which places to drop, named one by one."""
+
+    ids: list[uuid.UUID] = Field(default_factory=list, min_length=1, max_length=500)
+
+
+class RemovalSummary(BaseModel):
+    deleted: int
+
+
+# Declared before "/{place_id}", or "delete" is read as an id.
+@router.post("/delete", response_model=RemovalSummary)
+def delete_places(trip_id: uuid.UUID, payload: Removal, db: DbSession) -> RemovalSummary:
+    """Drop many places at once.
+
+    Clearing out a list of forty suggestions you did not want was forty
+    taps and forty confirmations, one request each. The ids are named
+    rather than the request meaning "all of them": a button that empties a
+    list is one mis-tap from deleting an evening's work, and naming what
+    goes keeps the screen and the server agreeing about what "all" meant
+    when the screen was drawn.
+
+    Idempotent, deliberately. An id that is not on this trip — already
+    deleted, or never here — is skipped rather than refused, because the
+    interesting failure is a replay after a lost reply and that must not
+    turn into an error the second time.
+    """
+    get_or_404(db, Trip, trip_id)
+
+    doomed = list(
+        db.scalars(select(Place).where(Place.trip_id == trip_id, Place.id.in_(payload.ids)))
+    )
+    for place in doomed:
+        db.delete(place)
+    db.commit()
+    return RemovalSummary(deleted=len(doomed))
+
+
 @router.get("/{place_id}", response_model=PlaceRead)
 def read_place(trip_id: uuid.UUID, place_id: uuid.UUID, db: DbSession) -> Place:
     return child_of_trip(db, Place, place_id, trip_id)

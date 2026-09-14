@@ -318,6 +318,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trips/{trip_id}/places/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete Places
+         * @description Drop many places at once.
+         *
+         *     Clearing out a list of forty suggestions you did not want was forty
+         *     taps and forty confirmations, one request each. The ids are named
+         *     rather than the request meaning "all of them": a button that empties a
+         *     list is one mis-tap from deleting an evening's work, and naming what
+         *     goes keeps the screen and the server agreeing about what "all" meant
+         *     when the screen was drawn.
+         *
+         *     Idempotent, deliberately. An id that is not on this trip — already
+         *     deleted, or never here — is skipped rather than refused, because the
+         *     interesting failure is a replay after a lost reply and that must not
+         *     turn into an error the second time.
+         */
+        post: operations["delete_places_api_trips__trip_id__places_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trips/{trip_id}/places/{place_id}": {
         parameters: {
             query?: never;
@@ -1412,6 +1444,10 @@ export interface components {
             address?: string | null;
             /** Url */
             url?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Image Url */
+            image_url?: string | null;
             /** Notes */
             notes?: string | null;
             /**
@@ -1469,6 +1505,10 @@ export interface components {
             address?: string | null;
             /** Url */
             url?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Image Url */
+            image_url?: string | null;
             /** Notes */
             notes?: string | null;
             /**
@@ -1512,6 +1552,10 @@ export interface components {
             address: string | null;
             /** Url */
             url: string | null;
+            /** Description */
+            description: string | null;
+            /** Image Url */
+            image_url: string | null;
             /** Notes */
             notes: string | null;
             /** Visit Minutes */
@@ -1552,6 +1596,10 @@ export interface components {
             address?: string | null;
             /** Url */
             url?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Image Url */
+            image_url?: string | null;
             /** Notes */
             notes?: string | null;
             /** Visit Minutes */
@@ -1595,6 +1643,19 @@ export interface components {
          * @enum {string}
          */
         RateSource: "ecb" | "manual";
+        /**
+         * Removal
+         * @description Which places to drop, named one by one.
+         */
+        Removal: {
+            /** Ids */
+            ids?: string[];
+        };
+        /** RemovalSummary */
+        RemovalSummary: {
+            /** Deleted */
+            deleted: number;
+        };
         /** ResolveIn */
         ResolveIn: {
             /** Url */
@@ -2822,6 +2883,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScheduleSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_places_api_trips__trip_id__places_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Removal"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemovalSummary"];
                 };
             };
             /** @description Validation Error */
