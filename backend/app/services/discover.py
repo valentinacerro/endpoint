@@ -1,0 +1,300 @@
+"""Finding places to see, when you have not collected any yourself.
+
+Not everyone arrives with a Google Maps list. Without one the planner has
+nothing to arrange, and an empty itinerary is not a plan — so this asks
+OpenStreetMap what is around each stop and ranks the answers.
+
+Two free sources, no key and no card between them:
+
+  Overpass is OpenStreetMap's own query API. It knows what is where and
+  what kind of thing it is, and nothing at all about whether anyone would
+  want to go. A radius around Shibuya returns several hundred entries in
+  which a world-famous shrine and a plaque on a wall are peers.
+
+  Wikidata supplies the missing half. An OSM object often carries a
+  `wikidata` tag, and Wikidata knows how many Wikipedia language editions
+  describe that entity — seventy-two for Tokyo Skytree, forty-eight for
+  Senso-ji, two for a neighbourhood museum, none for a local shrine. It is
+  a proxy for fame, not for whether you personally would enjoy it, which
+  is why what comes out of here is a suggestion you accept rather than an
+  itinerary that appears.
+
+  One trap, found by reading the first real list this produced: mappers
+  put the `wikidata` of the person COMMEMORATED on a statue, not of the
+  statue. Ranked naively, a knee-high plaque in a park came top of
+  Asakusa on Ulysses S. Grant's two hundred and seventy Wikipedia
+  articles, and Senso-ji was nowhere. So the query asks Wikidata to leave
+  out anything that is an instance of human, which it can do in the same
+  breath as the counting.
+
+Overpass is a volunteer service with no promise of being up: while this
+was being written the main instance answered 504 twice and timed out
+once. Hence the mirrors, the short timeout, and — more importantly — the
+caching the caller does, so a second look at the same city costs nothing
+and a bad afternoon for Overpass is not a broken feature.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from math import cos, radians
+
+import httpx
+
+from app.enums import PlaceCategory
+from app.services.geocode import categorise
+
+#: Tried in order. The main instance is the most complete and the most
+#: loaded; the mirrors exist for exactly this reason.
+_OVERPASS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+)
+#: The query service, not the entity API: asking `wbgetentities` for
+#: claims costs about 130 MB for a city's worth of ids, and one SPARQL
+#: query answers the count and the is-it-a-person question together in
+#: about a kilobyte.
+_WIKIDATA = "https://query.wikidata.org/sparql"
+
+#: Wikimedia asks for an agent that says who is calling; anonymous ones
+#: are answered with 403.
+_USER_AGENT = "endpoint/1.0 (personal travel planner; https://github.com/valentinacerro/endpoint)"
+
+_OVERPASS_TIMEOUT = 30.0
+_WIKIDATA_TIMEOUT = 25.0
+
+#: How many ids go into one SPARQL `VALUES` clause. Large enough that a
+#: city is one or two calls, small enough to stay well inside the query
+#: service's limits.
+_WIKIDATA_BATCH = 300
+
+#: What counts as somewhere you might go. Three decisions are load-bearing,
+#: and all three were measured rather than guessed on a 5 km box over
+#: central Tokyo:
+#:
+#:  - Narrow tags. OSM will happily return post boxes and drinking
+#:    fountains under a broad `amenity`.
+#:  - `nw`, not `nwr`. Relations are what make this query slow: with them
+#:    the main instance answered 504 and the mirror timed out at forty
+#:    seconds; without them, 901 of 938 objects in 5.6 seconds.
+#:  - `["wikidata"]`. Only an object Wikidata knows can be ranked at all,
+#:    and the rest would be unsorted filler under the part you read. It
+#:    does mean a place OSM knows and Wikidata does not is missing from
+#:    the suggestions — which is a real cost, paid because a list you
+#:    scroll past is worth less than a short one you use.
+_QUERY = """
+[out:json][timeout:25];
+(
+  nw["wikidata"]["tourism"~"^(attraction|museum|gallery|viewpoint|zoo|aquarium|theme_park)$"]{area};
+  nw["wikidata"]["historic"~"^(castle|monument|ruins|city_gate|fort|archaeological_site)$"]{area};
+  nw["wikidata"]["amenity"~"^(place_of_worship|theatre)$"]{area};
+  nw["wikidata"]["leisure"~"^(park|garden)$"]{area};
+);
+out center tags;
+"""
+
+
+@dataclass(frozen=True)
+class Suggestion:
+    name: str
+    lat: float
+    lon: float
+    category: PlaceCategory
+    #: How many Wikipedia language editions describe it. 0 means either
+    #: genuinely obscure or simply not linked to Wikidata in OSM — the two
+    #: are indistinguishable here, which is why this only ever ranks.
+    fame: int
+    #: The Wikidata entity, when OSM names one. Carried so a caller can
+    #: cache by it and so a reader can go and look it up.
+    wikidata: str | None
+    osm_id: str
+
+
+def _bbox(lat: float, lon: float, radius_km: float) -> str:
+    """A bounding box, in degrees, around a point.
+
+    A box rather than Overpass's `around` filter: `around` is markedly
+    slower on a loaded instance, and the corners it adds are trimmed by
+    distance afterwards anyway.
+    """
+    # 111.32 km per degree of latitude; longitude shrinks with the cosine,
+    # and near the poles it stops meaning anything — clamped so a trip to
+    # Svalbard produces a wide box rather than a division by zero.
+    dlat = radius_km / 111.32
+    dlon = radius_km / max(111.32 * cos(radians(lat)), 1.0)
+    return f"({lat - dlat:.5f},{lon - dlon:.5f},{lat + dlat:.5f},{lon + dlon:.5f})"
+
+
+def _tag_of(tags: dict[str, str]) -> tuple[str | None, str | None]:
+    """The one OSM tag that says what this is, in the order we trust them.
+
+    `building` comes first because it is the only tag that separates a
+    temple from a shrine — `amenity=place_of_worship` does not say, and in
+    Japan guessing between them is wrong about half the time. Senso-ji is
+    tagged as an attraction, a place of worship AND a temple building; the
+    last of those is the one worth keeping.
+    """
+    for key in ("building", "tourism", "historic", "leisure", "amenity"):
+        value = tags.get(key)
+        if value and (key != "building" or value in ("temple", "shrine", "church")):
+            return key, value
+    return None, None
+
+
+def parse(payload: dict) -> list[Suggestion]:
+    """Turn an Overpass answer into candidates, dropping what cannot be used.
+
+    Pure, so the shape of the answer can be tested without a network. A
+    place with no name is dropped: a row reading "Attraction" helps nobody
+    choose.
+    """
+    out: list[Suggestion] = []
+    seen: set[str] = set()
+
+    for element in payload.get("elements", []):
+        tags = element.get("tags") or {}
+        name = tags.get("name:en") or tags.get("name")
+        if not name:
+            continue
+
+        # A node carries its own position; a way or relation carries a
+        # computed centre, which is what `out center` is for.
+        centre = element.get("center") or element
+        lat, lon = centre.get("lat"), centre.get("lon")
+        if lat is None or lon is None:
+            continue
+
+        osm_id = f"{element.get('type', 'node')}/{element.get('id')}"
+        # The same church can come back under two tags in one answer.
+        key = tags.get("wikidata") or osm_id
+        if key in seen:
+            continue
+        seen.add(key)
+
+        osm_key, osm_value = _tag_of(tags)
+        out.append(
+            Suggestion(
+                name=str(name),
+                lat=float(lat),
+                lon=float(lon),
+                category=categorise(osm_key, osm_value),
+                fame=0,
+                wikidata=tags.get("wikidata"),
+                osm_id=osm_id,
+            )
+        )
+    return out
+
+
+async def _overpass(client: httpx.AsyncClient, query: str) -> dict | None:
+    """Ask each instance in turn, and give up quietly.
+
+    Quietly because the caller has a cache and a screen to draw: a
+    suggestion list that fails to appear is a disappointment, and one that
+    raises is a broken button.
+    """
+    for url in _OVERPASS:
+        try:
+            response = await client.post(
+                url, data={"data": query}, headers={"User-Agent": _USER_AGENT}
+            )
+            if response.status_code == 200:
+                return response.json()
+        except (httpx.HTTPError, ValueError):
+            continue
+    return None
+
+
+def _sparql(ids: list[str]) -> str:
+    """Count the language editions, and leave people out.
+
+    `FILTER NOT EXISTS { ?item wdt:P31 wd:Q5 }` is the whole defence
+    against ranking a statue by the fame of its subject. An entity that
+    fails it is simply absent from the answer, which the caller reads as
+    a count of zero — correct, since the statue itself is not notable.
+    """
+    values = " ".join(f"wd:{qid}" for qid in ids)
+    return (
+        "SELECT ?item ?links WHERE { VALUES ?item { "
+        + values
+        + " } ?item wikibase:sitelinks ?links . "
+        + "FILTER NOT EXISTS { ?item wdt:P31 wd:Q5 } }"
+    )
+
+
+async def fame(client: httpx.AsyncClient, ids: list[str]) -> dict[str, int]:
+    """How many Wikipedia language editions describe each entity.
+
+    Failure returns an empty map rather than raising: without it the
+    suggestions are merely unsorted, which is a great deal better than
+    none at all.
+    """
+    counts: dict[str, int] = {}
+    for start in range(0, len(ids), _WIKIDATA_BATCH):
+        batch = ids[start : start + _WIKIDATA_BATCH]
+        try:
+            response = await client.get(
+                _WIKIDATA,
+                params={"query": _sparql(batch), "format": "json"},
+                headers={
+                    "User-Agent": _USER_AGENT,
+                    "Accept": "application/sparql-results+json",
+                },
+            )
+            response.raise_for_status()
+            rows = response.json()["results"]["bindings"]
+        except (httpx.HTTPError, ValueError, KeyError):
+            continue
+        for row in rows:
+            qid = row["item"]["value"].rsplit("/", 1)[-1]
+            counts[qid] = int(row["links"]["value"])
+    return counts
+
+
+async def around(
+    lat: float,
+    lon: float,
+    radius_km: float = 8.0,
+    limit: int = 60,
+) -> list[Suggestion]:
+    """Places worth seeing near a point, the best known first.
+
+    `limit` trims the ANSWER, never the pool. Capping the Overpass query
+    instead was the first version's mistake: Overpass returns in id order,
+    not in any order of interest, so asking it for a hundred and twenty of
+    four thousand meant ranking an arbitrary slice — and Senso-ji was not
+    in it.
+    """
+    query = _QUERY.replace("{area}", _bbox(lat, lon, radius_km))
+
+    async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT) as client:
+        payload = await _overpass(client, query)
+    if payload is None:
+        return []
+
+    found = parse(payload)
+    qids = [place.wikidata for place in found if place.wikidata]
+    if qids:
+        async with httpx.AsyncClient(timeout=_WIKIDATA_TIMEOUT) as client:
+            counts = await fame(client, qids)
+        found = [
+            Suggestion(**{**place.__dict__, "fame": counts.get(place.wikidata or "", 0)})
+            for place in found
+        ]
+
+    return rank(found)[:limit]
+
+
+def rank(places: list[Suggestion]) -> list[Suggestion]:
+    """Best known first, and alphabetical among the unknown.
+
+    The second half matters more than it looks: most entries have no
+    Wikidata link at all, so without a tiebreak the order below the famous
+    ones is whatever Overpass happened to emit, which changes between
+    calls and makes the list feel random.
+    """
+    return sorted(places, key=lambda place: (-place.fame, place.name.casefold()))
+
+
+__all__ = ["Suggestion", "around", "fame", "parse", "rank"]

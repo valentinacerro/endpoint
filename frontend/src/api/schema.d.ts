@@ -344,6 +344,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/geo/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover Places
+         * @description What there is to see around a point, the best known first.
+         *
+         *     For a trip that arrives with no saved places: without this the planner
+         *     has nothing to arrange, and an empty itinerary is not a plan.
+         *
+         *     An empty list is a legitimate answer and not an error. Overpass is a
+         *     volunteer service that falls over regularly, and a suggestion list
+         *     that fails to appear is a disappointment where a 502 would be a bug.
+         *     The client caches what it gets, so a second look costs nothing.
+         */
+        get: operations["discover_places_api_geo_discover_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rates": {
         parameters: {
             query?: never;
@@ -1557,6 +1585,22 @@ export interface components {
          * @enum {string}
          */
         StorageBackend: "db" | "s3";
+        /** SuggestionOut */
+        SuggestionOut: {
+            /** Name */
+            name: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            category: components["schemas"]["PlaceCategory"];
+            /** Fame */
+            fame: number;
+            /** Wikidata */
+            wikidata: string | null;
+            /** Osm Id */
+            osm_id: string;
+        };
         /**
          * TimePrecision
          * @description Tells "flight at 09:35" apart from "hotel, 12th to 15th April".
@@ -2626,6 +2670,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HitOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discover_places_api_geo_discover_get: {
+        parameters: {
+            query: {
+                lat: number;
+                lon: number;
+                radius_km?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionOut"][];
                 };
             };
             /** @description Validation Error */
